@@ -1,0 +1,6 @@
+*.vtu
+*.pvtu
+*.vtm
+*.swp
+*.pyc
+*.log
