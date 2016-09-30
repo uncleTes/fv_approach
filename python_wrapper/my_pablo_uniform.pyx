@@ -272,4 +272,26 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
         #    g_g_nodes.append(to_append)
 
         return g_nodes
-        
+
+    # FV approach...
+    def get_area(self,
+                 uintptr_t inter):
+
+        area = self.der_thisptr._getArea(<Intersection*><void*>inter)
+
+        return area
+
+    def get_normal(self,
+                   uintptr_t inter):
+        cdef darray3 normal
+        # Size of the \"normal\".
+        cdef int n_size = 3
+        cdef int i
+        py_normal = []
+
+        normal = self.der_thisptr._getNormal(<Intersection*><void*>inter)
+
+        for i in xrange(0, n_size):
+            py_normal.append(normal[i])
+
+        return py_normal
