@@ -9,3 +9,7 @@ CMakeFiles/
 .directory
 .settings/
 .DS_Store
+python_wrapper/*.cpp
+python_wrapper/*.h
+python_wrapper/*.so
+python_wrapper/*.a
