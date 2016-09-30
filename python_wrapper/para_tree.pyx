@@ -349,10 +349,16 @@ cdef class Py_Para_Tree:
                      uint32_t idx):
         return self.thisptr.getIsNewC(idx)
         
-    def get_is_ghost(self, 
-                     uintptr_t octant):
-        return self.thisptr.getIsGhost(<Octant*><void*>octant)
-	
+    def get_is_ghost(self         ,
+                     uintptr_t ptr,
+                     # By default, \"ptr\" will be treated as a pointer to an
+                     # \"Octant\", and not to an \"Intersection\". Of course the
+                     # user has to choose between them.
+                     is_ptr_inter = False):
+        if (not is_ptr_inter):
+            return self.thisptr.getIsGhost(<Octant*><void*>ptr)
+        else:
+            return self.thisptr.getIsGhost(<Intersection*><void*>ptr)
     def get_octant(self, 
                    uint32_t idx):
         cdef Octant* octant
@@ -465,10 +471,13 @@ cdef class Py_Para_Tree:
 
             self.thisptr.loadBalance(weight)
     
-    def get_level(self, 
-                  uint32_t idx):
-        cdef uint32_t c_idx = idx
-        return self.thisptr.getLevel(c_idx)
+    def get_level(self            ,
+                  uintptr_t octant,
+                  ptr_octant = False):
+        if (ptr_octant):
+            return self.thisptr.getLevel(<Octant*><void*>octant)
+
+        return self.thisptr.getLevel(<uint32_t>octant)
 
     def find_neighbours(self                 , 
                         uint32_t idx         ,
