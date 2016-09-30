@@ -45,6 +45,11 @@ cdef extern from "MyPabloUniform.hpp" namespace "bitpit":
         darray3 _getGhostNodeCoordinates(uint32_t inode)
         darray3 _getNodeCoordinates(uint32_t inode)
 
+        # FV approach...
+        double _getArea(Intersection* inter)
+
+        darray3 _getNormal(Intersection* inter)
+
 cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
     cdef MyPabloUniform* der_thisptr
 
