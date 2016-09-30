@@ -517,5 +517,80 @@ cdef class Py_Para_Tree:
         self.thisptr.getFacenode(<uint8_t (*)[4]>&face_node[0, 0])
 
         return face_node.tolist()
- 
 
+    # FV approach...
+    def get_num_intersections(self):
+        return self.thisptr.getNumIntersections()
+
+    def get_intersection(self,
+                         uint32_t idx):
+        cdef Intersection* inter
+
+        inter = self.thisptr.getIntersection(idx)
+        py_inter = <uintptr_t>inter
+
+        return py_inter
+
+    def get_owners(self,
+                   uintptr_t inter):
+        return self.thisptr.getOwners(<Intersection*><void*>inter)
+
+    def get_face(self,
+                 uintptr_t inter):
+        return self.thisptr.getFace(<Intersection*><void*>inter)
+
+    def get_bound(self,
+                  uintptr_t inter):
+        return self.thisptr.getBound(<Intersection*><void*>inter)
+
+    def get_finer(self,
+                  uintptr_t inter):
+        return self.thisptr.getFiner(<Intersection*><void*>inter)
+
+    def get_nodes(self,
+                  uintptr_t inter):
+        cdef darr3vector nodes
+        cdef darray3 node
+        # Vector size.
+        cdef int v_size
+        cdef int i
+        cdef int j
+        # Array size.
+        cdef int a_size = 3
+        py_nodes = []
+
+        nodes = self.thisptr.getNodes(<Intersection*><void*>inter)
+        v_size = nodes.size()
+        for i in xrange(0, v_size):
+            node = nodes[i]
+            # We are doing this second \"for\" loop because without it, Cython
+            # compiler would give us the following error:
+            # \"Cannot convert 'darray3' to Python object\".
+            py_node = []
+            for j in xrange(0, a_size):
+                py_node.append(node[j])
+
+            py_nodes.append(py_node)
+
+        return py_nodes
+
+    def get_area(self,
+                 uintptr_t inter):
+        area = self.thisptr.getArea(<Intersection*><void*>inter)
+
+        return area
+
+    def get_normal(self,
+                   uintptr_t inter):
+        cdef darray3 normal
+        # Size of the \"normal\".
+        cdef int n_size = 3
+        cdef int i
+        py_normal = []
+
+        normal = self.thisptr.getNormal(<Intersection*><void*>inter)
+
+        for i in xrange(0, n_size):
+            py_normal.append(normal[i])
+
+        return py_normal
