@@ -1,5 +1,6 @@
 # set tabstop=8 softtabstop=0 expandtab shiftwidth=4 smarttab
 include "octant.pyx"
+include "intersection.pyx"
 
 from libcpp.map cimport map
 from libcpp.string cimport string
