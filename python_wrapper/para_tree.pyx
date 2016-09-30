@@ -149,6 +149,28 @@ cdef extern from "ParaTree.hpp" namespace "bitpit":
 
         void getFacenode(uint8_t nodeface[6][4])
 
+        # FV approach...
+        uint32_t getNumIntersections()
+
+        Intersection* getIntersection(uint32_t idx)
+
+        u32vector getOwners(Intersection* inter)
+
+        uint8_t getFace(Intersection* inter)
+
+        bool getBound(Intersection* inter)
+
+        bool getFiner(Intersection* inter)
+
+        darr3vector getNodes(Intersection* inter)
+
+        double getArea(Intersection* inter)
+
+        darray3 getNormal(Intersection* inter)
+
+        bool getIsGhost(Intersection* inter)
+
+        uint8_t getLevel(Octant* octant)
  
 cdef class Py_Para_Tree:
     cdef ParaTree* thisptr
