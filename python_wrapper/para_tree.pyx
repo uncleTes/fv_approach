@@ -17,6 +17,10 @@ ELSE:
     #ctypedef _mpi_comm_t* MPI_Comm
     ctypedef public int MPI_Comm
 
+# Actually, this typedef is in "Map.hpp", but we just need it without the "Map"
+# class so, here we are.
+ctypedef public vector[darray3] darr3vector
+
 #http://www.cplusplus.com/reference/bitset/bitset/
 cdef extern from "<bitset>" namespace "std":
    cdef cppclass bitset[T]:
