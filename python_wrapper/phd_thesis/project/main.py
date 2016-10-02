@@ -17,6 +17,7 @@ petsc4py.init(sys.argv)
 from   petsc4py import PETSc
 import time
 import utilities
+import pdb
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
@@ -615,6 +616,7 @@ if __name__ == "__main__":
     # http://stackoverflow.com/questions/3898266/what-is-this-cprofile-result-telling-me-i-need-to-fix
     #cProfile.run('main()', sort='cumulative')
     main()
+    #pdb.run('main()')
 
     comm_w.Barrier()
 
