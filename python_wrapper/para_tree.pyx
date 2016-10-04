@@ -171,7 +171,9 @@ cdef extern from "ParaTree.hpp" namespace "bitpit":
         bool getIsGhost(Intersection* inter)
 
         uint8_t getLevel(Octant* octant)
- 
+
+        void computeIntersections()
+
 cdef class Py_Para_Tree:
     cdef ParaTree* thisptr
     cdef MPI_Comm mpi_comm
@@ -330,9 +332,13 @@ cdef class Py_Para_Tree:
 
     def get_bound(self            , 
                   uintptr_t octant, 
-                  uint8_t iface):
-        return self.thisptr.getBound(<Octant*><void*>octant,
-                                     iface)
+                  uint8_t iface   ,
+	          bool is_ptr_inter = False):
+        if (is_ptr_inter):
+            return self.thisptr.getBound(<Intersection*><void*>octant)
+        else:
+            return self.thisptr.getBound(<Octant*><void*>octant,
+                                         iface)
 
     def get_ghost_global_idx(self, 
                              uint32_t idx):
@@ -548,9 +554,9 @@ cdef class Py_Para_Tree:
                  uintptr_t inter):
         return self.thisptr.getFace(<Intersection*><void*>inter)
 
-    def get_bound(self,
-                  uintptr_t inter):
-        return self.thisptr.getBound(<Intersection*><void*>inter)
+    #def get_bound(self,
+    #              uintptr_t inter):
+    #    return self.thisptr.getBound(<Intersection*><void*>inter)
 
     def get_finer(self,
                   uintptr_t inter):
@@ -603,3 +609,6 @@ cdef class Py_Para_Tree:
             py_normal.append(normal[i])
 
         return py_normal
+
+    def compute_intersections(self):
+       self.thisptr.computeIntersections() 

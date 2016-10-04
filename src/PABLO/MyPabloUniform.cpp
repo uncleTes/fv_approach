@@ -283,6 +283,19 @@ MyPabloUniform::_getNodes(uint32_t idx){
 	return nodes;
 };
 
+darr3vector
+MyPabloUniform::_getNodes(Intersection* inter){
+	darr3vector nodes, nodes_ = ParaTree::getNodes(inter);
+	nodes.resize(ParaTree::getNnodesperface());
+	for (int j=0; j<ParaTree::getNnodesperface(); j++){
+	    for (int i=0; i<3; i++){
+	        nodes[j][i] = m_origin[i] + m_L * nodes_[j][i];
+	    }
+	}
+	return nodes;
+}
+
+
 void
 MyPabloUniform::_getNormal(uint32_t idx, uint8_t & iface, darray3 & normal) {
 	ParaTree::getNormal(idx, iface, normal);
@@ -292,6 +305,11 @@ darray3
 MyPabloUniform::_getNormal(uint32_t idx, uint8_t & iface){
 	return ParaTree::getNormal(idx, iface);
 }
+
+darray3
+MyPabloUniform::_getNormal(Intersection* inter){
+	return ParaTree::getNormal(inter);
+   }
 
 // =================================================================================== //
 // POINTER BASED METHODS															   //

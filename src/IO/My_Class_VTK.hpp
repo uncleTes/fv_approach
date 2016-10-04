@@ -49,6 +49,12 @@ public:
         this->setDimensions(ncell_  , 
                             npoints_, 
                             nconn_);
+                            //VTKElementType::QUAD);
+	this->setGeomData(VTKUnstructuredField::POINTS, this);
+	this->setGeomData(VTKUnstructuredField::OFFSETS, this);
+	this->setGeomData(VTKUnstructuredField::TYPES, this);
+	this->setGeomData(VTKUnstructuredField::CONNECTIVITY, this);
+
         
         data = data_;
         size_t nNodes = grid._getNumNodes();
@@ -76,9 +82,9 @@ public:
     }
         
 
-    void flushData(fstream &str   , 
-                   VTKFormat codex,
-                   string name) {
+    void flushData(fstream &str   ,
+		   string name    ,
+                   VTKFormat codex) {
 
         int index;
         string vtk_format;

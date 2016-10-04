@@ -87,6 +87,7 @@ namespace bitpit {
         // Write info log
         log::manager().create(logfile, false, m_nproc, m_rank);
         m_log = &log::cout(logfile);
+        m_log->setConsoleVerbosity(log::Verbosity::QUIET);
         (*m_log) << log::context("PABLO");
         (*m_log) << "---------------------------------------------" << endl;
         (*m_log) << "- PABLO PArallel Balanced Linear Octree -" << endl;
@@ -186,6 +187,7 @@ namespace bitpit {
         // Write info log
         log::manager().create(logfile, false, m_nproc, m_rank);
         m_log = &log::cout(logfile);
+        m_log->setConsoleVerbosity(log::Verbosity::QUIET);
         (*m_log) << log::context("PABLO");
         (*m_log) << "---------------------------------------------" << endl;
         (*m_log) << "- PABLO PArallel Balanced Linear Octree -" << endl;

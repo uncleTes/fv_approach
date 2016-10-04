@@ -351,7 +351,7 @@ def set_octree(comm_l,
    
     pablo.load_balance()
     pablo.update_connectivity()
-    pablo.update_ghosts_connectivity()
+    #pablo.update_ghosts_connectivity()
 
     n_octs = pablo.get_num_octants()
     n_nodes = pablo.get_num_nodes()
