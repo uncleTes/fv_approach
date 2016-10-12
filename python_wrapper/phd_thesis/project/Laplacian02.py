@@ -768,7 +768,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         face_node = octree.get_face_node()
         h = self._h
         dimension = self._dim
-        h2 = h * h
         is_background = True if (not grid) else False
         # Lists containing number of non zero elements for diagonal and non
         # diagonal part of the coefficients matrix, for row. 
@@ -788,7 +787,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_nodes = octree.get_nodes
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
-        get_bound = self._octree.get_bound
+        get_bound = octree.get_bound
         check_neighbour = self.check_neighbour
 
         for octant in octants:
