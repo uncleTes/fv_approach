@@ -233,16 +233,6 @@ def check_into_circle(point_to_check,
 
     return check
 
-def get_corners_from_center(center,
-                            edge):
-    corners = []
-    corners.append([center[0] - (edge/2.0), center[1] - (edge/2.0)])
-    corners.append([center[0] + (edge/2.0), center[1] - (edge/2.0)])
-    corners.append([center[0] - (edge/2.0), center[1] + (edge/2.0)])
-    corners.append([center[0] + (edge/2.0), center[1] + (edge/2.0)])
-
-    return corners
-
 def is_point_inside_polygons(point   ,
                              polygons,
                              logger  ,
