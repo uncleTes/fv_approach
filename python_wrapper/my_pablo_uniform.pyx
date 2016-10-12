@@ -51,6 +51,8 @@ cdef extern from "MyPabloUniform.hpp" namespace "bitpit":
         darray3 _getNormal(Intersection* inter)
         
         darr3vector _getNodes(Intersection* inter)
+        darr3vector _getNodes(Octant* idx)
+        darr3vector _getNodes(uint32_t idx)
 
 cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
     cdef MyPabloUniform* der_thisptr
@@ -298,29 +300,38 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
 
         return py_normal
     
-    def get_nodes(self,
-                  uintptr_t inter):
+    def get_nodes(self               ,
+                  uintptr_t idx      ,
+                  int dim            ,
+                  bool is_ptr = False,
+                  bool is_inter = False):
         cdef darr3vector nodes
-        cdef darray3 node
+        #cdef darray3 node
         # Vector size.
-        cdef int v_size
-        cdef int i
-        cdef int j
+        cdef int v_size = 4 if (dim == 2) else 8
         # Array size.
         cdef int a_size = 3
+        cdef int i
+        cdef int j
         py_nodes = []
 
-        nodes = self.der_thisptr._getNodes(<Intersection*><void*>inter)
-        v_size = nodes.size()
+        if (is_ptr):
+            if (is_inter):
+                nodes = self.der_thisptr._getNodes(<Intersection*><void*>idx)
+            else:
+                nodes = self.der_thisptr._getNodes(<Octant*><void*>idx)
+        else:
+            nodes = self.der_thisptr._getNodes(<uint32_t>idx)
         for i in xrange(0, v_size):
-            node = nodes[i]
+            py_node = []
             # We are doing this second \"for\" loop because without it, Cython
             # compiler would give us the following error:
             # \"Cannot convert 'darray3' to Python object\".
-            py_node = []
             for j in xrange(0, a_size):
-                py_node.append(node[j])
+                py_node.append(nodes[i][j])
 
             py_nodes.append(py_node)
+
+        #print(py_nodes)
 
         return py_nodes

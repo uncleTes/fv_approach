@@ -113,7 +113,7 @@ cdef extern from "ParaTree.hpp" namespace "bitpit":
 
         bool getBalance(uint32_t idx)
 
-        const u32arr3vector& getNodes()
+        #const u32arr3vector& getNodes()
 
         #const u32arr3vector& getGhostNodes()
 
@@ -163,6 +163,8 @@ cdef extern from "ParaTree.hpp" namespace "bitpit":
         bool getFiner(Intersection* inter)
 
         darr3vector getNodes(Intersection* inter)
+        darr3vector getNodes(Octant* idx)
+        darr3vector getNodes(uint32_t idx)
 
         double getArea(Intersection* inter)
 
@@ -414,25 +416,25 @@ cdef class Py_Para_Tree:
             
         return self.thisptr.getBalance(<uint32_t>octant)
         
-    def get_nodes(self):
-        cdef u32arr3vector nodes
-        cdef u32array3 array
-        cdef int v_size
-        cdef int i
-        cdef int j
-        cdef int a_size = 3
-        nodes = self.thisptr.getNodes()
-        v_size = nodes.size()
-        py_nodes = []
+    #def get_nodes(self):
+    #    cdef u32arr3vector nodes
+    #    cdef u32array3 array
+    #    cdef int v_size
+    #    cdef int i
+    #    cdef int j
+    #    cdef int a_size = 3
+    #    nodes = self.thisptr.getNodes()
+    #    v_size = nodes.size()
+    #    py_nodes = []
 
-        for i in xrange(0, v_size):
-            array = nodes[i]
-            py_array = []
-            for j in xrange(0, a_size):
-                py_array.append(array[j])
-            py_nodes.append(py_array)
+    #    for i in xrange(0, v_size):
+    #        array = nodes[i]
+    #        py_array = []
+    #        for j in xrange(0, a_size):
+    #            py_array.append(array[j])
+    #        py_nodes.append(py_array)
 
-        return py_nodes
+    #    return py_nodes
     
     #def get_ghost_nodes(self):
     #    cdef u32arr3vector nodes
@@ -562,28 +564,35 @@ cdef class Py_Para_Tree:
                   uintptr_t inter):
         return self.thisptr.getFiner(<Intersection*><void*>inter)
 
-    def get_nodes(self,
-                  uintptr_t inter):
+    def get_nodes(self               ,
+                  uintptr_t idx      ,
+                  int dim            ,
+                  bool is_ptr = False,
+                  bool is_inter = False):
         cdef darr3vector nodes
-        cdef darray3 node
+        #cdef darray3 node
         # Vector size.
-        cdef int v_size
-        cdef int i
-        cdef int j
+        cdef int v_size = 4 if (dim == 2) else 8
         # Array size.
         cdef int a_size = 3
+        cdef int i
+        cdef int j
         py_nodes = []
 
-        nodes = self.thisptr.getNodes(<Intersection*><void*>inter)
-        v_size = nodes.size()
+        if (is_ptr):
+            if (is_inter):
+                nodes = self.thisptr.getNodes(<Intersection*><void*>idx)
+            else:
+                nodes = self.thisptr.getNodes(<Octant*><void*>idx)
+        else:
+            nodes = self.thisptr.getNodes(<uint32_t>idx)
         for i in xrange(0, v_size):
-            node = nodes[i]
+            py_node = []
             # We are doing this second \"for\" loop because without it, Cython
             # compiler would give us the following error:
             # \"Cannot convert 'darray3' to Python object\".
-            py_node = []
             for j in xrange(0, a_size):
-                py_node.append(node[j])
+                py_node.append(nodes[i][j])
 
             py_nodes.append(py_node)
 
