@@ -682,9 +682,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
             t_foregrounds = self._t_foregrounds
             # Current transformation matrix's dictionary.
             c_t_dict = self.get_trans(0)
-            oct_corners = utilities.get_corners_from_center(n_center,
-                                                            h)
-            for i, corner in enumerate(oct_corners):
+            idx_or_oct = neighs[0] if (not ghosts[0]) else py_ghost_oct
+            is_ptr = False if (not ghosts[0]) else True
+            oct_corners = self._octree.get_nodes(idx_or_oct,
+                                                 dimension ,
+                                                 is_ptr)
+
+            for i, corner in enumerate(oct_corners): 
                 is_corner_penalized = False
                 corner = apply_persp_trans(dimension, 
                                            corner   , 
@@ -781,7 +785,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             c_t_dict = self.get_trans(0)
 
         # Code hoisting.
-        get_corners_from_center = utilities.get_corners_from_center
+        get_nodes = octree.get_nodes
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
         get_bound = self._octree.get_bound
@@ -800,8 +804,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (is_background):
                 is_penalized = True
                 threshold = 0.0
-                oct_corners = get_corners_from_center(center,
-                                                      h)
+                oct_corners = get_nodes(octant, 
+                                        dimension)
                 for i, corner in enumerate(oct_corners):
                     is_corner_penalized = False
                     corner = apply_persp_trans(dimension, 
@@ -1075,6 +1079,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         n_oct = self._n_oct
         nfaces = octree.get_n_faces()
         face_node = octree.get_face_node()
+        dimension = self._dim
         #TODO: check function. 
         sizes = self.find_sizes()
 
@@ -1098,7 +1103,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         mask_octant = self.mask_octant
         get_octant = octree.get_octant
         get_center = octree.get_center
-        get_corners_from_center = utilities.get_corners_from_center
+        get_nodes = octree.get_nodes
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
         metric_coefficients = utilities.metric_coefficients
@@ -1106,7 +1111,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         check_neighbour = self.check_neighbour
         get_bound = octree.get_bound
         # Lambda function.
-        g_c_f_c = lambda x : get_corners_from_center(x, h)
+        g_n = lambda x : get_nodes(x, dimension)
 
         for octant in xrange(0, n_oct):
             indices, values = ([] for i in range(0, 2)) # Indices/values
@@ -1124,7 +1129,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (is_background):
                 is_penalized = True
                 threshold = 0.0
-                oct_corners = g_c_f_c(center)
+                oct_corners = g_n(octant)
                 for i, corner in enumerate(oct_corners):
                     is_corner_penalized = False
                     corner = apply_persp_trans(dimension, 
