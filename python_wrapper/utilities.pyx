@@ -572,42 +572,35 @@ def apply_persp_trans_inv(dimension   ,
     finally:
         return t_i_point
 
-def apply_persp_trans(dimension   ,
-                      point       ,
-                      coefficients,
-                      logger      ,
-                      log_file):
+def apply_persp_trans(int dimension                                         ,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients):
     # Numpy point.
     # http://stackoverflow.com/questions/14415741/numpy-array-vs-asarray
-    np_point = numpy.array(point[0 : dimension], 
-                           dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] np_point = \
+         numpy.zeros(shape = (dimension + 1,), \
+                     dtype = numpy.float64)
+    cdef int i
+
+    for i in xrange(0, dimension):
+        np_point[i] = point[i]
     # Homogeneous coordinates.
-    np_point = numpy.append(np_point, 1)
+    np_point[dimension] = 1
+
+    # Numpy transformed point.
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] np_t_point = \
+         numpy.dot(np_point, coefficients)
+    np_t_point = numpy.true_divide(np_t_point,
+                                   np_t_point[dimension])
+
     # Transformed point.
-    t_point = None
-    if log_file is not None:
-        logger = check_null_logger(logger, log_file)
-    try:
-        # Number of columns equal to number of rows.
-        assert (np_point.shape[0] == coefficients.shape[0]), \
-               "Wrong dimensions for array-matrix multiplications."
-        # Numpy transformed point.
-        np_t_point = numpy.dot(np_point, coefficients)
-        np_t_point = numpy.true_divide(np_t_point,
-                                       np_t_point[-1])
-        if (dimension == 2):
-            # Returning however 3 coordinates, also being in 2D. New \"PABLO\"
-            # is intrinsically 3D.
-            np_t_point[-1] = 0.0 
-        else:
-            np_t_point = np_t_point[0 : -1]
-        t_point = np_t_point.tolist()
-    except AssertionError:
-        msg_err = sys.exc_info()[1]
-        if log_file is not None:
-            logger.error(msg_err)
-    finally:
-        return t_point
+    t_point = [0.0] * 3
+    for i in xrange(0, dimension):
+        t_point[i] = np_t_point[i]
+
+    return t_point
 
 def join_strings(*args):
     # List of strings to join.
