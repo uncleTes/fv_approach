@@ -1745,11 +1745,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                numpy_center,
                                                b_t_dict)[: dimension]
                 t_centers[i] = centers[i]
+                numpy_center = narray(centers[i])
                 centers[i] = apply_persp_trans_inv(dimension   ,
-                                                   centers[i]  ,
-                                                   c_t_adj_dict,
-                                                   logger      ,
-                                                   log_file)[: dimension]
+                                                   numpy_center,
+                                                   c_t_adj_dict)[: dimension]
         # Vectorized functions are just syntactic sugar:
         # http://stackoverflow.com/questions/7701429/efficient-evaluation-of-a-function-at-every-cell-of-a-numpy-array
         # http://stackoverflow.com/questions/8079061/function-application-over-numpys-matrix-row-column
@@ -1913,11 +1912,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             t_o_centers[i] = apply_persp_trans(dimension     ,
                                                numpy_o_center,
                                                f_t_dict)
-            t_o_centers[i] = apply_persp_trans_inv(dimension     , 
-                                                   t_o_centers[i], 
-                                                   c_t_adj_dict  ,
-                                                   logger        ,  
-                                                   log_file)
+            numpy_t_o_center = narray(t_o_centers[i])
+            t_o_centers[i] = apply_persp_trans_inv(dimension       ,
+                                                   numpy_t_o_center,
+                                                   c_t_adj_dict)
         #TODO: understand why here we need to pass \"center[0:2]\" to the 
         # function \"get_point_owner_dx\", while in the previous version of
         # PABLitO we passed all the array \"center\". I think that it is due to
