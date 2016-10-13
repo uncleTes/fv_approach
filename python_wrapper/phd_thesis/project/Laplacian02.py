@@ -1770,6 +1770,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               ids_octree_contained[0]),
                                              (global_idxs <= 
                                               ids_octree_contained[1])))
+        numpy_centers = [numpy.array(center) for center in centers]
         # \"idxs[0]\" because is a numpy array, so to select the array we have
         # to use the index notation.
         for idx in idxs[0]:
@@ -1777,7 +1778,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             (neigh_centers, 
              neigh_indices)  = f_r_n(local_idxs[idx])
             coeffs = least_squares(neigh_centers,
-                                   centers[idx])
+                                   numpy_centers[idx])
             h2 = h2s[idx]
             h = numpy.sqrt(h2)
             h2_inv = 1.0 / h2
@@ -1936,7 +1937,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               ids_octree_contained[0]),
                                              (global_idxs <= 
                                               ids_octree_contained[1])))
-        #print(str(self._comm_w.Get_rank()) + " " + str(len(idxs[0])))
+        numpy_t_o_centers = [numpy.array(t_o_center) for t_o_center in \
+                             t_o_centers]
         for idx in idxs[0]:
             # Foreground transformation matrix adjoint's dictionary.
             f_t_adj_dict = get_trans_adj(int(keys[idx][0]))
@@ -1961,7 +1963,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                      o_ranges[0]    ,
                                                      True)
             coeffs = least_squares(neigh_centers,
-                                   t_o_centers[idx])
+                                   numpy_t_o_centers[idx])
             
             n_n_i = neigh_indices
 
@@ -2142,7 +2144,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     centers.append(border_center)
                     indices.append("outside_bg")
 
-        return (centers, indices)
+        numpy_centers = numpy.array(centers)
+
+        return (numpy_centers, indices)
     # --------------------------------------------------------------------------
     
     # --------------------------------------------------------------------------
