@@ -274,18 +274,23 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     cdef int i
     cdef int j
 
-    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] A = \
-         numpy.zeros((n_points, n_cols), dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] A = \
+         numpy.zeros(shape = (n_points, n_cols), \
+                     dtype = numpy.float64)
 
     for i in xrange(0, n_points):
         for j in xrange(0, dim):
             A[i][j] = points[i][j]
         A[i][dim] = 1
 
-    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] At = A.T
-    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] AtA = numpy.dot(At, A)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] At = A.T
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] AtA = numpy.dot(At, A)
     # Pseudo-inverse matrix.
-    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] p = \
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] p = \
          numpy.dot(numpy.linalg.inv(AtA), At)
 
     # Multiplying \"a\" time \"x\".
