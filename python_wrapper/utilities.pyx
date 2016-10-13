@@ -5,7 +5,8 @@ import logging
 import os
 import sys
 from mpi4py import MPI
-import numpy 
+import numpy
+cimport numpy
 import math
 # ------------------------------------------------------------------------------
 
@@ -263,32 +264,40 @@ def is_point_inside_polygon(point   ,
     return inside
 
 # https://it.wikipedia.org/wiki/Metodo_dei_minimi_quadrati
-def least_squares(points,
-                  unknown_point):
-    # In 2D we approximate our function as a plane: \"ax + by + c\".
-    n_points = len(points)
-    A = numpy.zeros((n_points, 3))
+def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
+                  numpy.ndarray[dtype = numpy.float64_t, ndim = 1] unknown_point,
+                  int dim = 2):
+    # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
+    # approximation will be: \"ax + by + cz + d\".
+    cdef int n_points = points.shape[0]
+    cdef int n_cols = dim + 1
+    cdef int i
+    cdef int j
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] A = \
+         numpy.zeros((n_points, n_cols), dtype = numpy.float64)
 
     for i in xrange(0, n_points):
-        t_point = points[i]
-        if (type(t_point) is list):
-            # Append to the list the coefficient for the \"c\" parameter.
-            t_point.append(1)
-        elif (type(t_point) is tuple):
-            # Adding to the tuple the coefficient for the \"c\" parameter.
-            t_point = t_point + (1,)
-        A[i] = t_point
+        for j in xrange(0, dim):
+            A[i][j] = points[i][j]
+        A[i][dim] = 1
 
-    At = A.T
-    AtA = numpy.dot(At, A)
+    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] At = A.T
+    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] AtA = numpy.dot(At, A)
     # Pseudo-inverse matrix.
-    p = numpy.dot(numpy.linalg.inv(AtA), At)
+    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] p = \
+         numpy.dot(numpy.linalg.inv(AtA), At)
+
     # Multiplying \"a\" time \"x\".
     p[0, :] = p[0, :] * unknown_point[0]
     # Multiplying \"b\" time \"y\".
     p[1, :] = p[1, :] * unknown_point[1]
+    if (dim == 3):
+        # Multiplying \"c\" time \"z\".
+        p[2, :] = p[2, :] * unknown_point[2]
 
     coeffs = numpy.sum(p, axis = 0)
+
     return coeffs
     
 # Perspective transformation coefficients (linear coefficients).
