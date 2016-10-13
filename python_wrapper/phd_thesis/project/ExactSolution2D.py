@@ -51,11 +51,10 @@ class ExactSolution2D(BaseClass2D.BaseClass2D):
                 y_t = [y]
             n_x = len(x_t)
             for i in xrange(0, n_x):
-                values = utilities.apply_persp_trans(dim             , 
-                                                     (x_t[i], y_t[i]), 
-                                                     mapping         ,
-                                                     logger          ,
-                                                     log_file)
+                numpy_point = numpy.array([x_t[i], y_t[i]])
+                values = utilities.apply_persp_trans(dim        ,
+                                                     numpy_point,
+                                                     mapping)
                 x_n.append(values[0])
                 y_n.append(values[1])
             
