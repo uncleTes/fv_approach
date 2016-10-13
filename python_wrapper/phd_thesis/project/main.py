@@ -406,13 +406,15 @@ def compute(comm_dictionary     ,
 
     laplacian.init_mat((d_nnz, o_nnz))
     not_penalized_centers = laplacian.not_pen_centers
+    numpy_not_penalized_centers = [numpy.array(n_p_c) for n_p_c in \
+                                   not_penalized_centers]
+    numpy_centers = [numpy.array(center) for center in \
+                     centers]
     # Physical centers.
     p_centers = [utilities.apply_persp_trans(dimension,
                                              center   , 
-                                             t_coeffs , 
-                                             logger   , 
-                                             log_file)\
-                 for center in not_penalized_centers]
+                                             t_coeffs)\
+                 for center in numpy_not_penalized_centers]
     # Numpy physical centers.
     # Numpy's \".asarray()\" or \".array()\" function? Checkout this link:
     # http://stackoverflow.com/questions/14415741/numpy-array-vs-asarray
@@ -442,10 +444,8 @@ def compute(comm_dictionary     ,
     interpolate_sol = laplacian.reset_partially_solution()
     p_centers = [utilities.apply_persp_trans(dimension,
                                              center   , 
-                                             t_coeffs , 
-                                             logger   ,
-                                             log_file)\
-                 for center in centers]
+                                             t_coeffs)\
+                 for center in numpy_centers]
     n_p_centers = numpy.array(p_centers)
     exact_solution.e_sol(n_p_centers[:, 0]                              , 
                          n_p_centers[:, 1]                              ,
