@@ -526,51 +526,39 @@ def metric_coefficients(dimension          ,
 
     return n_m_cs
        
-def apply_persp_trans_inv(dimension   ,
-                          point       ,
-                          coefficients,
-                          logger      ,
-                          log_file):
+def apply_persp_trans_inv(int dimension                                         ,
+                          numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point,
+                          numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients):
     # Numpy point.
-    np_point = numpy.array(point[0 : dimension],
-                           dtype = numpy.float64)
-    dim = np_point.shape[0]
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] np_point = \
+         numpy.zeros(shape = (dimension + 1,), \
+                     dtype = numpy.float64)
+    cdef int i
+    cdef float divisor = 0.0
+    cdef float w_first
+
+    for i in xrange(0, dimension):
+        divisor = divisor + coefficients[i][dimension] * point[i]
+    divisor = divisor + coefficients[dimension][dimension]
+    w_first = 1.0 / divisor
+
+    for i in xrange(0, dimension):
+        np_point[i] = point[i] * w_first
     # Homogeneous coordinates.
-    np_point = numpy.append(np_point, 1)
+    np_point[dimension] = 1.0 * w_first
+
+    # Numpy transformed inverse point.
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] np_t_i_point = \
+         numpy.dot(np_point, coefficients)
+
     # Transformed inverse point.
-    t_i_point = None
-    logger = check_null_logger(logger, log_file)
-    ad_matrix = coefficients
+    t_i_point = [0.0] * 3
+    for i in xrange(0, dimension):
+        t_i_point[i] = np_t_i_point[i]
 
-    try:
-        assert (2 <= dim <= 3), "Wrong size for the array passed as point."
-        if (dim == 2):
-            xy = point
-            w_first = 1 / ((ad_matrix[0][2] * xy[0]) + \
-                           (ad_matrix[1][2] * xy[1]) + \
-                           ad_matrix[2][2])
-        else:
-            xyz = point
-            w_first = 1 / ((ad_matrix[0][3] * xyz[0]) + \
-                           (ad_matrix[1][3] * xyz[1]) + \
-                           (ad_matrix[2][3] * xyz[2]) + \
-                           ad_matrix[3][3])
-
-        np_point = numpy.multiply(np_point, w_first)
-        # Numpy transformed inverse point.
-        np_t_i_point = numpy.dot(np_point, ad_matrix)
-        if (dimension == 2):
-            # Returning however 3 coordinates, also being in 2D. New \"PABLO\"
-            # is intrinsically 3D.
-            np_t_i_point[-1] = 0.0
-        else:
-            np_t_i_point = np_t_i_point[0 : -1]
-        t_i_point = np_t_i_point.tolist()
-    except AssertionError:
-        msg_err = sys.exc_info()[1] 
-        logger.error(msg_err)
-    finally:
-        return t_i_point
+    return t_i_point
 
 def apply_persp_trans(int dimension                                         ,
                       numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point,
