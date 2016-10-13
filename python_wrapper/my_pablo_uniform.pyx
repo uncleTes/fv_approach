@@ -256,11 +256,11 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
             for i in xrange(0, dimension):
                 py_coordinates[i] = coordinates[i]
 
-            to_append = utilities.apply_persp_trans(dimension     ,
-                                                    py_coordinates, 
-                                                    p_t_coeffs    , 
-                                                    logger        , 
-                                                    log_file)
+            numpy_py_coordinates = numpy.array(py_coordinates)
+
+            to_append = utilities.apply_persp_trans(dimension           ,
+                                                    numpy_py_coordinates,
+                                                    p_t_coeffs)
             g_nodes.append(to_append)
         
         #for index in xrange(0, n_g_nodes):
