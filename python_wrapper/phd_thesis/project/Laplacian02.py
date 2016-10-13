@@ -425,7 +425,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_bound = octree.get_bound
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygon = utilities.is_point_inside_polygon                            
-                              
+        narray = numpy.array
+
         for octant in xrange(0, n_oct):
             # Global index of the current local octant \"octant\".
             g_octant = o_ranges[0] + octant
@@ -472,11 +473,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 same_center = True
             if (not same_center):
                 prev_b_center = b_center
-                t_b_center =  apply_persp_trans(dimension, 
-                                                b_center , 
-                                                c_t_dict ,
-                                                logger   ,  
-                                                log_file)[: dimension]
+                numpy_b_center = narray(b_center)
+                t_b_center =  apply_persp_trans(dimension     ,
+                                                numpy_b_center,
+                                                c_t_dict)[: dimension]
                 prev_t_b_center = t_b_center
                 
             t_b_centers.append(t_b_center)
@@ -488,11 +488,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 check = False
                 # Check if foreground grid is inside the background one.
                 threshold = 0.0
-                t_center =  apply_persp_trans(dimension, 
-                                              center   , 
-                                              c_t_dict ,
-                                              logger   ,  
-                                              log_file)[: dimension]
+                numpy_center = narray(center)
+                t_center =  apply_persp_trans(dimension      ,
+                                              numpy_center   ,
+                                              c_t_dict)[: dimension]
                 check = is_point_inside_polygon(t_center    ,
                                                 t_background,
                                                 logger      ,
@@ -641,6 +640,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Code hoisting.
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
+        narray = numpy.array
 
         if (yet_masked):
             oct_offset = o_count
@@ -690,11 +690,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
             for i, corner in enumerate(oct_corners): 
                 is_corner_penalized = False
-                corner = apply_persp_trans(dimension, 
-                                           corner   , 
-                                           c_t_dict ,
-                                           logger   ,  
-                                           log_file)[: dimension]
+                numpy_corner = narray(corner)
+                corner = apply_persp_trans(dimension   ,
+                                           numpy_corner,
+                                           c_t_dict)[: dimension]
                 (is_corner_penalized,
                  n_polygon) = is_point_inside_polygons(corner       ,
                                                        t_foregrounds,
@@ -789,6 +788,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_point_inside_polygons = utilities.is_point_inside_polygons
         get_bound = octree.get_bound
         check_neighbour = self.check_neighbour
+        narray = numpy.array
 
         for octant in octants:
             d_count, o_count = 0, 0
@@ -807,11 +807,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         dimension)
                 for i, corner in enumerate(oct_corners):
                     is_corner_penalized = False
-                    corner = apply_persp_trans(dimension, 
-                                               corner   , 
-                                               c_t_dict ,
-                                               logger   ,  
-                                               log_file)[: dimension]
+                    numpy_corner = narray(corner)
+                    corner = apply_persp_trans(dimension   ,
+                                               numpy_corner,
+                                               c_t_dict)[: dimension]
                     (is_corner_penalized,
                      n_polygon) = is_point_inside_polygons(corner       ,
                                                            t_foregrounds,
@@ -1109,6 +1108,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         square = numpy.square
         check_neighbour = self.check_neighbour
         get_bound = octree.get_bound
+        narray = numpy.array
         # Lambda function.
         g_n = lambda x : get_nodes(x, dimension)
 
@@ -1131,11 +1131,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 oct_corners = g_n(octant)
                 for i, corner in enumerate(oct_corners):
                     is_corner_penalized = False
-                    corner = apply_persp_trans(dimension, 
-                                               corner   , 
-                                               c_t_dict ,
-                                               logger   ,  
-                                               log_file)[: dimension]
+                    numpy_corner = narray(corner)
+                    corner = apply_persp_trans(dimension   ,
+                                               numpy_corner,
+                                               c_t_dict)[: dimension]
                     (is_corner_penalized,
                      n_polygon) = is_point_inside_polygons(corner       ,
                                                            t_foregrounds,
@@ -1148,11 +1147,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
             if (not is_penalized):
                 indices.append(m_g_octant)
-                t_center = apply_persp_trans(dimension, 
-                                             center   , 
-                                             c_t_dict ,
-                                             logger   ,  
-                                             log_file)[: dimension]
+                numpy_center = narray(center)
+                t_center = apply_persp_trans(dimension   ,
+                                             numpy_center,
+                                             c_t_dict)[: dimension]
                 i_metric_coefficients = metric_coefficients(dimension,
                                                             [t_center],
                                                             c_t_a_dict,
@@ -1736,16 +1734,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
         least_squares = utilities.least_squares
         metric_coefficients = utilities.metric_coefficients
         apply_rest_prol_ops = self.apply_rest_prol_ops
+        narray = numpy.array
 
         # Lambda function.
         f_r_n = lambda x : find_right_neighbours(x, o_ranges[0])
         
         for i in xrange(0, n_centers):
-                centers[i] = apply_persp_trans(dimension , 
-                                               centers[i], 
-                                               b_t_dict  ,
-                                               logger    ,  
-                                               log_file)[: dimension]
+                numpy_center = narray(centers[i])
+                centers[i] = apply_persp_trans(dimension   ,
+                                               numpy_center,
+                                               b_t_dict)[: dimension]
                 t_centers[i] = centers[i]
                 centers[i] = apply_persp_trans_inv(dimension   ,
                                                    centers[i]  ,
@@ -1794,11 +1792,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                 row_index = int(stencils[idx][i - 3])
                 n_center = [stencils[idx][i - 2], stencils[idx][i - 1]]
-                t_n_center = apply_persp_trans(dimension, 
-                                               n_center , 
-                                               b_t_dict ,
-                                               logger   ,  
-                                               log_file)[: dimension]
+                numpy_n_center = narray(n_center)
+                t_n_center = apply_persp_trans(dimension     ,
+                                               numpy_n_center,
+                                               b_t_dict)[: dimension]
 
                 i_metric_coefficients = metric_coefficients(dimension   ,
                                                             [t_n_center],
@@ -1908,14 +1905,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_rest_prol_ops = self.apply_rest_prol_ops
         get_trans_adj = self.get_trans_adj
         get_trans = self.get_trans
+        narray = numpy.array
 
         for i in xrange(0, n_o_centers):
             f_t_dict = self.get_trans(int(keys[i][0]))
-            t_o_centers[i] = apply_persp_trans(dimension   , 
-                                               o_centers[i], 
-                                               f_t_dict    ,
-                                               logger      ,  
-                                               log_file)
+            numpy_o_center = narray(o_centers[i])
+            t_o_centers[i] = apply_persp_trans(dimension     ,
+                                               numpy_o_center,
+                                               f_t_dict)
             t_o_centers[i] = apply_persp_trans_inv(dimension     , 
                                                    t_o_centers[i], 
                                                    c_t_adj_dict  ,
@@ -1943,11 +1940,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Foreground transformation matrix adjoint's dictionary.
             f_t_adj_dict = get_trans_adj(int(keys[idx][0]))
             f_t_dict = get_trans(int(keys[idx][0]))
-            t_i_center =  apply_persp_trans(dimension     , 
-                                            i_centers[idx], 
-                                            f_t_dict      ,
-                                            logger        ,  
-                                            log_file)[: dimension]
+            numpy_i_center = narray(i_centers[idx])
+            t_i_center =  apply_persp_trans(dimension     ,
+                                            numpy_i_center,
+                                            f_t_dict)[: dimension]
 
             i_metric_coefficients = metric_coefficients(dimension,
                                                         [t_i_center],
@@ -2077,6 +2073,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         neighbour_centers = self.neighbour_centers
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygon = utilities.is_point_inside_polygon
+        narray = numpy.array
         # Lambda function.
         f_n = lambda x,y : find_neighbours(current_octant,
                                            x             ,
@@ -2127,11 +2124,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (not is_background):
                     threshold = 0.0
                     to_consider = False
-                    t_center =  apply_persp_trans(dimension    , 
-                                                  border_center, 
-                                                  c_t_dict     ,
-                                                  logger       ,  
-                                                  log_file)[: dimension]
+                    numpy_border_center = narray(border_center)
+                    t_center =  apply_persp_trans(dimension          ,
+                                                  numpy_border_center,
+                                                  c_t_dict)[: dimension]
                     check = is_point_inside_polygon(t_center    ,
                                                     t_background,
                                                     logger      ,
