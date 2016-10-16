@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 from mpi4py import MPI
+from libcpp cimport bool
 import numpy
 cimport numpy
 import math
@@ -205,61 +206,43 @@ def check_octree(octree,
 
     return l_octree
 
-def is_point_inside_polygons(point   ,
-                             polygons,
-                             logger  ,
-                             log_file,
-                             threshold = 0.0):
-    inside = False
+def is_point_inside_polygons(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point   ,
+                             numpy.ndarray[dtype = numpy.float64_t, ndim = 3] polygons):
+    cdef bool inside = False
+    cdef int n_polygons = polygons.shape[0]
+    cdef int i
 
-    if isinstance(polygons, list):
-        for i, polygon in enumerate(polygons):
-            inside = is_point_inside_polygon(point   ,
-                                             polygon ,
-                                             logger  ,
-                                             log_file,
-                                             threshold)
-            if (inside):
-                return (inside, i)
-    else:
-        logger = check_null_logger(logger,
-                                   log_file)
-        logger.error("Second parameter must be a list of lists.")
+    for i in xrange(0, n_polygons):
+        inside = is_point_inside_polygon(point      ,
+                                         polygons[i])
+        if (inside):
+            return (inside, i)
+
     return (inside, None)
-        
 
 # Determine if a point is inside a given polygon or not.
 # https://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html ---> Better link
 # http://www.ariel.com.au/a/python-point-int-poly.html
 # http://stackoverflow.com/questions/16625507/python-checking-if-point-is-inside-a-polygon
-def is_point_inside_polygon(point   ,
-                            polygon ,
-                            logger  ,
-                            log_file,
-                            threshold = 0.0):
+def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point   ,
+                            numpy.ndarray[dtype = numpy.float64_t, ndim = 2] polygon):
 
-    n_vert = len(polygon)
-    x, y = point
-    inside = False
+    cdef int n_vert = 4
+    cdef int i
+    cdef int j
+    cdef bool inside = False
 
-    if isinstance(polygon, list):
-        for i in xrange(0, n_vert):
-            if (i == 0):
-                j = n_vert - 1
-            else:
-                j = i - 1
-            i_x, i_y = polygon[i]
-            j_x, j_y = polygon[j]
-            # TODO: understand where to put the threshold.
-            if (((i_y > y) != (j_y > y)) and
-                ((x + threshold ) < 
-                 (((j_x - i_x) * (y - i_y)) / (j_y - i_y)) + i_x)):
-                inside = not inside
-        return inside
-    else:
-        logger = check_null_logger(logger, 
-                                   log_file)
-        logger.error("Second parameter must be a list.")
+    for i in xrange(0, n_vert):
+        if (i == 0):
+            j = n_vert - 1
+        else:
+            j = i - 1
+        # TODO: understand where to put the threshold.
+        if (((polygon[i][1] > point[1]) != (polygon[j][1] > point[1])) and \
+            (point[0] <
+             (((polygon[j][0] - polygon[i][0]) * (point[1] - polygon[i][1])) / \
+              (polygon[j][1] - polygon[i][1])) + polygon[i][0])):
+            inside = not inside
 
     return inside
 
