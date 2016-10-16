@@ -509,9 +509,11 @@ def metric_coefficients(dimension          ,
 
     return n_m_cs
        
-def apply_persp_trans_inv(int dimension                                         ,
-                          numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point,
-                          numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients):
+def apply_persp_trans_inv(int dimension                                                ,
+                          numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point       ,
+                          numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients,
+                          # Return also numpy data.
+                          bool r_a_n_d = False):
     # Numpy point.
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 1] np_point = \
@@ -541,11 +543,16 @@ def apply_persp_trans_inv(int dimension                                         
     for i in xrange(0, dimension):
         t_i_point[i] = np_t_i_point[i]
 
+    if (r_a_n_d):
+        return t_i_point, np_t_i_point
+
     return t_i_point
 
-def apply_persp_trans(int dimension                                         ,
-                      numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point,
-                      numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients):
+def apply_persp_trans(int dimension                                                ,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point       ,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients,
+                      # Return also numpy data.
+                      bool r_a_n_d = False):
     # Numpy point.
     # http://stackoverflow.com/questions/14415741/numpy-array-vs-asarray
     cdef numpy.ndarray[dtype = numpy.float64_t, \
@@ -570,6 +577,9 @@ def apply_persp_trans(int dimension                                         ,
     t_point = [0.0] * 3
     for i in xrange(0, dimension):
         t_point[i] = np_t_point[i]
+
+    if (r_a_n_d):
+        return t_point, np_t_point
 
     return t_point
 
