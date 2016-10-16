@@ -147,6 +147,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 self._t_background = t_t_points
             else:
                 self._t_foregrounds.append(t_t_points)
+        self._n_t_background = numpy.array(self._t_background)
+        self._n_t_foregrounds = numpy.array(self._t_foregrounds)
         # Initializing exchanged structures.
         self.init_e_structures()
     # --------------------------------------------------------------------------
@@ -413,6 +415,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         b_t_adj_dict = self.get_trans_adj(0)
         # Transformed background.
         t_background = self._t_background
+        n_t_background = self._n_t_background
 
         b_indices, b_values = ([] for i in range(0, 2))# Boundary indices/values
         b_centers, b_f_o_n = ([] for i in range(0, 2)) # Boundary centers/faces
@@ -489,14 +492,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Check if foreground grid is inside the background one.
                 threshold = 0.0
                 numpy_center = narray(center)
-                t_center =  apply_persp_trans(dimension      ,
-                                              numpy_center   ,
-                                              c_t_dict)[: dimension]
-                check = is_point_inside_polygon(t_center    ,
-                                                t_background,
-                                                logger      ,
-                                                log_file    ,
-                                                threshold)
+                t_center, n_t_center =  apply_persp_trans(dimension      ,
+                                                          numpy_center   ,
+                                                          c_t_dict       ,
+                                                          True)[: dimension]
+                check = is_point_inside_polygon(n_t_center    ,
+                                                n_t_background)
                 if (check):
                     # Can't use list as dictionary's keys.
                     # http://stackoverflow.com/questions/7257588/why-cant-i-use-a-list-as-a-dict-key-in-python
@@ -680,6 +681,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             is_n_penalized = True
             threshold = 0.0
             t_foregrounds = self._t_foregrounds
+            n_t_foregrounds = self._n_t_foregrounds
             # Current transformation matrix's dictionary.
             c_t_dict = self.get_trans(0)
             idx_or_oct = neighs[0] if (not ghosts[0]) else py_ghost_oct
@@ -691,15 +693,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
             for i, corner in enumerate(oct_corners): 
                 is_corner_penalized = False
                 numpy_corner = narray(corner)
-                corner = apply_persp_trans(dimension   ,
-                                           numpy_corner,
-                                           c_t_dict)[: dimension]
+                corner, n_corner = apply_persp_trans(dimension   ,
+                                                     numpy_corner,
+                                                     c_t_dict    ,
+                                                     True)[: dimension]
                 (is_corner_penalized,
-                 n_polygon) = is_point_inside_polygons(corner       ,
-                                                       t_foregrounds,
-                                                       logger       ,
-                                                       log_file     ,
-                                                       threshold)
+                 n_polygon) = is_point_inside_polygons(n_corner       ,
+                                                       n_t_foregrounds)
                 if (not is_corner_penalized):
                     is_n_penalized = False
                     break
@@ -778,6 +778,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         py_octs = [octree.get_octant(octant) for octant in octants]
         centers = [octree.get_center(octant)[: dimension] for octant in octants]         
         t_foregrounds = self._t_foregrounds
+        n_t_foregrounds = self._n_t_foregrounds
         if (is_background):
             # Current transformation matrix's dictionary.
             c_t_dict = self.get_trans(0)
@@ -808,15 +809,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 for i, corner in enumerate(oct_corners):
                     is_corner_penalized = False
                     numpy_corner = narray(corner)
-                    corner = apply_persp_trans(dimension   ,
-                                               numpy_corner,
-                                               c_t_dict)[: dimension]
+                    corner, n_corner = apply_persp_trans(dimension   ,
+                                                         numpy_corner,
+                                                         c_t_dict    ,
+                                                         True)[: dimension]
                     (is_corner_penalized,
-                     n_polygon) = is_point_inside_polygons(corner       ,
-                                                           t_foregrounds,
-                                                           logger       ,
-                                                           log_file     ,
-                                                           threshold)
+                     n_polygon) = is_point_inside_polygons(n_corner       ,
+                                                           n_t_foregrounds)
                     if (not is_corner_penalized):
                         is_penalized = False
                         break
@@ -1070,6 +1069,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         h2_inv = 1.0 / h2
         oct_offset = 0
         t_foregrounds = self._t_foregrounds
+        n_t_foregrounds = self._n_t_foregrounds
         for i in xrange(0, grid):
             oct_offset += self._oct_f_g[i]
 
@@ -1132,15 +1132,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 for i, corner in enumerate(oct_corners):
                     is_corner_penalized = False
                     numpy_corner = narray(corner)
-                    corner = apply_persp_trans(dimension   ,
-                                               numpy_corner,
-                                               c_t_dict)[: dimension]
+                    corner, n_corner = apply_persp_trans(dimension   ,
+                                                         numpy_corner,
+                                                         c_t_dict    ,
+                                                         True)[: dimension]
                     (is_corner_penalized,
-                     n_polygon) = is_point_inside_polygons(corner       ,
-                                                           t_foregrounds,
-                                                           logger       ,
-                                                           log_file     ,
-                                                           threshold)
+                     n_polygon) = is_point_inside_polygons(n_corner       ,
+                                                           n_t_foregrounds)
                     if (not is_corner_penalized):
                         is_penalized = False
                         break
@@ -2046,6 +2044,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         nnodes = octree.get_n_nodes()
         c_t_dict = self.get_trans(grid)
         t_background = self._t_background
+        n_t_background = self._n_t_background
 	log_file = self.logger.handlers[0].baseFilename
         logger = self.logger
         # Ghosts' deplacement.
@@ -2123,14 +2122,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     threshold = 0.0
                     to_consider = False
                     numpy_border_center = narray(border_center)
-                    t_center =  apply_persp_trans(dimension          ,
-                                                  numpy_border_center,
-                                                  c_t_dict)[: dimension]
-                    check = is_point_inside_polygon(t_center    ,
-                                                    t_background,
-                                                    logger      ,
-                                                    log_file    ,
-                                                    threshold)
+                    t_center, n_t_center =  apply_persp_trans(dimension          ,
+                                                              numpy_border_center,
+                                                              c_t_dict           ,
+                                                              True)[: dimension]
+                    check = is_point_inside_polygon(n_t_center    ,
+                                                    n_t_background)
                     if (not check):
                         to_consider = True
                     
