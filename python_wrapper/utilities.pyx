@@ -207,7 +207,8 @@ def check_octree(octree,
     return l_octree
 
 def is_point_inside_polygons(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point   ,
-                             numpy.ndarray[dtype = numpy.float64_t, ndim = 3] polygons):
+                             numpy.ndarray[dtype = numpy.float64_t, ndim = 3] polygons,
+                             int dimension = 2):
     cdef bool inside = False
     # Number of polygons.
     cdef int n_polygons = polygons.shape[0]
@@ -215,7 +216,8 @@ def is_point_inside_polygons(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] po
 
     for i in xrange(0, n_polygons):
         inside = is_point_inside_polygon(point      ,
-                                         polygons[i])
+                                         polygons[i],
+                                         dimension)
         if (inside):
             return (inside, i)
 
@@ -226,23 +228,63 @@ def is_point_inside_polygons(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] po
 # http://www.ariel.com.au/a/python-point-int-poly.html
 # http://stackoverflow.com/questions/16625507/python-checking-if-point-is-inside-a-polygon
 def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point   ,
-                            numpy.ndarray[dtype = numpy.float64_t, ndim = 2] polygon):
+                            numpy.ndarray[dtype = numpy.float64_t, ndim = 2] polygon ,
+                            int dimension = 2):
 
-    cdef int n_vert = 4
+    cdef int n_verts_face = 4 if (dimension == 2) else 8
+    cdef int n_faces = 1 if (dimension == 2) else 6
     cdef int i
     cdef int j
+    cdef int x
+    cdef int y
+    cdef int face
     cdef bool inside = False
+    cdef numpy.ndarray[dtype = numpy.float64_t,
+                       ndim = 3] faces = \
+         numpy.ndarray(shape = (n_faces, n_verts_face, dimension), \
+                       buffer = polygon if (dimension == 2) else   \
+                                numpy.array(polygon[0], polygon[1],
+                                            polygon[2], polygon[3],
+                                            polygon[4], polygon[5],
+                                            polygon[6], polygon[7],
+                                            polygon[0], polygon[4],
+                                            polygon[2], polygon[6],
+                                            polygon[1], polygon[5],
+                                            polygon[3], polygon[7],
+                                            polygon[0], polygon[1],
+                                            polygon[4], polygon[5],
+                                            polygon[2], polygon[3],
+                                            polygon[6], polygon[7]),
+                       dtype = numpy.float64)
 
-    for i in xrange(0, n_vert):
-        if (i == 0):
-            j = n_vert - 1
+    for face in xrange(0, n_faces):
+        if (face < 2):
+            x = 0
+            y = 1
+        elif (1 < face < 4):
+            x = 2
         else:
-            j = i - 1
-        if (((polygon[i][1] > point[1]) != (polygon[j][1] > point[1])) and \
-            (point[0] <
-             (((polygon[j][0] - polygon[i][0]) * (point[1] - polygon[i][1])) / \
-              (polygon[j][1] - polygon[i][1])) + polygon[i][0])):
-            inside = not inside
+            x = 0
+            y = 2
+        # Ray casting algorithm.
+        # https://en.wikipedia.org/wiki/Point_in_polygon
+        # http://stackoverflow.com/questions/11716268/point-in-polygon-algorithm
+        # https://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+        # If \"dimension\" = 3, we apply ray casting algorithm on each face
+        # of the polyhedron.
+        # http://www.codeproject.com/Questions/714459/How-to-determine-a-point-is-inside-or-outside-the
+        for i in xrange(0, n_verts_face):
+            if (i == 0):
+                j = n_verts_face - 1
+            else:
+                j = i - 1
+            if (((polygon[i][y] > point[y]) != (polygon[j][y] > point[y])) and \
+                (point[x] <
+                 (((polygon[j][x] - polygon[i][x]) * (point[y] - polygon[i][y])) / \
+                  (polygon[j][y] - polygon[i][y])) + polygon[i][x])):
+                inside = not inside
+        if (not inside):
+            break
 
     return inside
 
