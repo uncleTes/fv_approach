@@ -306,141 +306,141 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     return coeffs
     
 # Perspective transformation coefficients (linear coefficients).
-def p_t_coeffs(dim               ,
-               original_points   ,
-               transformed_points,
-               logger            ,
-               log_file):
-    coefficients = None
-    matrix = None
-    rhs = None
-    logger = check_null_logger(logger, log_file)
+def p_t_coeffs(int dimension                                        ,
+               numpy.ndarray[dtype = numpy.float64_t, ndim = 2] o_ps,  # Original points
+               numpy.ndarray[dtype = numpy.float64_t, ndim = 2] t_ps): # Transformed points
+    # Dimension of the matrix.
+    cdef int d_matrix
+    if (dimension == 2):
+        d_matrix = 8
+    else:
+        d_matrix = 15
 
-    try:
-        assert isinstance(original_points, 
-                          list), "No list passed as third argument." 
-        assert isinstance(transformed_points,
-                          list), "No list passed as fourth argument."
-        assert (2 <= dim <= 3), "Wrong dimension passed as first parameter."
+    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] matrix = \
+         numpy.zeros((d_matrix, d_matrix), dtype = numpy.float64)
 
-        if (dim == 2):
-            uv = numpy.array(original_points, dtype = numpy.float64)
-            uv.resize(4, 3)
-            xy = numpy.array(transformed_points, dtype = numpy.float64)
-            xy.resize(4,3)
-            matrix = numpy.array([[uv[0][0], uv[0][1], 1, 0, 0, 0, -(uv[0][0] * xy[0][0]), -(uv[0][1] * xy[0][0])],
-                                  [uv[1][0], uv[1][1], 1, 0, 0, 0, -(uv[1][0] * xy[1][0]), -(uv[1][1] * xy[1][0])],
-                                  [uv[2][0], uv[2][1], 1, 0, 0, 0, -(uv[2][0] * xy[2][0]), -(uv[2][1] * xy[2][0])],
-                                  [uv[3][0], uv[3][1], 1, 0, 0, 0, -(uv[3][0] * xy[3][0]), -(uv[3][1] * xy[3][0])],
-                                  [0, 0, 0, uv[0][0], uv[0][1], 1, -(uv[0][0] * xy[0][1]), -(uv[0][1] * xy[0][1])],
-                                  [0, 0, 0, uv[1][0], uv[1][1], 1, -(uv[1][0] * xy[1][1]), -(uv[1][1] * xy[1][1])],
-                                  [0, 0, 0, uv[2][0], uv[2][1], 1, -(uv[2][0] * xy[2][1]), -(uv[2][1] * xy[2][1])],
-                                  [0, 0, 0, uv[3][0], uv[3][1], 1, -(uv[3][0] * xy[3][1]), -(uv[3][1] * xy[3][1])]])
-            rhs = numpy.array([xy[0][0], xy[1][0], xy[2][0], xy[3][0], xy[0][1], xy[1][1], xy[2][1], xy[3][1]])
-        # Dim = 3.
-        else:
-            uvw = original_points
-            xyz = transformed_points
-            matrix = numpy.array([[uvw[0][0], uvw[0][1], uvw[0][2], 1, 0, 0, 0, 0, 0, 0, 0, 0, -(uvw[0][0]*xyz[0][0]), -(uvw[0][1]*xyz[0][0]), -(uvw[0][2]*xyz[0][0])],
-                                  [uvw[1][0], uvw[1][1], uvw[1][2], 1, 0, 0, 0, 0, 0, 0, 0, 0, -(uvw[1][0]*xyz[1][0]), -(uvw[1][1]*xyz[1][0]), -(uvw[1][2]*xyz[1][0])],
-                                  [uvw[2][0], uvw[2][1], uvw[2][2], 1, 0, 0, 0, 0, 0, 0, 0, 0, -(uvw[2][0]*xyz[2][0]), -(uvw[2][1]*xyz[2][0]), -(uvw[2][2]*xyz[2][0])],
-                                  [uvw[3][0], uvw[3][1], uvw[3][2], 1, 0, 0, 0, 0, 0, 0, 0, 0, -(uvw[3][0]*xyz[3][0]), -(uvw[3][1]*xyz[3][0]), -(uvw[3][2]*xyz[3][0])],
-                                  [0, 0, 0, 0, uvw[0][0], uvw[0][1], uvw[0][2], 1, 0, 0, 0, 0, -(uvw[0][0]*xyz[0][1]), -(uvw[0][1]*xyz[0][1]), -(uvw[0][2]*xyz[0][1])],
-                                  [0, 0, 0, 0, uvw[1][0], uvw[1][1], uvw[1][2], 1, 0, 0, 0, 0, -(uvw[1][0]*xyz[1][1]), -(uvw[1][1]*xyz[1][1]), -(uvw[1][2]*xyz[1][1])],
-                                  [0, 0, 0, 0, uvw[2][0], uvw[2][1], uvw[2][2], 1, 0, 0, 0, 0, -(uvw[2][0]*xyz[2][1]), -(uvw[2][1]*xyz[2][1]), -(uvw[2][2]*xyz[2][1])],
-                                  [0, 0, 0, 0, uvw[3][0], uvw[3][1], uvw[3][2], 1, 0, 0, 0, 0, -(uvw[3][0]*xyz[3][1]), -(uvw[3][1]*xyz[3][1]), -(uvw[3][2]*xyz[3][1])],
-                                  [0, 0, 0, 0, 0, 0, 0, 0, uvw[0][0], uvw[0][1], uvw[0][2], 1, -(uvw[0][0]*xyz[0][2]), -(uvw[0][1]*xyz[0][2]), -(uvw[0][2]*xyz[0][2])],
-                                  [0, 0, 0, 0, 0, 0, 0, 0, uvw[1][0], uvw[1][1], uvw[1][2], 1, -(uvw[1][0]*xyz[1][2]), -(uvw[1][1]*xyz[1][2]), -(uvw[1][2]*xyz[1][2])],
-                                  [0, 0, 0, 0, 0, 0, 0, 0, uvw[2][0], uvw[2][1], uvw[2][2], 1, -(uvw[2][0]*xyz[2][2]), -(uvw[2][1]*xyz[2][2]), -(uvw[2][2]*xyz[2][2])],
-                                  [0, 0, 0, 0, 0, 0, 0, 0, uvw[3][0], uvw[3][1], uvw[3][2], 1, -(uvw[3][0]*xyz[3][2]), -(uvw[3][1]*xyz[3][2]), -(uvw[3][2]*xyz[3][2])]])
-            
-            rhs = numpy.array(xyz[0][0], xyz[1][0], xyz[2][0], xyz[3][0], xyz[0][1], xyz[1][1], xyz[2][1], xyz[3][1], xyz[0][2], xyz[1][2], xyz[2][2], xyz[3][2])
-        
-        coefficients = numpy.linalg.solve(matrix, rhs)
-        # \"append\" does not occur in place:
-        # http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.append.html
-        # We append 1 as coefficients \"a33\" (or \"a44\", depending on problem's 
-        # dimension) without loss of generality.
-        coefficients = numpy.append(coefficients, 1)
-        coefficients = coefficients.reshape(dim + 1, dim + 1).T    
-    except AssertionError:
-        msg_err = sys.exc_info()[1] 
-        logger.error(msg_err)
-    finally:
-        return coefficients
+    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 1 ] rhs = \
+         numpy.zeros((d_matrix, ), dtype = numpy.float64)
+
+    if (dimension == 2):
+             matrix[0, :] = [o_ps[0][0], o_ps[0][1], 1, 0, 0, 0, -(o_ps[0][0] * t_ps[0][0]), -(o_ps[0][1] * t_ps[0][0])]
+             matrix[1, :] = [o_ps[1][0], o_ps[1][1], 1, 0, 0, 0, -(o_ps[1][0] * t_ps[1][0]), -(o_ps[1][1] * t_ps[1][0])]
+             matrix[2, :] = [o_ps[2][0], o_ps[2][1], 1, 0, 0, 0, -(o_ps[2][0] * t_ps[2][0]), -(o_ps[2][1] * t_ps[2][0])]
+             matrix[3, :] = [o_ps[3][0], o_ps[3][1], 1, 0, 0, 0, -(o_ps[3][0] * t_ps[3][0]), -(o_ps[3][1] * t_ps[3][0])]
+             matrix[4, :] = [0, 0, 0, o_ps[0][0], o_ps[0][1], 1, -(o_ps[0][0] * t_ps[0][1]), -(o_ps[0][1] * t_ps[0][1])]
+             matrix[5, :] = [0, 0, 0, o_ps[1][0], o_ps[1][1], 1, -(o_ps[1][0] * t_ps[1][1]), -(o_ps[1][1] * t_ps[1][1])]
+             matrix[6, :] = [0, 0, 0, o_ps[2][0], o_ps[2][1], 1, -(o_ps[2][0] * t_ps[2][1]), -(o_ps[2][1] * t_ps[2][1])]
+             matrix[7, :] = [0, 0, 0, o_ps[3][0], o_ps[3][1], 1, -(o_ps[3][0] * t_ps[3][1]), -(o_ps[3][1] * t_ps[3][1])]
+
+             rhs[:] = [t_ps[0][0], t_ps[1][0], t_ps[2][0], t_ps[3][0], t_ps[0][1], t_ps[1][1], t_ps[2][1], t_ps[3][1]]
+    # Dim = 3.
+    else:
+        pass
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 1] coefficients = \
+         numpy.linalg.solve(matrix, rhs)
+    # \"append\" does not occur in place:
+    # http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.append.html
+    # We append 1 as coefficients \"a33\" (or \"a44\", depending on problem's
+    # dimension) without loss of generality.
+    coefficients = numpy.append(coefficients, 1)
+    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] r_coefficients = \
+         numpy.ndarray(shape = (dimension + 1, dimension + 1),
+                       buffer = coefficients                 ,
+                       dtype = numpy.float64).T
+    #coefficients = coefficients.reshape(dimension + 1, dimension + 1).T
+
+    return r_coefficients
 
 # Perspective transformation coefficients for adjoint matrix.
-def p_t_coeffs_adj(dim       ,
-                   p_t_coeffs,
-                   logger    ,
-                   log_file):
-    # Adjoint matrix
-    ad_matrix = None
-    A = p_t_coeffs
-    A_det = numpy.linalg.det(A)
-    logger = check_null_logger(logger, log_file)
+def p_t_coeffs_adj(int dimension,
+                   numpy.ndarray[dtype = numpy.float64_t, ndim = 2] p_t_m): #Perspective transofrmation matrix
+    cdef numpy.float64_t det_p_t_m = numpy.linalg.det(p_t_m)
+    # Dimension of the adjoint matrix.
+    cdef int d_adj_matrix
+    cdef numpy.float64_t ad00
+    cdef numpy.float64_t ad01
+    cdef numpy.float64_t ad02
+    cdef numpy.float64_t ad03
+    cdef numpy.float64_t ad10
+    cdef numpy.float64_t ad11
+    cdef numpy.float64_t ad12
+    cdef numpy.float64_t ad13
+    cdef numpy.float64_t ad20
+    cdef numpy.float64_t ad21
+    cdef numpy.float64_t ad22
+    cdef numpy.float64_t ad23
+    cdef numpy.float64_t ad30
+    cdef numpy.float64_t ad31
+    cdef numpy.float64_t ad32
+    cdef numpy.float64_t ad33
     
-    try:
-        assert (2 <= dim <= 3), "Wrong dimension passed as first parameter."
 
-        if (dim == 2):
-            ad_matrix = numpy.array([[(A[1][1] * A[2][2]) - (A[1][2] * A[2][1]),
-                                      (A[0][2] * A[2][1]) - (A[0][1] * A[2][2]),
-                                      (A[0][1] * A[1][2]) - (A[0][2] * A[1][1]),
-                                     ],
-                                     [(A[1][2] * A[2][0]) - (A[1][0] * A[2][2]),
-                                      (A[0][0] * A[2][2]) - (A[0][2] * A[2][0]),
-                                      (A[0][2] * A[1][0]) - (A[0][0] * A[1][2]),
-                                     ],
-                                     [(A[1][0] * A[2][1]) - (A[1][1] * A[2][0]),
-                                      (A[0][1] * A[2][0]) - (A[0][0] * A[2][1]),
-                                      (A[0][0] * A[1][1]) - (A[0][1] * A[1][0]),
-                                     ]])
-        # Dim = 3.
-        else:
-            ad00 = (A[1][2] * A[2][3] * A[3][1]) - (A[1][3] * A[2][2] * A[3][1]) + (A[1][3] * A[2][1] * A[3][2]) - \
-                   (A[1][1] * A[2][3] * A[3][2]) - (A[1][2] * A[2][1] * A[3][3]) + (A[1][1] * A[2][2] * A[3][3])
-            ad01 = (A[0][3] * A[2][2] * A[3][1]) - (A[0][2] * A[2][3] * A[3][1]) - (A[0][3] * A[2][1] * A[3][2]) + \
-                   (A[0][1] * A[2][3] * A[3][2]) + (A[0][2] * A[2][1] * A[3][3]) - (A[0][1] * A[2][2] * A[3][3])
-            ad02 = (A[0][2] * A[1][3] * A[3][1]) - (A[0][3] * A[1][2] * A[3][1]) + (A[0][3] * A[1][1] * A[3][2]) - \
-                   (A[0][1] * A[1][3] * A[3][2]) - (A[0][2] * A[1][1] * A[3][3]) + (A[0][1] * A[1][2] * A[3][3])
-            ad03 = (A[0][3] * A[1][2] * A[2][1]) - (A[0][2] * A[1][3] * A[2][1]) - (A[0][3] * A[1][1] * A[2][2]) + \
-                   (A[0][1] * A[1][3] * A[2][2]) + (A[0][2] * A[1][1] * A[2][3]) - (A[0][1] * A[1][2] * A[2][3])
-            ad10 = (A[1][3] * A[2][2] * A[3][0]) - (A[1][2] * A[2][3] * A[3][0]) - (A[1][3] * A[2][0] * A[3][2]) + \
-                   (A[1][0] * A[2][3] * A[3][2]) + (A[1][2] * A[2][0] * A[3][3]) - (A[1][0] * A[2][2] * A[3][3])
-            ad11 = (A[0][2] * A[2][3] * A[3][0]) - (A[0][3] * A[2][2] * A[3][0]) + (A[0][3] * A[2][0] * A[3][2]) - \
-                   (A[0][0] * A[2][3] * A[3][2]) - (A[0][2] * A[2][0] * A[3][3]) + (A[0][0] * A[2][2] * A[3][3])
-            ad12 = (A[0][3] * A[1][2] * A[3][0]) - (A[0][2] * A[1][3] * A[3][0]) - (A[0][3] * A[1][0] * A[3][2]) + \
-                   (A[0][0] * A[1][3] * A[3][2]) + (A[0][2] * A[1][0] * A[3][3]) - (A[0][0] * A[1][2] * A[3][3])
-            ad13 = (A[0][2] * A[1][3] * A[2][0]) - (A[0][3] * A[1][2] * A[2][0]) + (A[0][3] * A[1][0] * A[2][2]) - \
-                   (A[0][0] * A[1][3] * A[2][2]) - (A[0][2] * A[1][0] * A[2][3]) + (A[0][0] * A[1][2] * A[2][3])
-            ad20 = (A[1][1] * A[2][3] * A[3][0]) - (A[1][3] * A[2][1] * A[3][0]) + (A[1][3] * A[2][0] * A[3][1]) - \
-                   (A[1][0] * A[2][3] * A[3][1]) - (A[1][1] * A[2][0] * A[3][3]) + (A[1][0] * A[2][1] * A[3][3])
-            ad21 = (A[0][3] * A[2][1] * A[3][0]) - (A[0][1] * A[2][3] * A[3][0]) - (A[0][3] * A[2][0] * A[3][1]) + \
-                   (A[0][0] * A[2][3] * A[3][1]) + (A[0][1] * A[2][0] * A[3][3]) - (A[0][0] * A[2][1] * A[3][3])
-            ad22 = (A[0][1] * A[1][3] * A[3][0]) - (A[0][3] * A[1][1] * A[3][0]) + (A[0][3] * A[1][0] * A[3][1]) - \
-                   (A[0][0] * A[1][3] * A[3][1]) - (A[0][1] * A[1][0] * A[3][3]) + (A[0][0] * A[1][1] * A[3][3])
-            ad23 = (A[0][3] * A[1][1] * A[2][0]) - (A[0][1] * A[1][3] * A[2][0]) - (A[0][3] * A[1][0] * A[2][1]) + \
-                   (A[0][0] * A[1][3] * A[2][1]) + (A[0][1] * A[1][0] * A[2][3]) - (A[0][0] * A[1][1] * A[2][3])
-            ad30 = (A[1][2] * A[2][1] * A[3][0]) - (A[1][1] * A[2][2] * A[3][0]) - (A[1][2] * A[2][0] * A[3][1]) + \
-                   (A[1][0] * A[2][2] * A[3][1]) + (A[1][1] * A[2][0] * A[3][2]) - (A[1][0] * A[2][1] * A[3][2])
-            ad31 = (A[0][1] * A[2][2] * A[3][0]) - (A[0][2] * A[2][1] * A[3][0]) + (A[0][2] * A[2][0] * A[3][1]) - \
-                   (A[0][0] * A[2][2] * A[3][1]) - (A[0][1] * A[2][0] * A[3][2]) + (A[0][0] * A[2][1] * A[3][2])
-            ad32 = (A[0][2] * A[1][1] * A[3][0]) - (A[0][1] * A[1][2] * A[3][0]) - (A[0][2] * A[1][0] * A[3][1]) + \
-                   (A[0][0] * A[1][2] * A[3][1]) + (A[0][1] * A[1][0] * A[3][2]) - (A[0][0] * A[1][1] * A[3][2])
-            ad33 = (A[0][1] * A[1][2] * A[2][0]) - (A[0][2] * A[1][1] * A[2][0]) + (A[0][2] * A[1][0] * A[2][1]) - \
-                   (A[0][0] * A[1][2] * A[2][1]) - (A[0][1] * A[1][0] * A[2][2]) + (A[0][0] * A[1][1] * A[2][2])
+    if (dimension == 2):
+        d_adj_matrix = 3
+    else:
+        d_adj_matrix = 4
 
-            ad_matrix = numpy.array([[ad00, ad01, ad02, ad03],
-                                     [ad10, ad11, ad12, ad13],
-                                     [ad20, ad21, ad22, ad23],
-                                     [ad30, ad31, ad32, ad33]])
-    except AssertionError:
-        msg_err = sys.exc_info()[1] 
-        logger.error(msg_err)
-    finally:
-        ad_matrix = numpy.true_divide(ad_matrix, A_det)
-        return ad_matrix
+    cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] adj_matrix = \
+         numpy.zeros((d_adj_matrix, d_adj_matrix), dtype = numpy.float64)
+
+    if (dimension == 2):
+        # Adjoint matrix
+             adj_matrix[0, :] = [(p_t_m[1][1] * p_t_m[2][2]) - (p_t_m[1][2] * p_t_m[2][1]),
+                                 (p_t_m[0][2] * p_t_m[2][1]) - (p_t_m[0][1] * p_t_m[2][2]),
+                                 (p_t_m[0][1] * p_t_m[1][2]) - (p_t_m[0][2] * p_t_m[1][1]),
+                                ]
+             adj_matrix[1, :] = [(p_t_m[1][2] * p_t_m[2][0]) - (p_t_m[1][0] * p_t_m[2][2]),
+                                 (p_t_m[0][0] * p_t_m[2][2]) - (p_t_m[0][2] * p_t_m[2][0]),
+                                 (p_t_m[0][2] * p_t_m[1][0]) - (p_t_m[0][0] * p_t_m[1][2]),
+                                ]
+             adj_matrix[2, :] = [(p_t_m[1][0] * p_t_m[2][1]) - (p_t_m[1][1] * p_t_m[2][0]),
+                                 (p_t_m[0][1] * p_t_m[2][0]) - (p_t_m[0][0] * p_t_m[2][1]),
+                                 (p_t_m[0][0] * p_t_m[1][1]) - (p_t_m[0][1] * p_t_m[1][0]),
+                                ]
+    # Dim = 3.
+    else:
+        ad00 = (p_t_m[1][2] * p_t_m[2][3] * p_t_m[3][1]) - (p_t_m[1][3] * p_t_m[2][2] * p_t_m[3][1]) + (p_t_m[1][3] * p_t_m[2][1] * p_t_m[3][2]) - \
+               (p_t_m[1][1] * p_t_m[2][3] * p_t_m[3][2]) - (p_t_m[1][2] * p_t_m[2][1] * p_t_m[3][3]) + (p_t_m[1][1] * p_t_m[2][2] * p_t_m[3][3])
+        ad01 = (p_t_m[0][3] * p_t_m[2][2] * p_t_m[3][1]) - (p_t_m[0][2] * p_t_m[2][3] * p_t_m[3][1]) - (p_t_m[0][3] * p_t_m[2][1] * p_t_m[3][2]) + \
+               (p_t_m[0][1] * p_t_m[2][3] * p_t_m[3][2]) + (p_t_m[0][2] * p_t_m[2][1] * p_t_m[3][3]) - (p_t_m[0][1] * p_t_m[2][2] * p_t_m[3][3])
+        ad02 = (p_t_m[0][2] * p_t_m[1][3] * p_t_m[3][1]) - (p_t_m[0][3] * p_t_m[1][2] * p_t_m[3][1]) + (p_t_m[0][3] * p_t_m[1][1] * p_t_m[3][2]) - \
+               (p_t_m[0][1] * p_t_m[1][3] * p_t_m[3][2]) - (p_t_m[0][2] * p_t_m[1][1] * p_t_m[3][3]) + (p_t_m[0][1] * p_t_m[1][2] * p_t_m[3][3])
+        ad03 = (p_t_m[0][3] * p_t_m[1][2] * p_t_m[2][1]) - (p_t_m[0][2] * p_t_m[1][3] * p_t_m[2][1]) - (p_t_m[0][3] * p_t_m[1][1] * p_t_m[2][2]) + \
+               (p_t_m[0][1] * p_t_m[1][3] * p_t_m[2][2]) + (p_t_m[0][2] * p_t_m[1][1] * p_t_m[2][3]) - (p_t_m[0][1] * p_t_m[1][2] * p_t_m[2][3])
+        ad10 = (p_t_m[1][3] * p_t_m[2][2] * p_t_m[3][0]) - (p_t_m[1][2] * p_t_m[2][3] * p_t_m[3][0]) - (p_t_m[1][3] * p_t_m[2][0] * p_t_m[3][2]) + \
+               (p_t_m[1][0] * p_t_m[2][3] * p_t_m[3][2]) + (p_t_m[1][2] * p_t_m[2][0] * p_t_m[3][3]) - (p_t_m[1][0] * p_t_m[2][2] * p_t_m[3][3])
+        ad11 = (p_t_m[0][2] * p_t_m[2][3] * p_t_m[3][0]) - (p_t_m[0][3] * p_t_m[2][2] * p_t_m[3][0]) + (p_t_m[0][3] * p_t_m[2][0] * p_t_m[3][2]) - \
+               (p_t_m[0][0] * p_t_m[2][3] * p_t_m[3][2]) - (p_t_m[0][2] * p_t_m[2][0] * p_t_m[3][3]) + (p_t_m[0][0] * p_t_m[2][2] * p_t_m[3][3])
+        ad12 = (p_t_m[0][3] * p_t_m[1][2] * p_t_m[3][0]) - (p_t_m[0][2] * p_t_m[1][3] * p_t_m[3][0]) - (p_t_m[0][3] * p_t_m[1][0] * p_t_m[3][2]) + \
+               (p_t_m[0][0] * p_t_m[1][3] * p_t_m[3][2]) + (p_t_m[0][2] * p_t_m[1][0] * p_t_m[3][3]) - (p_t_m[0][0] * p_t_m[1][2] * p_t_m[3][3])
+        ad13 = (p_t_m[0][2] * p_t_m[1][3] * p_t_m[2][0]) - (p_t_m[0][3] * p_t_m[1][2] * p_t_m[2][0]) + (p_t_m[0][3] * p_t_m[1][0] * p_t_m[2][2]) - \
+               (p_t_m[0][0] * p_t_m[1][3] * p_t_m[2][2]) - (p_t_m[0][2] * p_t_m[1][0] * p_t_m[2][3]) + (p_t_m[0][0] * p_t_m[1][2] * p_t_m[2][3])
+        ad20 = (p_t_m[1][1] * p_t_m[2][3] * p_t_m[3][0]) - (p_t_m[1][3] * p_t_m[2][1] * p_t_m[3][0]) + (p_t_m[1][3] * p_t_m[2][0] * p_t_m[3][1]) - \
+               (p_t_m[1][0] * p_t_m[2][3] * p_t_m[3][1]) - (p_t_m[1][1] * p_t_m[2][0] * p_t_m[3][3]) + (p_t_m[1][0] * p_t_m[2][1] * p_t_m[3][3])
+        ad21 = (p_t_m[0][3] * p_t_m[2][1] * p_t_m[3][0]) - (p_t_m[0][1] * p_t_m[2][3] * p_t_m[3][0]) - (p_t_m[0][3] * p_t_m[2][0] * p_t_m[3][1]) + \
+               (p_t_m[0][0] * p_t_m[2][3] * p_t_m[3][1]) + (p_t_m[0][1] * p_t_m[2][0] * p_t_m[3][3]) - (p_t_m[0][0] * p_t_m[2][1] * p_t_m[3][3])
+        ad22 = (p_t_m[0][1] * p_t_m[1][3] * p_t_m[3][0]) - (p_t_m[0][3] * p_t_m[1][1] * p_t_m[3][0]) + (p_t_m[0][3] * p_t_m[1][0] * p_t_m[3][1]) - \
+               (p_t_m[0][0] * p_t_m[1][3] * p_t_m[3][1]) - (p_t_m[0][1] * p_t_m[1][0] * p_t_m[3][3]) + (p_t_m[0][0] * p_t_m[1][1] * p_t_m[3][3])
+        ad23 = (p_t_m[0][3] * p_t_m[1][1] * p_t_m[2][0]) - (p_t_m[0][1] * p_t_m[1][3] * p_t_m[2][0]) - (p_t_m[0][3] * p_t_m[1][0] * p_t_m[2][1]) + \
+               (p_t_m[0][0] * p_t_m[1][3] * p_t_m[2][1]) + (p_t_m[0][1] * p_t_m[1][0] * p_t_m[2][3]) - (p_t_m[0][0] * p_t_m[1][1] * p_t_m[2][3])
+        ad30 = (p_t_m[1][2] * p_t_m[2][1] * p_t_m[3][0]) - (p_t_m[1][1] * p_t_m[2][2] * p_t_m[3][0]) - (p_t_m[1][2] * p_t_m[2][0] * p_t_m[3][1]) + \
+               (p_t_m[1][0] * p_t_m[2][2] * p_t_m[3][1]) + (p_t_m[1][1] * p_t_m[2][0] * p_t_m[3][2]) - (p_t_m[1][0] * p_t_m[2][1] * p_t_m[3][2])
+        ad31 = (p_t_m[0][1] * p_t_m[2][2] * p_t_m[3][0]) - (p_t_m[0][2] * p_t_m[2][1] * p_t_m[3][0]) + (p_t_m[0][2] * p_t_m[2][0] * p_t_m[3][1]) - \
+               (p_t_m[0][0] * p_t_m[2][2] * p_t_m[3][1]) - (p_t_m[0][1] * p_t_m[2][0] * p_t_m[3][2]) + (p_t_m[0][0] * p_t_m[2][1] * p_t_m[3][2])
+        ad32 = (p_t_m[0][2] * p_t_m[1][1] * p_t_m[3][0]) - (p_t_m[0][1] * p_t_m[1][2] * p_t_m[3][0]) - (p_t_m[0][2] * p_t_m[1][0] * p_t_m[3][1]) + \
+               (p_t_m[0][0] * p_t_m[1][2] * p_t_m[3][1]) + (p_t_m[0][1] * p_t_m[1][0] * p_t_m[3][2]) - (p_t_m[0][0] * p_t_m[1][1] * p_t_m[3][2])
+        ad33 = (p_t_m[0][1] * p_t_m[1][2] * p_t_m[2][0]) - (p_t_m[0][2] * p_t_m[1][1] * p_t_m[2][0]) + (p_t_m[0][2] * p_t_m[1][0] * p_t_m[2][1]) - \
+               (p_t_m[0][0] * p_t_m[1][2] * p_t_m[2][1]) - (p_t_m[0][1] * p_t_m[1][0] * p_t_m[2][2]) + (p_t_m[0][0] * p_t_m[1][1] * p_t_m[2][2])
+
+        adj_matrix[0, :] = [ad00, ad01, ad02, ad03]
+        adj_matrix[1, :] = [ad10, ad11, ad12, ad13]
+        adj_matrix[2, :] = [ad20, ad21, ad22, ad23]
+        adj_matrix[3, :] = [ad30, ad31, ad32, ad33]
+
+    adj_matrix = numpy.true_divide(adj_matrix, det_p_t_m)
+
+    return adj_matrix
 
 def metric_coefficients(dimension          ,
                         in_points          ,
