@@ -308,13 +308,10 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
 # Perspective transformation coefficients (linear coefficients).
 def p_t_coeffs(int dimension                                        ,
                numpy.ndarray[dtype = numpy.float64_t, ndim = 2] o_ps,  # Original points
-               numpy.ndarray[dtype = numpy.float64_t, ndim = 2] t_ps): # Transformed points
+               numpy.ndarray[dtype = numpy.float64_t, ndim = 2] t_ps,  # Transformed points
+               numpy.float64_t dil_z = 1.0):
     # Dimension of the matrix.
-    cdef int d_matrix
-    if (dimension == 2):
-        d_matrix = 8
-    else:
-        d_matrix = 15
+    cdef int d_matrix = 8
 
     cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] matrix = \
          numpy.zeros((d_matrix, d_matrix), dtype = numpy.float64)
@@ -322,20 +319,16 @@ def p_t_coeffs(int dimension                                        ,
     cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 1 ] rhs = \
          numpy.zeros((d_matrix, ), dtype = numpy.float64)
 
-    if (dimension == 2):
-             matrix[0, :] = [o_ps[0][0], o_ps[0][1], 1, 0, 0, 0, -(o_ps[0][0] * t_ps[0][0]), -(o_ps[0][1] * t_ps[0][0])]
-             matrix[1, :] = [o_ps[1][0], o_ps[1][1], 1, 0, 0, 0, -(o_ps[1][0] * t_ps[1][0]), -(o_ps[1][1] * t_ps[1][0])]
-             matrix[2, :] = [o_ps[2][0], o_ps[2][1], 1, 0, 0, 0, -(o_ps[2][0] * t_ps[2][0]), -(o_ps[2][1] * t_ps[2][0])]
-             matrix[3, :] = [o_ps[3][0], o_ps[3][1], 1, 0, 0, 0, -(o_ps[3][0] * t_ps[3][0]), -(o_ps[3][1] * t_ps[3][0])]
-             matrix[4, :] = [0, 0, 0, o_ps[0][0], o_ps[0][1], 1, -(o_ps[0][0] * t_ps[0][1]), -(o_ps[0][1] * t_ps[0][1])]
-             matrix[5, :] = [0, 0, 0, o_ps[1][0], o_ps[1][1], 1, -(o_ps[1][0] * t_ps[1][1]), -(o_ps[1][1] * t_ps[1][1])]
-             matrix[6, :] = [0, 0, 0, o_ps[2][0], o_ps[2][1], 1, -(o_ps[2][0] * t_ps[2][1]), -(o_ps[2][1] * t_ps[2][1])]
-             matrix[7, :] = [0, 0, 0, o_ps[3][0], o_ps[3][1], 1, -(o_ps[3][0] * t_ps[3][1]), -(o_ps[3][1] * t_ps[3][1])]
+    matrix[0, :] = [o_ps[0][0], o_ps[0][1], 1, 0, 0, 0, -(o_ps[0][0] * t_ps[0][0]), -(o_ps[0][1] * t_ps[0][0])]
+    matrix[1, :] = [o_ps[1][0], o_ps[1][1], 1, 0, 0, 0, -(o_ps[1][0] * t_ps[1][0]), -(o_ps[1][1] * t_ps[1][0])]
+    matrix[2, :] = [o_ps[2][0], o_ps[2][1], 1, 0, 0, 0, -(o_ps[2][0] * t_ps[2][0]), -(o_ps[2][1] * t_ps[2][0])]
+    matrix[3, :] = [o_ps[3][0], o_ps[3][1], 1, 0, 0, 0, -(o_ps[3][0] * t_ps[3][0]), -(o_ps[3][1] * t_ps[3][0])]
+    matrix[4, :] = [0, 0, 0, o_ps[0][0], o_ps[0][1], 1, -(o_ps[0][0] * t_ps[0][1]), -(o_ps[0][1] * t_ps[0][1])]
+    matrix[5, :] = [0, 0, 0, o_ps[1][0], o_ps[1][1], 1, -(o_ps[1][0] * t_ps[1][1]), -(o_ps[1][1] * t_ps[1][1])]
+    matrix[6, :] = [0, 0, 0, o_ps[2][0], o_ps[2][1], 1, -(o_ps[2][0] * t_ps[2][1]), -(o_ps[2][1] * t_ps[2][1])]
+    matrix[7, :] = [0, 0, 0, o_ps[3][0], o_ps[3][1], 1, -(o_ps[3][0] * t_ps[3][1]), -(o_ps[3][1] * t_ps[3][1])]
 
-             rhs[:] = [t_ps[0][0], t_ps[1][0], t_ps[2][0], t_ps[3][0], t_ps[0][1], t_ps[1][1], t_ps[2][1], t_ps[3][1]]
-    # Dim = 3.
-    else:
-        pass
+    rhs[:] = [t_ps[0][0], t_ps[1][0], t_ps[2][0], t_ps[3][0], t_ps[0][1], t_ps[1][1], t_ps[2][1], t_ps[3][1]]
 
     cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 1] coefficients = \
          numpy.linalg.solve(matrix, rhs)
@@ -345,10 +338,13 @@ def p_t_coeffs(int dimension                                        ,
     # dimension) without loss of generality.
     coefficients = numpy.append(coefficients, 1)
     cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] r_coefficients = \
-         numpy.ndarray(shape = (dimension + 1, dimension + 1),
-                       buffer = coefficients                 ,
+         numpy.ndarray(shape = (3, 3)       ,
+                       buffer = coefficients,
                        dtype = numpy.float64).T
-    #coefficients = coefficients.reshape(dimension + 1, dimension + 1).T
+
+    if (dimension == 3):
+        r_coefficients = numpy.insert(r_coefficients, 2, [0, 0, 0], axis = 1)
+        r_coefficients = numpy.insert(r_coefficients, 2, [0, 0, dil_z, 0], axis = 0)
 
     return r_coefficients
 
