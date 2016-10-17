@@ -209,6 +209,7 @@ def check_octree(octree,
 def is_point_inside_polygons(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point   ,
                              numpy.ndarray[dtype = numpy.float64_t, ndim = 3] polygons):
     cdef bool inside = False
+    # Number of polygons.
     cdef int n_polygons = polygons.shape[0]
     cdef int i
 
@@ -237,7 +238,6 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] poi
             j = n_vert - 1
         else:
             j = i - 1
-        # TODO: understand where to put the threshold.
         if (((polygon[i][1] > point[1]) != (polygon[j][1] > point[1])) and \
             (point[0] <
              (((polygon[j][0] - polygon[i][0]) * (point[1] - polygon[i][1])) / \
