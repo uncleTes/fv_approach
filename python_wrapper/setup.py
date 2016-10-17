@@ -145,7 +145,9 @@ class build_ext(_build_ext):
         _extra_link_args = ["-fPIC"] # Needed? We have already the same flag for 
                                      # the compiler args above.
         _cython_directives = {"boundscheck": False,
-                              "wraparound": False}
+                              "wraparound": False,
+                              # http://stackoverflow.com/questions/23351813/how-to-declare-an-ndarray-in-cython-with-a-general-floating-point-type
+                              "nonecheck": False}
         _language = "c++"
         _extra_objects = ["libbitpit_MPI.a" if (BITPIT_ENABLE_MPI) \
                                                else "libbitpit.a"]
