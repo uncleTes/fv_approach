@@ -212,9 +212,9 @@ def is_point_inside_polygons(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] po
     cdef bool inside = False
     # Number of polygons.
     cdef int n_polygons = polygons.shape[0]
-    cdef int i
+    cdef size_t i
 
-    for i in xrange(0, n_polygons):
+    for i in range(n_polygons):
         inside = is_point_inside_polygon(point      ,
                                          polygons[i],
                                          dimension)
@@ -233,11 +233,11 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] poi
 
     cdef int n_verts_face = 4 if (dimension == 2) else 8
     cdef int n_faces = 1 if (dimension == 2) else 6
-    cdef int i
-    cdef int j
+    cdef size_t i
+    cdef size_t j
     cdef int x
     cdef int y
-    cdef int face
+    cdef size_t face
     cdef bool inside = False
     cdef numpy.ndarray[dtype = numpy.float64_t,
                        ndim = 3] faces = \
@@ -257,7 +257,7 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] poi
                                             polygon[6], polygon[7]),
                        dtype = numpy.float64)
 
-    for face in xrange(0, n_faces):
+    for face in range(n_faces):
         if (face < 2):
             x = 0
             y = 1
@@ -273,7 +273,7 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] poi
         # If \"dimension\" = 3, we apply ray casting algorithm on each face
         # of the polyhedron.
         # http://www.codeproject.com/Questions/714459/How-to-determine-a-point-is-inside-or-outside-the
-        for i in xrange(0, n_verts_face):
+        for i in range(n_verts_face):
             if (i == 0):
                 j = n_verts_face - 1
             else:
@@ -296,16 +296,16 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     # approximation will be: \"ax + by + cz + d\".
     cdef int n_points = points.shape[0]
     cdef int n_cols = dim + 1
-    cdef int i
-    cdef int j
+    cdef size_t i
+    cdef size_t j
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] A = \
          numpy.zeros(shape = (n_points, n_cols), \
                      dtype = numpy.float64)
 
-    for i in xrange(0, n_points):
-        for j in xrange(0, dim):
+    for i in range(n_points):
+        for j in range(dim):
             A[i][j] = points[i][j]
         A[i][dim] = 1
 
@@ -561,16 +561,16 @@ def apply_persp_trans_inv(int dimension                                         
                        ndim = 1] np_point = \
          numpy.zeros(shape = (dimension + 1,), \
                      dtype = numpy.float64)
-    cdef int i
+    cdef size_t i
     cdef float divisor = 0.0
     cdef float w_first
 
-    for i in xrange(0, dimension):
+    for i in range(dimension):
         divisor = divisor + coefficients[i][dimension] * point[i]
     divisor = divisor + coefficients[dimension][dimension]
     w_first = 1.0 / divisor
 
-    for i in xrange(0, dimension):
+    for i in range(dimension):
         np_point[i] = point[i] * w_first
     # Homogeneous coordinates.
     np_point[dimension] = 1.0 * w_first
@@ -582,7 +582,7 @@ def apply_persp_trans_inv(int dimension                                         
 
     # Transformed inverse point.
     t_i_point = [0.0] * 3
-    for i in xrange(0, dimension):
+    for i in range(dimension):
         t_i_point[i] = np_t_i_point[i]
 
     if (r_a_n_d):
@@ -601,9 +601,9 @@ def apply_persp_trans(int dimension                                             
                        ndim = 1] np_point = \
          numpy.zeros(shape = (dimension + 1,), \
                      dtype = numpy.float64)
-    cdef int i
+    cdef size_t i
 
-    for i in xrange(0, dimension):
+    for i in range(dimension):
         np_point[i] = point[i]
     # Homogeneous coordinates.
     np_point[dimension] = 1
@@ -617,7 +617,7 @@ def apply_persp_trans(int dimension                                             
 
     # Transformed point.
     t_point = [0.0] * 3
-    for i in xrange(0, dimension):
+    for i in range(dimension):
         t_point[i] = np_t_point[i]
 
     if (r_a_n_d):
