@@ -300,20 +300,24 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
 
         return py_normal
     
-    def get_nodes(self               ,
-                  uintptr_t idx      ,
-                  int dim            ,
-                  bool is_ptr = False,
-                  bool is_inter = False):
+    def get_nodes(self                 ,
+                  uintptr_t idx        ,
+                  int dim              ,
+                  bool is_ptr = False  ,
+                  bool is_inter = False,
+                  bool also_numpy_nodes = False):
         cdef darr3vector nodes
         #cdef darray3 node
         # Vector size.
         cdef int v_size = 4 if (dim == 2) else 8
         # Array size.
         cdef int a_size = 3
-        cdef int i
-        cdef int j
-        py_nodes = []
+        cdef size_t i
+        cdef size_t j
+        cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] np_nodes = \
+             numpy.zeros(shape = (v_size, a_size), dtype = numpy.float64)
+        # http://stackoverflow.com/questions/12791501/python-initializing-a-list-of-lists
+        py_nodes = [[0] * a_size for i in xrange(0, v_size)]
 
         if (is_ptr):
             if (is_inter):
@@ -322,16 +326,16 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
                 nodes = self.der_thisptr._getNodes(<Octant*><void*>idx)
         else:
             nodes = self.der_thisptr._getNodes(<uint32_t>idx)
-        for i in xrange(0, v_size):
-            py_node = []
+        for i in range(v_size):
             # We are doing this second \"for\" loop because without it, Cython
             # compiler would give us the following error:
             # \"Cannot convert 'darray3' to Python object\".
-            for j in xrange(0, a_size):
-                py_node.append(nodes[i][j])
+            for j in range(a_size):
+                py_nodes[i][j] = nodes[i][j]
+                if (also_numpy_nodes):
+                    np_nodes[i][j] = nodes[i][j]
 
-            py_nodes.append(py_node)
-
-        #print(py_nodes)
+        if (also_numpy_nodes):
+            return (py_nodes, np_nodes)
 
         return py_nodes

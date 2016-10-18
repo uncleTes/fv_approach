@@ -564,20 +564,24 @@ cdef class Py_Para_Tree:
                   uintptr_t inter):
         return self.thisptr.getFiner(<Intersection*><void*>inter)
 
-    def get_nodes(self               ,
-                  uintptr_t idx      ,
-                  int dim            ,
-                  bool is_ptr = False,
-                  bool is_inter = False):
+    def get_nodes(self                 ,
+                  uintptr_t idx        ,
+                  int dim              ,
+                  bool is_ptr = False  ,
+                  bool is_inter = False,
+                  bool also_numpy_nodes = False
+                  ):
         cdef darr3vector nodes
         #cdef darray3 node
         # Vector size.
         cdef int v_size = 4 if (dim == 2) else 8
         # Array size.
         cdef int a_size = 3
-        cdef int i
-        cdef int j
-        py_nodes = []
+        cdef size_t i
+        cdef size_t j
+        cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 2] np_nodes = \
+             numpy.zeros(shape = (v_size, a_size), dtype = numpy.float64)
+        py_nodes = [[0] * a_size for i in xrange(0, v_size)]
 
         if (is_ptr):
             if (is_inter):
@@ -586,15 +590,17 @@ cdef class Py_Para_Tree:
                 nodes = self.thisptr.getNodes(<Octant*><void*>idx)
         else:
             nodes = self.thisptr.getNodes(<uint32_t>idx)
-        for i in xrange(0, v_size):
-            py_node = []
+        for i in range(v_size):
             # We are doing this second \"for\" loop because without it, Cython
             # compiler would give us the following error:
             # \"Cannot convert 'darray3' to Python object\".
-            for j in xrange(0, a_size):
-                py_node.append(nodes[i][j])
+            for j in range(a_size):
+                py_nodes[i][j] = nodes[i][j]
+                if (also_numpy_nodes):
+                    np_nodes[i][j] = nodes[i][j]
 
-            py_nodes.append(py_node)
+        if (also_numpy_nodes):
+            return (py_nodes, np_nodes)
 
         return py_nodes
 
