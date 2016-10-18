@@ -642,6 +642,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
         get_nodes = octree.get_nodes
+        check_oct_corners = self.check_oct_corners
 
         if (yet_masked):
             oct_offset = o_count
@@ -692,19 +693,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                    also_numpy_nodes = True)
             n_oct_corners = 4 if (dimension == 2) else 8
 
-            for i in xrange(n_oct_corners): 
-                is_corner_penalized = False
-                numpy_corner = numpy_corners[i]
-                corner, numpy_corner = apply_persp_trans(dimension   ,
-                                                         numpy_corner,
-                                                         c_t_dict    ,
-                                                         True)[: dimension]
-                (is_corner_penalized,
-                 n_polygon) = is_point_inside_polygons(numpy_corner,
-                                                       n_t_foregrounds)
-                if (not is_corner_penalized):
-                    is_n_penalized = False
-                    break
+            is_n_penalized, n_polygon = check_oct_corners(dimension      ,
+                                                          n_oct_corners  ,
+                                                          numpy_corners  ,
+                                                          c_t_dict       ,
+                                                          n_t_foregrounds,
+                                                          is_n_penalized)
         if (not yet_masked):
             if not is_penalized:
                 if is_n_penalized:
@@ -792,6 +786,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_point_inside_polygons = utilities.is_point_inside_polygons
         get_bound = octree.get_bound
         check_neighbour = self.check_neighbour
+        check_oct_corners = self.check_oct_corners
 
         for octant in octants:
             d_count, o_count = 0, 0
@@ -809,20 +804,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 oct_corners, numpy_corners = get_nodes(octant   , 
                                                        dimension,
                                                        also_numpy_nodes = True)
-                for i in xrange(n_oct_corners):
-                    is_corner_penalized = False
-                    numpy_corner = numpy_corners[i]
-                    corner, numpy_corner = apply_persp_trans(dimension   ,
-                                                             numpy_corner,
-                                                             c_t_dict    ,
-                                                             True)[: dimension]
-                    (is_corner_penalized,
-                     n_polygon) = is_point_inside_polygons(numpy_corner,
-                                                           n_t_foregrounds)
-                    if (not is_corner_penalized):
-                        is_penalized = False
-                        break
-
+                is_penalized, n_polygon = check_oct_corners(dimension      ,
+                                                            n_oct_corners  ,
+                                                            numpy_corners  ,
+                                                            c_t_dict       ,
+                                                            n_t_foregrounds,
+                                                            is_penalized)
             if (is_penalized):
                 self._nln[octant] = -1
                 key = (n_polygon, # Foreground grid to which the node belongs to
@@ -1112,6 +1099,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         check_neighbour = self.check_neighbour
         get_bound = octree.get_bound
         narray = numpy.array
+        check_oct_corners = self.check_oct_corners
         # Lambda function.
         g_n = lambda x : get_nodes(x, dimension, also_numpy_nodes = True)
 
@@ -1132,20 +1120,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 is_penalized = True
                 threshold = 0.0
                 oct_corners, numpy_corners = g_n(octant)
-                for i in xrange(n_oct_corners):
-                    is_corner_penalized = False
-                    numpy_corner = numpy_corners[i]
-                    corner, numpy_corner = apply_persp_trans(dimension   ,
-                                                             numpy_corner,
-                                                             c_t_dict    ,
-                                                             True)[: dimension]
-                    (is_corner_penalized,
-                     n_polygon) = is_point_inside_polygons(numpy_corner,
-                                                           n_t_foregrounds)
-                    if (not is_corner_penalized):
-                        is_penalized = False
-                        break
-
+                is_penalized, n_polygon = check_oct_corners(dimension      ,
+                                                            n_oct_corners  ,
+                                                            numpy_corners  ,
+                                                            c_t_dict       ,
+                                                            n_t_foregrounds,
+                                                            is_penalized)
             if (not is_penalized):
                 indices.append(m_g_octant)
                 numpy_center = narray(center)
@@ -1266,7 +1246,32 @@ class Laplacian(BaseClass2D.BaseClass2D):
                      "info",
                      extra_msg)
     # --------------------------------------------------------------------------
-    
+
+    def check_oct_corners(self         ,
+                          dimension    ,
+                          n_oct_corners,
+                          numpy_corners,
+                          t_dict       ,
+                          polygons     ,
+                          penalized):
+        apply_persp_trans = utilities.apply_persp_trans
+        is_point_inside_polygons = utilities.is_point_inside_polygons
+        for i in xrange(n_oct_corners):
+            is_corner_penalized = False
+            numpy_corner = numpy_corners[i]
+            corner, numpy_corner = apply_persp_trans(dimension   ,
+                                                     numpy_corner,
+                                                     t_dict      ,
+                                                     True)[: dimension]
+            (is_corner_penalized,
+             n_polygon) = is_point_inside_polygons(numpy_corner,
+                                                   polygons)
+            if (not is_corner_penalized):
+                penalized = False
+                break
+
+        return (penalized, n_polygon)
+
     # --------------------------------------------------------------------------
     # Assembly PETSc's structures, like \"self._b_mat\" or \"self._rhs\".
     def assembly_petsc_struct(self       ,
