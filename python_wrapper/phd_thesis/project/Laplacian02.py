@@ -494,10 +494,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                           c_t_dict    ,
                                                           True)[: dimension]
                 check = is_point_inside_polygon(t_center    ,
-                                                t_background,
-                                                logger      ,
-                                                log_file    ,
-                                                threshold)
+                                                t_background)
                 if (check):
                     # Can't use list as dictionary's keys.
                     # http://stackoverflow.com/questions/7257588/why-cant-i-use-a-list-as-a-dict-key-in-python
@@ -700,10 +697,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                          True)[: dimension]
                 (is_corner_penalized,
                  n_polygon) = is_point_inside_polygons(corner       ,
-                                                       t_foregrounds,
-                                                       logger       ,
-                                                       log_file     ,
-                                                       threshold)
+                                                       t_foregrounds)
                 if (not is_corner_penalized):
                     is_n_penalized = False
                     break
@@ -819,10 +813,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                              True)[: dimension]
                     (is_corner_penalized,
                      n_polygon) = is_point_inside_polygons(corner       ,
-                                                           t_foregrounds,
-                                                           logger       ,
-                                                           log_file     ,
-                                                           threshold)
+                                                           t_foregrounds)
                     if (not is_corner_penalized):
                         is_penalized = False
                         break
@@ -1144,10 +1135,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                              True)[: dimension]
                     (is_corner_penalized,
                      n_polygon) = is_point_inside_polygons(corner       ,
-                                                           t_foregrounds,
-                                                           logger       ,
-                                                           log_file     ,
-                                                           threshold)
+                                                           t_foregrounds)
                     if (not is_corner_penalized):
                         is_penalized = False
                         break
@@ -2135,10 +2123,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                               c_t_dict           ,
                                                               True)[: dimension]
                     check = is_point_inside_polygon(t_center    ,
-                                                    t_background,
-                                                    logger      ,
-                                                    log_file    ,
-                                                    threshold)
+                                                    t_background)
                     if (not check):
                         to_consider = True
                     
