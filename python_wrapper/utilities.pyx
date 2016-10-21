@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 from mpi4py import MPI
+from libcpp cimport bool
 import numpy
 cimport numpy
 import math
@@ -526,15 +527,16 @@ def metric_coefficients(dimension          ,
 
     return n_m_cs
        
-def apply_persp_trans_inv(int dimension                                         ,
-                          numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point,
-                          numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients):
+def apply_persp_trans_inv(int dimension                                                ,
+                          numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point       ,
+                          numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients,
+                          bool r_a_n_d = False):
     # Numpy point.
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 1] np_point = \
          numpy.zeros(shape = (dimension + 1,), \
                      dtype = numpy.float64)
-    cdef int i
+    cdef size_t i
     cdef float divisor = 0.0
     cdef float w_first
 
@@ -543,7 +545,7 @@ def apply_persp_trans_inv(int dimension                                         
     divisor = divisor + coefficients[dimension][dimension]
     w_first = 1.0 / divisor
 
-    for i in xrange(0, dimension):
+    for i in range(dimension):
         np_point[i] = point[i] * w_first
     # Homogeneous coordinates.
     np_point[dimension] = 1.0 * w_first
@@ -554,24 +556,28 @@ def apply_persp_trans_inv(int dimension                                         
          numpy.dot(np_point, coefficients)
 
     # Transformed inverse point.
-    t_i_point = [0.0] * 3
-    for i in xrange(0, dimension):
+    t_i_point = [0.0] * dimension
+    for i in range(dimension):
         t_i_point[i] = np_t_i_point[i]
+
+    if (r_a_n_d):
+        return t_i_point, np_t_i_point[0 : dimension]
 
     return t_i_point
 
-def apply_persp_trans(int dimension                                         ,
-                      numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point,
-                      numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients):
+def apply_persp_trans(int dimension                                                ,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point       ,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients,
+                      bool r_a_n_d = False):
     # Numpy point.
     # http://stackoverflow.com/questions/14415741/numpy-array-vs-asarray
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 1] np_point = \
          numpy.zeros(shape = (dimension + 1,), \
                      dtype = numpy.float64)
-    cdef int i
+    cdef size_t i
 
-    for i in xrange(0, dimension):
+    for i in range(dimension):
         np_point[i] = point[i]
     # Homogeneous coordinates.
     np_point[dimension] = 1
@@ -584,9 +590,12 @@ def apply_persp_trans(int dimension                                         ,
                                    np_t_point[dimension])
 
     # Transformed point.
-    t_point = [0.0] * 3
-    for i in xrange(0, dimension):
+    t_point = [0.0] * dimension
+    for i in range(dimension):
         t_point[i] = np_t_point[i]
+
+    if (r_a_n_d):
+        return t_point, np_t_point[0 : dimension]
 
     return t_point
 
