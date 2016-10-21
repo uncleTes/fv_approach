@@ -207,25 +207,16 @@ def check_octree(octree,
     return l_octree
 
 def is_point_inside_polygons(point   ,
-                             polygons,
-                             logger  ,
-                             log_file,
-                             threshold = 0.0):
-    inside = False
+                             polygons):
+    cdef bool inside = False
+    cdef size_t i
+    cdef size_t n_polys = len(polygons)
 
-    if isinstance(polygons, list):
-        for i, polygon in enumerate(polygons):
-            inside = is_point_inside_polygon(point   ,
-                                             polygon ,
-                                             logger  ,
-                                             log_file,
-                                             threshold)
-            if (inside):
-                return (inside, i)
-    else:
-        logger = check_null_logger(logger,
-                                   log_file)
-        logger.error("Second parameter must be a list of lists.")
+    for i in range(n_polys):
+        inside = is_point_inside_polygon(point,
+                                         polygons[i])
+        if (inside):
+            return (inside, i)
     return (inside, None)
         
 
@@ -234,33 +225,27 @@ def is_point_inside_polygons(point   ,
 # http://www.ariel.com.au/a/python-point-int-poly.html
 # http://stackoverflow.com/questions/16625507/python-checking-if-point-is-inside-a-polygon
 def is_point_inside_polygon(point   ,
-                            polygon ,
-                            logger  ,
-                            log_file,
-                            threshold = 0.0):
+                            polygon):
 
-    n_vert = len(polygon)
-    x, y = point
-    inside = False
+    cdef size_t n_verts = len(polygon)
+    cdef size_t i
+    cdef size_t j
+    cdef double x = point[0]
+    cdef double y = point[1]
+    cdef bool inside = False
+    cdef double i_x, i_y, j_x, j_y
 
-    if isinstance(polygon, list):
-        for i in xrange(0, n_vert):
-            if (i == 0):
-                j = n_vert - 1
-            else:
-                j = i - 1
-            i_x, i_y = polygon[i]
-            j_x, j_y = polygon[j]
-            if (((i_y > y) != (j_y > y)) and
-                ((x + threshold ) < 
-                 (((j_x - i_x) * (y - i_y)) / (j_y - i_y)) + i_x)):
-                inside = not inside
-        return inside
-    else:
-        logger = check_null_logger(logger, 
-                                   log_file)
-        logger.error("Second parameter must be a list.")
+    for i in range(n_verts):
+        j = i - 1
+        if (i == 0):
+            j = n_verts - 1
 
+        i_x, i_y = polygon[i]
+        j_x, j_y = polygon[j]
+        if (((i_y > y) != (j_y > y)) and
+            (x < 
+             (((j_x - i_x) * (y - i_y)) / (j_y - i_y)) + i_x)):
+            inside = not inside
     return inside
 
 # https://it.wikipedia.org/wiki/Metodo_dei_minimi_quadrati
