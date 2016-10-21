@@ -251,7 +251,6 @@ def is_point_inside_polygon(point   ,
                 j = i - 1
             i_x, i_y = polygon[i]
             j_x, j_y = polygon[j]
-            # TODO: understand where to put the threshold.
             if (((i_y > y) != (j_y > y)) and
                 ((x + threshold ) < 
                  (((j_x - i_x) * (y - i_y)) / (j_y - i_y)) + i_x)):
