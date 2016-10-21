@@ -489,9 +489,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Check if foreground grid is inside the background one.
                 threshold = 0.0
                 numpy_center = narray(center)
-                t_center =  apply_persp_trans(dimension      ,
-                                              numpy_center   ,
-                                              c_t_dict)[: dimension]
+                t_center, n_t_center =  apply_persp_trans(dimension   ,
+                                                          numpy_center,
+                                                          c_t_dict    ,
+                                                          True)[: dimension]
                 check = is_point_inside_polygon(t_center    ,
                                                 t_background,
                                                 logger      ,
@@ -691,9 +692,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             for i, corner in enumerate(oct_corners): 
                 is_corner_penalized = False
                 numpy_corner = narray(corner)
-                corner = apply_persp_trans(dimension   ,
-                                           numpy_corner,
-                                           c_t_dict)[: dimension]
+                corner, n_corner = apply_persp_trans(dimension   ,
+                                                     numpy_corner,
+                                                     c_t_dict    ,
+                                                     True)[: dimension]
                 (is_corner_penalized,
                  n_polygon) = is_point_inside_polygons(corner       ,
                                                        t_foregrounds,
@@ -808,9 +810,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 for i, corner in enumerate(oct_corners):
                     is_corner_penalized = False
                     numpy_corner = narray(corner)
-                    corner = apply_persp_trans(dimension   ,
-                                               numpy_corner,
-                                               c_t_dict)[: dimension]
+                    corner, n_corner = apply_persp_trans(dimension   ,
+                                                         numpy_corner,
+                                                         c_t_dict    ,
+                                                         True)[: dimension]
                     (is_corner_penalized,
                      n_polygon) = is_point_inside_polygons(corner       ,
                                                            t_foregrounds,
@@ -1132,9 +1135,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 for i, corner in enumerate(oct_corners):
                     is_corner_penalized = False
                     numpy_corner = narray(corner)
-                    corner = apply_persp_trans(dimension   ,
-                                               numpy_corner,
-                                               c_t_dict)[: dimension]
+                    corner, n_corner = apply_persp_trans(dimension   ,
+                                                         numpy_corner,
+                                                         c_t_dict    ,
+                                                         True)[: dimension]
                     (is_corner_penalized,
                      n_polygon) = is_point_inside_polygons(corner       ,
                                                            t_foregrounds,
@@ -2123,9 +2127,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     threshold = 0.0
                     to_consider = False
                     numpy_border_center = narray(border_center)
-                    t_center =  apply_persp_trans(dimension          ,
-                                                  numpy_border_center,
-                                                  c_t_dict)[: dimension]
+                    t_center, n_t_center =  apply_persp_trans(dimension          ,
+                                                              numpy_border_center,
+                                                              c_t_dict           ,
+                                                              True)[: dimension]
                     check = is_point_inside_polygon(t_center    ,
                                                     t_background,
                                                     logger      ,
