@@ -231,7 +231,7 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] poi
                             numpy.ndarray[dtype = numpy.float64_t, ndim = 2] polygon ,
                             int dimension = 2):
 
-    cdef int n_verts_face = 4 if (dimension == 2) else 8
+    cdef int n_verts_face = 4
     cdef int n_faces = 1 if (dimension == 2) else 6
     cdef size_t i
     cdef size_t j
@@ -273,16 +273,15 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 1] poi
         # If \"dimension\" = 3, we apply ray casting algorithm on each face
         # of the polyhedron.
         # http://www.codeproject.com/Questions/714459/How-to-determine-a-point-is-inside-or-outside-the
+        j = n_verts_face - 1
         for i in range(n_verts_face):
-            if (i == 0):
-                j = n_verts_face - 1
-            else:
-                j = i - 1
-            if (((polygon[i][y] > point[y]) != (polygon[j][y] > point[y])) and \
+            if (((faces[face][i][y] > point[y]) != (faces[face][j][y] > point[y])) and \
                 (point[x] <
-                 (((polygon[j][x] - polygon[i][x]) * (point[y] - polygon[i][y])) / \
-                  (polygon[j][y] - polygon[i][y])) + polygon[i][x])):
+                 (((faces[face][j][x] - faces[face][i][x]) * (point[y] - faces[face][i][y])) / \
+                  (faces[face][j][y] - faces[face][i][y])) + faces[face][i][x])):
                 inside = not inside
+
+            j = i - 1
         if (not inside):
             break
 
