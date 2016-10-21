@@ -271,16 +271,16 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     # approximation will be: \"ax + by + cz + d\".
     cdef int n_points = points.shape[0]
     cdef int n_cols = dim + 1
-    cdef int i
-    cdef int j
+    cdef size_t i
+    cdef size_t j
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] A = \
          numpy.zeros(shape = (n_points, n_cols), \
                      dtype = numpy.float64)
 
-    for i in xrange(0, n_points):
-        for j in xrange(0, dim):
+    for i in range(n_points):
+        for j in range(dim):
             A[i][j] = points[i][j]
         A[i][dim] = 1
 
@@ -535,7 +535,7 @@ def apply_persp_trans_inv(int dimension                                         
     cdef float divisor = 0.0
     cdef float w_first
 
-    for i in xrange(0, dimension):
+    for i in range(dimension):
         divisor = divisor + coefficients[i][dimension] * point[i]
     divisor = divisor + coefficients[dimension][dimension]
     w_first = 1.0 / divisor
