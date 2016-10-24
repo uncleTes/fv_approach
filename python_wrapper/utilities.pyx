@@ -207,14 +207,16 @@ def check_octree(octree,
     return l_octree
 
 def is_point_inside_polygons(point   ,
-                             polygons):
+                             polygons,
+                             int dimension = 2):
     cdef bool inside = False
     cdef size_t i
     cdef size_t n_polys = len(polygons)
 
     for i in range(n_polys):
-        inside = is_point_inside_polygon(point,
-                                         polygons[i])
+        inside = is_point_inside_polygon(point      ,
+                                         polygons[i],
+                                         dimension)
         if (inside):
             return (inside, i)
     return (inside, None)
@@ -224,28 +226,76 @@ def is_point_inside_polygons(point   ,
 # https://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html ---> Better link
 # http://www.ariel.com.au/a/python-point-int-poly.html
 # http://stackoverflow.com/questions/16625507/python-checking-if-point-is-inside-a-polygon
-def is_point_inside_polygon(point   ,
-                            polygon):
+def is_point_inside_polygon(point  ,
+                            polygon,
+                            int dimension = 2):
 
-    cdef size_t n_verts = len(polygon)
+    cdef size_t n_verts_face = 4
+    cdef size_t n_faces = 1 if (dimension == 2) else 6
     cdef size_t i
     cdef size_t j
-    cdef double x = point[0]
-    cdef double y = point[1]
+    cdef size_t face
+    cdef size_t x, y
+    cdef double p_x, p_y
     cdef bool inside = False
     cdef double i_x, i_y, j_x, j_y
 
-    for i in range(n_verts):
-        j = i - 1
-        if (i == 0):
-            j = n_verts - 1
+    faces = [polygon] if (dimension == 2) else \
+            [[polygon[0], polygon[1], polygon[2], polygon[3]],
+             [polygon[4], polygon[5], polygon[6], polygon[7]],
+             [polygon[0], polygon[4], polygon[2], polygon[6]],
+             [polygon[1], polygon[5], polygon[3], polygon[7]],
+             [polygon[0], polygon[1], polygon[4], polygon[5]],
+             [polygon[2], polygon[3], polygon[6], polygon[7]]]
 
-        i_x, i_y = polygon[i]
-        j_x, j_y = polygon[j]
-        if (((i_y > y) != (j_y > y)) and
-            (x < 
-             (((j_x - i_x) * (y - i_y)) / (j_y - i_y)) + i_x)):
-            inside = not inside
+    #cdef numpy.ndarray[dtype = numpy.float64_t,
+    #                   ndim = 3] faces = \
+    #     numpy.ndarray(shape = (n_faces, n_verts_face, dimension),            \
+    #                   buffer = numpy.array(polygon) if (dimension == 2) else \
+    #                            numpy.array(polygon[0], polygon[1],
+    #                                        polygon[2], polygon[3],
+    #                                        polygon[4], polygon[5],
+    #                                        polygon[6], polygon[7],
+    #                                        polygon[0], polygon[4],
+    #                                        polygon[2], polygon[6],
+    #                                        polygon[1], polygon[5],
+    #                                        polygon[3], polygon[7],
+    #                                        polygon[0], polygon[1],
+    #                                        polygon[4], polygon[5],
+    #                                        polygon[2], polygon[3],
+    #                                        polygon[6], polygon[7]),
+    #                   dtype = numpy.float64)
+
+    for face in xrange(0, n_faces):
+        if (face < 2):
+            x = 0
+            y = 1
+        elif (1 < face < 4):
+            x = 2
+        else:
+            x = 0
+            y = 2
+
+        p_x = point[x]
+        p_y = point[y]
+
+        for i in range(n_verts_face):
+            j = i - 1
+            if (i == 0):
+                j = n_verts_face - 1
+
+            i_x = faces[face][i][x]
+            i_y = faces[face][i][y]
+            j_x = faces[face][j][x]
+            j_y = faces[face][j][y]
+
+            if (((i_y > p_y) != (j_y > p_y)) and
+                (p_x <
+                 (((j_x - i_x) * (p_y - i_y)) / (j_y - i_y)) + i_x)):
+                inside = not inside
+        if (not inside):
+            break
+
     return inside
 
 # https://it.wikipedia.org/wiki/Metodo_dei_minimi_quadrati
