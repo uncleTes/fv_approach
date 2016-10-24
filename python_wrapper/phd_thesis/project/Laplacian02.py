@@ -142,7 +142,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             #TODO: modify to do 3D!!
             for j in xrange(0, n_coordinates, 3):
                 t_t_points.append([polygon[j], polygon[j + 1]])
-                j += 2
             if (i == 0):
                 self._t_background = t_t_points
             else:
