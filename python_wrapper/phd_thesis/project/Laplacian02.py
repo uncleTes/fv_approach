@@ -858,18 +858,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # intersection between an edge on the boundary and an edge
                     # not on the boundary.
                     n_t_n_s.update(b_ns)
-                    # Adding elements for the octants of the background to use
-                    # to interpolate stencil values for boundary conditions of 
-                    # the octants of the foreground grid. 
-                    if not is_background:
-                        #TODO: Check if foreground grid boundary point is or not
-                        #      inside the background grid. For the moment every
-                        #      case adds +9 at \"o_count\".
-                        o_count += 9 # For the neighbours of node.
             # New set with elements in \"n_y_s\" but not in \"n_t_n_s\". 
             n_y_s = n_y_s.difference(n_t_n_s)
-            for node in n_t_n_s:
-                if not is_background:
+            if (not is_background):
+                for node in n_t_n_s:
+                    # Adding elements for the octants of the background to use
+                    # to interpolate stencil values for boundary conditions of
+                    # the octants of the foreground grid. Note that we are con-
+                    # sidering the fact that the foreground grids elements are
+                    # contained into the background, and we are not checking it
+                    # or if they are outside it (it should not have a lot of
+                    # sense however). That's why we are adding always \"+9\" to
+                    # the \"o_count\" variable.
                     o_count += 9
             # Nodes' loop.
             for node in n_y_s:
