@@ -598,6 +598,7 @@ def apply_persp_trans_inv(int dimension                                         
 def apply_persp_trans(int dimension                                                ,
                       numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point       ,
                       numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coefficients,
+                      # Return also numpy data
                       bool r_a_n_d = False):
     # Numpy point.
     # http://stackoverflow.com/questions/14415741/numpy-array-vs-asarray
