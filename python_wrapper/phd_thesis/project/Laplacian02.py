@@ -1243,21 +1243,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     def check_oct_corners(self         ,
-                          dimension    ,
-                          n_oct_corners,
                           numpy_corners,
                           t_dict       ,
                           polygons     ,
                           penalized):
+        dimension = self._dim
+        n_oct_corners = 4 if (dimension == 2) else 8
+
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
+
         for i in xrange(n_oct_corners):
             is_corner_penalized = False
             numpy_corner = numpy_corners[i]
             corner, numpy_corner = apply_persp_trans(dimension   ,
                                                      numpy_corner,
                                                      t_dict      ,
-                                                     True)[: dimension]
+                                                     # Return also numpy data
+                                                     r_a_n_d = True)
             (is_corner_penalized,
              n_polygon) = is_point_inside_polygons(numpy_corner,
                                                    polygons)
