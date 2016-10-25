@@ -1441,7 +1441,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._sol = self.init_array("solution",
                                     True)
         
-        msg = "Initialized \"rhs\""
+        msg = "Initialized \"solution\""
         self.log_msg(msg,
                      "info")
     # --------------------------------------------------------------------------
@@ -2016,12 +2016,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                       of centers and indices of
                                                       the neighbours."""
 
-        py_oct = self._octree.get_octant(current_octant)
+        octree = self._octree
+        py_oct = octree.get_octant(current_octant)
         centers = []
         indices = []
         grid = self._proc_g
         dimension = self._dim
-        octree = self._octree
         nfaces = octree.get_n_faces()
         nnodes = octree.get_n_nodes()
         c_t_dict = self.get_trans(grid)
@@ -2033,7 +2033,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         for i in xrange(0, grid):
             g_d = g_d + self._oct_f_g[i]
         # Current center.
-        c_c = self._octree.get_center(current_octant)[: dimension]
+        c_c = octree.get_center(current_octant)[: dimension]
 
         centers.append(c_c)
         index = current_octant
@@ -2053,11 +2053,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_point_inside_polygon = utilities.is_point_inside_polygon
         narray = numpy.array
         # Lambda function.
-        f_n = lambda x,y : find_neighbours(current_octant,
-                                           x             ,
-                                           y             ,
-                                           neighs        ,
-                                           ghosts)
+        f_n = lambda x, y : find_neighbours(current_octant,
+                                            x             ,
+                                            y             ,
+                                            neighs        ,
+                                            ghosts)
         for i in xrange(0, nfaces + nnodes):
             # Codimension.
             codim = 1 if (i <= 3) else 2
@@ -2069,7 +2069,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # it means that we are near the boundary if we are on the
             # background, in an outside area if we are on the foreground, 
             # and so...
-            if (not not neighs):
+            if (neighs):
                 # Neighbour is into the same process, so is local.
                 if (not ghosts[0]):
                     by_octant = False
@@ -2100,17 +2100,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                   face_node)
 
                 if (not is_background):
-                    threshold = 0.0
-                    to_consider = False
                     numpy_border_center = narray(border_center)
-                    t_center, n_t_center =  apply_persp_trans(dimension          ,
-                                                              numpy_border_center,
-                                                              c_t_dict           ,
-                                                              True)[: dimension]
+                    t_center =  apply_persp_trans(dimension          ,
+                                                  numpy_border_center,
+                                                  c_t_dict)[: dimension]
                     check = is_point_inside_polygon(t_center    ,
                                                     t_background)
-                    if (not check):
-                        to_consider = True
+                    to_consider = (not check)
                     
                 if (to_consider):
                     centers.append(border_center)
