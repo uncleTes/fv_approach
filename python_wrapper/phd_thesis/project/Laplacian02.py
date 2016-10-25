@@ -346,17 +346,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
         n_oct = self._n_oct
         o_ranges = self._b_mat.getOwnershipRange()
         is_background = True
-        if grid:
+        if (grid):
             is_background = False
         # If we are on the background grid, we need to re-evaluate the ranges
         # of octants owned by each process, not simply adding the masked ones
-        # (as we will do for the poreground grids), to the values given by PETSc
+        # (as we will do for the foreground grids) to the values given by PETSc
         # function \"getOwnershipRange\" on the matrix. The idea is to take as
         # start of the range the sum of all the octants owned by the previous
-        # processes of the current process, while for the end of the 
-        # take the same range of processes plus the current one, obviously 
+        # processes of the current process, while for the end of the range
+        # take the same range of processes plus the current one, obviously
         # subtracting the value \"1\", because the octants start from \"0\".
-        if is_background:
+        if (is_background):
             # Local rank.
             rank_l = self._rank
             # Range's start.
@@ -1018,13 +1018,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     # --------------------------------------------------------------------------
     # Initialize diagonal matrices of the block matrix.
-    def init_mat(self              ,
-                 (e_d_nnz, e_o_nnz)):
+    def init_mat(self,
+                 (d_nnz, o_nnz)):
         """Method which initialize the diagonal parts of the monolithic matrix 
            of the system.
            
            Arguments:
-               o_n_oct (int) : number of octants overlapped."""
+               (d_nnz, o_nnz) (tuple) : two lists containting the diagonal and
+                                            non diagonal block's number of non
+                                            zero elements, passed by function
+                                            \"create_mask\"."""
 
 	log_file = self.logger.handlers[0].baseFilename
         logger = self.logger
@@ -1045,12 +1048,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         for i in xrange(0, grid):
             oct_offset += self._oct_f_g[i]
 
-        (d_nnz, o_nnz) = (e_d_nnz, e_o_nnz)
         n_oct = self._n_oct
         nfaces = octree.get_n_faces()
         face_node = octree.get_face_node()
         dimension = self._dim
-        #TODO: check function. 
         sizes = self.find_sizes()
 
         self._b_mat = PETSc.Mat().createAIJ(size = (sizes, sizes),
@@ -1060,7 +1061,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # the program will stop.
         self._b_mat.setOption(self._b_mat.Option.NEW_NONZERO_ALLOCATION_ERR, 
                               True)
-        #TODO: check function. 
         o_ranges = self.get_ranges()
 
         # Current transformation matrix's dictionary.
@@ -1297,11 +1297,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
         rank_l = self._rank
         not_masked_oct_bg_g = numpy.size(self._ngn[self._ngn != -1])
         self._masked_oct_bg_g = self._ngn.size - not_masked_oct_bg_g
-        tot_oct = self._tot_oct - self._masked_oct_bg_g 
-        if not grid:
+        tot_oct = self._tot_oct - self._masked_oct_bg_g
+        if (not grid):
             # Not masked local octant background grid.
             not_masked_l_oct_bg_g = numpy.size(self._nln[self._nln != -1])
-        sizes = (n_oct if grid else not_masked_l_oct_bg_g, 
+        sizes = (n_oct if (grid) else not_masked_l_oct_bg_g,
                  tot_oct)
 
         msg = "Found sizes for PETSc structure"
