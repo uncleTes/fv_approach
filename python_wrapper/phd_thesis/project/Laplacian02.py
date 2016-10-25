@@ -615,16 +615,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def check_neighbour(self         ,
                         codim        ,
                         f_o_n        ,
-                        neighs       ,
-                        ghosts       ,
                         octant       ,
                         o_count      ,
                         d_count      ,
                         # Stencil's index.
                         s_i          ,
-                        h            ,
                         key          ,
-                        octree       ,
                         is_penalized ,
                         is_background,
                         # Number of polygon to which the neigbour became to.
@@ -633,23 +629,31 @@ class Laplacian(BaseClass2D.BaseClass2D):
         logger = self.logger
         log_file = logger.handlers[0].baseFilename
         dimension = self._dim
+        octree = self._octree
 
         # Code hoisting.
+        get_nodes = octree.get_nodes
+        get_center = octree.get_center
+        get_global_idx = octree.get_global_idx
+        get_ghost_global_idx = octree.get_ghost_global_idx
+        get_ghost_octant = octree.get_ghost_octant
+        find_neighbours = octree.find_neighbours
+        check_oct_corners = self.check_oct_corners
+        mask_octant = self.mask_octant
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
-        get_nodes = octree.get_nodes
-        check_oct_corners = self.check_oct_corners
 
         if (yet_masked):
             oct_offset = o_count
             o_ranges = d_count
         # Check to know if a neighbour of an octant is penalized.
         is_n_penalized = False
-        (neighs, ghosts) = octree.find_neighbours(octant, 
-                                                  f_o_n , 
-                                                  codim , 
-                                                  neighs, 
-                                                  ghosts)
+        neighs, ghosts = ([] for i in range(0, 2))
+        (neighs, ghosts) = find_neighbours(octant,
+                                           f_o_n ,
+                                           codim ,
+                                           neighs,
+                                           ghosts)
         # If we are outside the current octree...
         # Empty lists in python are \"False\".
         #TODO: check if this \"if\" is useful or not.
@@ -659,24 +663,23 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # ...else...
         if not ghosts[0]:
             if (yet_masked):
-                n_center = octree.get_center(neighs[0])[:2]
+                n_center = get_center(neighs[0])[: dimension]
                 index = neighs[0] + o_ranges[0]
                 # Masked index.
-                m_index = self.mask_octant(index)
+                m_index = mask_octant(index)
             else:
-                index = octree.get_global_idx(neighs[0])
-                n_center = self._octree.get_center(neighs[0])[:2]
+                index = get_global_idx(neighs[0])
+                n_center = get_center(neighs[0])[: dimension]
         else:
-            index = self._octree.get_ghost_global_idx(neighs[0])
-            py_ghost_oct = self._octree.get_ghost_octant(neighs[0])
-            n_center = self._octree.get_center(py_ghost_oct, 
-                                               True)[:2]
+            index = get_ghost_global_idx(neighs[0])
+            py_ghost_oct = get_ghost_octant(neighs[0])
+            n_center = get_center(py_ghost_oct,
+                                  True)[: dimension]
             if (yet_masked):
-                m_index = self.mask_octant(index)
+                m_index = mask_octant(index)
                 m_index = m_index + oct_offset
         if is_background:
             is_n_penalized = True
-            threshold = 0.0
             t_foregrounds = self._t_foregrounds
             # Current transformation matrix's dictionary.
             c_t_dict = self.get_trans(0)
@@ -686,36 +689,32 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                    dimension ,
                                                    is_ptr    ,
                                                    also_numpy_nodes = True)
-            n_oct_corners = 4 if (dimension == 2) else 8
 
-            is_n_penalized, n_polygon = check_oct_corners(dimension      ,
-                                                          n_oct_corners  ,
-                                                          numpy_corners  ,
-                                                          c_t_dict       ,
-                                                          t_foregrounds  ,
+            is_n_penalized, n_polygon = check_oct_corners(numpy_corners,
+                                                          c_t_dict     ,
+                                                          t_foregrounds,
                                                           is_n_penalized)
         if (not yet_masked):
-            if not is_penalized:
-                if is_n_penalized:
+            if (not is_penalized):
+                if (is_n_penalized):
                     # Being the neighbour penalized, it means that it 
                     # will be substituted by 9 octant being part of 
                     # the foreground grids, so being on the non diagonal
                     # part of the grid.
                     o_count += 9
                 else:
-                    if ghosts[0]:
+                    if (ghosts[0]):
                         o_count += 1
                     else:
                         d_count += 1
             else:
-                if not is_n_penalized:
+                if (not is_n_penalized):
                     stencil = self._edl.get(key)
                     stencil[s_i] = index
-                    stencil[s_i + 1], stencil[s_i + 2] = n_center
+                    stencil[s_i + 1 : s_i + (dimension + 1)] = n_center
                     stencil[s_i + 3] = codim
                     stencil[s_i + 4] = f_o_n
-                    self._edl[key] = stencil
-                    s_i += 5
+                    s_i += 5 if (dimension == 2) else 6
 
             extra_msg = ""
 
