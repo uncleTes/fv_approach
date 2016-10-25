@@ -768,7 +768,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         py_octs = [octree.get_octant(octant) for octant in octants]
         centers = [octree.get_center(octant)[: dimension] for octant in octants]         
         t_foregrounds = self._t_foregrounds
-        n_oct_corners = 4 if (dimension == 2) else 8
         if (is_background):
             # Current transformation matrix's dictionary.
             c_t_dict = self.get_trans(0)
@@ -793,21 +792,22 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Background grid.
             if (is_background):
                 is_penalized = True
-                threshold = 0.0
                 oct_corners, numpy_corners = get_nodes(octant   ,
                                                        dimension,
                                                        also_numpy_nodes = True)
 		
-                is_penalized, n_polygon = check_oct_corners(dimension      ,
-                                                            n_oct_corners  ,
-                                                            numpy_corners  ,
-                                                            c_t_dict       ,
-                                                            t_foregrounds  ,
+                is_penalized, n_polygon = check_oct_corners(numpy_corners,
+                                                            c_t_dict     ,
+                                                            t_foregrounds,
                                                             is_penalized)
             if (is_penalized):
                 self._nln[octant] = -1
                 key = (n_polygon, # Foreground grid to which the node belongs to
                        g_octant , # Global index (not yet masked)
+                       # TODO: think about the fact that maybe is not a good
+                       #       practise use a \"float\" inside a dict key, for
+                       # the way \"hash maps\" are built in Python and for the
+                       # way they get the \"key\" (maybe there is no problem).
                        h)         # Node edge's size
                 if (self._p_inter):
                     key = key + (-1, -1,)
@@ -815,9 +815,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # to store info of the stencil it belongs to to push on the
                 # relative rows of the matrix, the right indices of the octants
                 # of the foreground grid owning the penalized one.
-                stencil = [-1] * 43
+                stencil = [-1] * 43 if (dimension == 2) else [-1] * 52
                 stencil[0] = g_octant
-                stencil[1], stencil[2] = center
+                stencil[1 : (dimension + 1)] = center
                 # http://www.laurentluce.com/posts/python-dictionary-implementation/
                 # http://effbot.org/zone/python-hash.htm
                 self._edl.update({key : stencil})
@@ -825,10 +825,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 self._nln[octant] = new_oct_count
                 new_oct_count += 1
                 d_count += 1
-            # First boundary face for foreground grids.
-            f_b_face = False
             # \"stencil\"'s index.
-            s_i = 3
+            s_i = 3 if (dimension == 2) else 4
             # Nodes yet seen.
             n_y_s = set()
             # Nodes to not see.
@@ -836,23 +834,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
             # Faces' loop.
             for face in xrange(0, nfaces):
+                # Boundary nodes.
+                b_ns = face_node[face][0 : dimension] if (dimension == 2) else \
+                       face_node[face]
                 # Not boundary face.
                 if (not g_b(face)):
-                    neighs, ghosts = ([] for i in range(0, 2))
-                    n_y_s.update(face_node[face][0 : 2])
+                    n_y_s.update(b_ns)
                     (d_count, 
                      o_count, 
                      s_i) = check_neighbour(1                            ,
                                             face                         ,
-                                            neighs                       ,
-                                            ghosts                       ,
                                             octant                       ,
                                             o_count                      ,
                                             d_count                      ,
                                             s_i                          ,
-                                            h                            ,
                                             key if is_penalized else None,
-                                            octree                       ,
                                             is_penalized                 ,
                                             is_background                ,
                                             n_polygon if (is_background) \
@@ -861,8 +857,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # Remove (if present) from set \"n_y_s\" the nodes on the
                     # intersection between an edge on the boundary and an edge
                     # not on the boundary.
-                    # Boundary nodes.
-                    b_ns =  face_node[face][0 : 2]
                     n_t_n_s.update(b_ns)
                     # Adding elements for the octants of the background to use
                     # to interpolate stencil values for boundary conditions of 
@@ -879,20 +873,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     o_count += 9
             # Nodes' loop.
             for node in n_y_s:
-                neighs, ghosts = ([] for i in range(0, 2))
                 (d_count, 
                  o_count, 
                  s_i) = check_neighbour(2                            ,
                                         node                         ,
-                                        neighs                       ,
-                                        ghosts                       ,
                                         octant                       ,
                                         o_count                      ,
                                         d_count                      ,
                                         s_i                          ,
-                                        h                            ,
                                         key if is_penalized else None,
-                                        octree                       ,
                                         is_penalized                 ,
                                         is_background                ,
                                         n_polygon if (is_background) \
@@ -1061,7 +1050,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         nfaces = octree.get_n_faces()
         face_node = octree.get_face_node()
         dimension = self._dim
-        n_oct_corners = 4 if (dimension == 2) else 8
         #TODO: check function. 
         sizes = self.find_sizes()
 
@@ -1098,7 +1086,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         for octant in xrange(0, n_oct):
             indices, values = ([] for i in range(0, 2)) # Indices/values
-            neighs, ghosts = ([] for i in range(0, 2))
             g_octant = o_ranges[0] + octant
             # Masked global octant.
             m_g_octant = mask_octant(g_octant)
@@ -1114,11 +1101,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 threshold = 0.0
                 oct_corners, numpy_corners = g_n(octant)
                 
-		is_penalized, n_polygon = check_oct_corners(dimension      ,
-                                                            n_oct_corners  ,
-                                                            numpy_corners  ,
-                                                            c_t_dict       ,
-                                                            t_foregrounds  ,
+		is_penalized, n_polygon = check_oct_corners(numpy_corners,
+                                                            c_t_dict     ,
+                                                            t_foregrounds,
                                                             is_penalized)
             if (not is_penalized):
                 indices.append(m_g_octant)
@@ -1162,15 +1147,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                          is_n_penalized,
                          n_center) = check_neighbour(1                         ,
                                                      face                      ,
-                                                     neighs                    ,
-                                                     ghosts                    ,
                                                      octant                    ,
                                                      oct_offset                ,
                                                      o_ranges                  ,
                                                      0                         ,
-                                                     h                         ,
                                                      None                      ,
-                                                     octree                    ,
                                                      is_penalized              ,
                                                      is_background             ,
                                                      n_polygon if is_background\
@@ -1201,15 +1182,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                      is_n_penalized,
                      n_center) = check_neighbour(2                         ,
                                                  node                      ,
-                                                 neighs                    ,
-                                                 ghosts                    ,
                                                  octant                    ,
                                                  oct_offset                ,
                                                  o_ranges                  ,
                                                  0                         ,
-                                                 h                         ,
                                                  None                      ,
-                                                 octree                    ,
                                                  is_penalized              ,
                                                  is_background             ,
                                                  n_polygon if is_background\
