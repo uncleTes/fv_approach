@@ -162,6 +162,12 @@ cdef extern from "ParaTree.hpp" namespace "bitpit":
 
         bool getFiner(Intersection* inter)
 
+        uint32_t getOut(Intersection* inter)
+
+        uint32_t getIn(Intersection* inter)
+
+        bool getOutIsGhost(Intersection* inter)
+
         darr3vector getNodes(Intersection* inter)
         darr3vector getNodes(Octant* idx)
         darr3vector getNodes(uint32_t idx)
@@ -563,6 +569,18 @@ cdef class Py_Para_Tree:
     def get_finer(self,
                   uintptr_t inter):
         return self.thisptr.getFiner(<Intersection*><void*>inter)
+
+    def get_out(self,
+                uintptr_t inter):
+        return self.thisptr.getOut(<Intersection*><void*>inter)
+
+    def get_in(self,
+               uintptr_t inter):
+        return self.thisptr.getIn(<Intersection*><void*>inter)
+
+    def get_out_is_ghost(self,
+                         uintptr_t inter):
+        return self.thisptr.getOutIsGhost(<Intersection*><void*>inter)
 
     def get_nodes(self                 ,
                   uintptr_t idx        ,
