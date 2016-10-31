@@ -109,32 +109,77 @@ def main():
         owner_g_l = pablo.get_level(owner_g_oct,
                                     True)
         owners_g_level.append(owner_g_l)
-        
+
         finer_inter = int(pablo.get_finer(inter))
         normal_inter = pablo.get_normal(inter) 
 
-        to_print = join_strings("Rank "              , 
-                                str(curr_proc)       ,
-                                ": intersection "    ,
-                                str(i)               ,
-                                " is of border: "    ,
-                                str(is_bound_inter)  ,
-                                " is ghost: "        ,
-                                str(is_ghost_inter)  ,
-                                " owners: "          ,
-                                str(owners_inter)    ,
-                                " global owners: "   ,
-                                str(owners_g_inter)  ,
-                                " normal: "          ,
-                                str(normal_inter)    ,
-                                " finer owner: "     ,
-                                str(finer_inter)     ,
-                                " levels of owners: ",
-                                str(owners_g_level))
+        is_o_o_n_g = False
 
+        if (is_ghost_inter):
+            is_o_o_n_g = pablo.get_out_is_ghost(inter)
+            if (is_o_o_n_g):
+                o_n = pablo.get_ghost_global_idx(pablo.get_out(inter))
+                i_n = pablo.get_global_idx(pablo.get_in(inter))
+            else:
+                i_n = pablo.get_ghost_global_idx(pablo.get_in(inter))
+                o_n = pablo.get_global_idx(pablo.get_out(inter))
+        else:
+            o_n = pablo.get_global_idx(pablo.get_out(inter))
+            i_n = pablo.get_global_idx(pablo.get_in(inter))
+
+        nodes = pablo.get_nodes(inter        ,
+                                dim          ,
+                                is_ptr = True,
+                                is_inter = True)[: 2]
+        l_owners = []
+        g_owners = []
+        # Returning \"max uint32_t\" if point outside of the domain.
+        l_owners.append(pablo.get_point_owner_idx(nodes[0]))
+        l_owners.append(pablo.get_point_owner_idx(nodes[1]))
+        # If the index of the owner if bigger than the total number of octants
+        # present in the problem, we have reached or a ghost octant or we are
+        # otuside the domain.
+        if (l_owners[0] > 9):
+            g_owner = owners_g_inter[0]
+        else:
+            g_owner = pablo.get_global_idx(l_owners[0])
+        g_owners.append(g_owner)
+        if (l_owners[1] > 9):
+            # Or is better to leave also here \"g_owner = owners_g_inter[0]\"??
+            g_owner = owners_g_inter[1]
+        else:
+            g_owner = pablo.get_global_idx(l_owners[1])
+        g_owners.append(g_owner)
+
+        to_print = join_strings("Rank "               ,
+                                str(curr_proc)        ,
+                                ": intersection "     ,
+                                str(i)                ,
+                                " is of border: "     ,
+                                str(is_bound_inter)   ,
+                                " is ghost: "         ,
+                                str(is_ghost_inter)   ,
+                                " owners: "           ,
+                                str(owners_inter)     ,
+                                " global owners: "    ,
+                                str(owners_g_inter)   ,
+                                " normal: "           ,
+                                str(normal_inter)     ,
+                                " finer owner: "      ,
+                                str(finer_inter)      ,
+                                " outer normal: "     ,
+                                str(o_n)              ,
+                                " inner normal: "     ,
+                                str(i_n)              ,
+                                " owner o. n. ghost: ",
+                                str(is_o_o_n_g)       ,
+                                " levels of owners: " ,
+                                str(owners_g_level)   ,
+                                " nodes: "            ,
+                                str(nodes)            ,
+                                " owners nodes: "     ,
+                                str(g_owners))
         print(to_print)
-    
-
 
 if __name__ == "__main__":
     main()
