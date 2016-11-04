@@ -1050,6 +1050,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         n_oct = self._n_oct
         nfaces = octree.get_n_faces()
+        ninters = octree.get_num_intersections()
         face_node = octree.get_face_node()
         dimension = self._dim
         sizes = self.find_sizes()
@@ -1082,10 +1083,72 @@ class Laplacian(BaseClass2D.BaseClass2D):
         narray = numpy.array
         check_oct_corners = self.check_oct_corners
         # Lambda function.
-        g_n = lambda x : get_nodes(x, dimension, also_numpy_nodes = True)
+        g_n = lambda x : get_nodes(x            ,
+                                   dimension    ,
+                                   is_ptr = True,
+                                   also_numpy_nodes = True)
+
+        for i in xrange(0, ninters):
+            indices, values = ([] for i in range(0, 2)) # Indices/values
+            inter = pablo.get_intersection(i)
+            # Is a boundary intersection.
+            is_bound_inter = pablo.get_bound(inter,
+                                             0    , # Being with an
+                                             True)  # intersection, it does not
+                                                    # matter what number we are
+                                                    # giving to the second arg.
+            # Indices of the owners of the intersection.
+            owners_inter = pablo.get_owners(inter)
+            # Global indices of the owners.
+            g_owners_inter = []
+            g_owner = o_ranges[0] + owners_inter[0]
+            g_owners_inter.append(g_owner)
+            # Is a ghost intersection.
+            is_ghost_inter = pablo.get_is_ghost(inter,
+                                                True) # Using intersection
+                                                      # instead of octant.
+            if (is_ghost_inter):
+                g_owner = pablo.get_ghost_global_idx(owners_inter[1])
+                if (not is_background):
+                    g_owner += o_ranges[0]
+            else:
+                g_owner = o_ranges[0] + owners_inter[1]
+            g_owners_inter.append(g_owner)
+            # Normal to the intersection.
+            normal_inter = pablo.get_normal(inter)
+
+            if (not is_bound_inter):
+                # Looping on the owners of the intersection.
+                for j in xrange(0, 2):
+                    # Masked global octant.
+                    m_g_octant = mask_octant(g_owners_inter[j])
+                    py_oct = get_octant(g_owners_inter[j])
+                    center = get_center(py_oct,
+                                        True)[: dimension]
+                    # Check to know if an octant on the background is penalized.
+                    is_penalized = False
+                    # Background grid.
+                    if (is_background):
+                        is_penalized = True
+                        oct_corners, numpy_corners = g_n(py_oct)
+
+	                is_penalized, \
+                        n_polygon = check_oct_corners(numpy_corners,
+                                                      c_t_dict     ,
+                                                      t_foregrounds,
+                                                      is_penalized)
+                    if (not is_penalized):
+                        indices.append(m_g_octant)
+                        numpy_center = narray(center)
+                        t_center = apply_persp_trans(dimension   ,
+                                                     numpy_center,
+                                                     c_t_dict)[: dimension]
 
         for octant in xrange(0, n_oct):
             indices, values = ([] for i in range(0, 2)) # Indices/values
+            # TODO: check if for background grdis it is not yet suddicient to
+            # use pablo \"get_global_idx\" function, instead of doing what we
+            # have done in the function \"get_ranges\".
             g_octant = o_ranges[0] + octant
             # Masked global octant.
             m_g_octant = mask_octant(g_octant)
