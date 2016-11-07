@@ -1094,7 +1094,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                              0    , # Being with an
                                              True)  # intersection, it does not
                                                     # matter what number we are
-                                                    # giving to the second arg.
+                                                    # giving to the second arg
             # Indices of the owners of the intersection.
             owners_inter = pablo.get_owners(inter)
             # Global indices of the owners.
@@ -1104,7 +1104,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Is a ghost intersection.
             is_ghost_inter = pablo.get_is_ghost(inter,
                                                 True) # Using intersection
-                                                      # instead of octant.
+                                                      # instead of octant
             if (is_ghost_inter):
                 g_owner = pablo.get_ghost_global_idx(owners_inter[1])
                 if (not is_background):
@@ -1116,8 +1116,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             normal_inter = pablo.get_normal(inter)
 
             if (not is_bound_inter):
+                # Number of intersection's owners.
+                n_i_owners = 2 if (dim == 2) else 4
                 # Looping on the owners of the intersection.
-                for j in xrange(0, 2):
+                for j in xrange(0, n_i_owners):
                     # Masked global octant.
                     m_g_octant = mask_octant(g_owners_inter[j])
                     py_oct = get_octant(g_owners_inter[j])
