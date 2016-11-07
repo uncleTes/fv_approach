@@ -692,8 +692,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
             is_n_penalized, n_polygon = check_oct_corners(numpy_corners,
                                                           c_t_dict     ,
-                                                          t_foregrounds,
-                                                          is_n_penalized)
+                                                          t_foregrounds)
         if (not yet_masked):
             if (not is_penalized):
                 if (is_n_penalized):
@@ -798,8 +797,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 		
                 is_penalized, n_polygon = check_oct_corners(numpy_corners,
                                                             c_t_dict     ,
-                                                            t_foregrounds,
-                                                            is_penalized)
+                                                            t_foregrounds)
             if (is_penalized):
                 self._nln[octant] = -1
                 key = (n_polygon, # Foreground grid to which the node belongs to
@@ -1135,8 +1133,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 	                is_penalized, \
                         n_polygon = check_oct_corners(numpy_corners,
                                                       c_t_dict     ,
-                                                      t_foregrounds,
-                                                      is_penalized)
+                                                      t_foregrounds)
                     if (not is_penalized):
                         indices.append(m_g_octant)
                         numpy_center = narray(center)
@@ -1166,8 +1163,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 
 		is_penalized, n_polygon = check_oct_corners(numpy_corners,
                                                             c_t_dict     ,
-                                                            t_foregrounds,
-                                                            is_penalized)
+                                                            t_foregrounds)
             if (not is_penalized):
                 indices.append(m_g_octant)
                 numpy_center = narray(center)
@@ -1284,8 +1280,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def check_oct_corners(self         ,
                           numpy_corners,
                           t_dict       ,
-                          polygons     ,
-                          penalized):
+                          polygons):
+        penalized = True
         dimension = self._dim
         n_oct_corners = 4 if (dimension == 2) else 8
 
