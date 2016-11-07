@@ -139,11 +139,13 @@ def main():
         # If the index of the owner if bigger than the total number of octants
         # present in the problem, we have reached or a ghost octant or we are
         # otuside the domain.
+        # \"> 9\" or \"> 4\"??
         if (l_owners[0] > 9):
             g_owner = owners_g_inter[0]
         else:
             g_owner = pablo.get_global_idx(l_owners[0])
         g_owners.append(g_owner)
+        # \"> 9\" or \"> 4\"??
         if (l_owners[1] > 9):
             # Or is better to leave also here \"g_owner = owners_g_inter[0]\"??
             g_owner = owners_g_inter[1]
