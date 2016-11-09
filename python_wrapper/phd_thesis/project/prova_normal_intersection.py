@@ -111,7 +111,8 @@ def main():
         owners_g_level.append(owner_g_l)
 
         finer_inter = int(pablo.get_finer(inter))
-        normal_inter = pablo.get_normal(inter) 
+        normal_inter, np_normal_inter = pablo.get_normal(inter,
+                                                         True)
 
         is_o_o_n_g = False
 
@@ -167,6 +168,8 @@ def main():
                                 str(owners_g_inter)   ,
                                 " normal: "           ,
                                 str(normal_inter)     ,
+                                " numpy normal: "     ,
+                                str(np_normal_inter)  ,
                                 " finer owner: "      ,
                                 str(finer_inter)      ,
                                 " outer normal: "     ,
