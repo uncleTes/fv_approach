@@ -285,18 +285,26 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
 
         return area
 
-    def get_normal(self,
-                   uintptr_t inter):
+    def get_normal(self           ,
+                   uintptr_t inter,
+                   bool also_numpy_normal = False):
         cdef darray3 normal
         # Size of the \"normal\".
         cdef int n_size = 3
         cdef int i
-        py_normal = []
+        py_normal = [0] * n_size
+        cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 1] np_normal = \
+             numpy.zeros(shape = (n_size, ), dtype = numpy.float64)
 
         normal = self.der_thisptr._getNormal(<Intersection*><void*>inter)
 
-        for i in xrange(0, n_size):
-            py_normal.append(normal[i])
+        for i in range(n_size):
+            py_normal[i] = normal[i]
+            if (also_numpy_normal):
+                np_normal[i] = normal[i]
+
+        if (also_numpy_normal):
+            return (py_normal, np_normal)
 
         return py_normal
     
