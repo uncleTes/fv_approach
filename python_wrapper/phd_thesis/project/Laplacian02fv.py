@@ -1190,6 +1190,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_owners_normals_inter = self.get_owners_normals_inter
         get_owners_nodes_inter = self.get_owners_nodes_inter
         get_is_ghost = octree.get_is_ghost
+        least_squares = utilities.least_squares
         # Lambda function.
         g_n = lambda x : get_nodes(x            ,
                                    dimension    ,
@@ -1198,9 +1199,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
         f_r_n = lambda x : find_right_neighbours(x          ,
                                                  o_ranges[0],
                                                  is_background)
+        l_s = lambda x : least_squares(x[0],
+                                       x[1])
 
         for i in xrange(0, ninters):
-            indices, values = ([] for i in range(0, 2)) # Indices/values
+            r_indices, c_indices = ([] for i in range(0, 2)) # Rows indices /
+                                                             # column ones
             # Centers of the owners of the intersection.
             owners_centers = []
             # Centers and indices of the neighbours of the octants owners of
@@ -1216,83 +1220,96 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        0    , # Being with an intersection, it
                                        True)  # does not matter what number we
                                               # are giving to the second arg
-            # Global indices of the owners.
-            g_owners_inter = get_owners_inter(inter        ,
-                                              o_ranges[0]  ,
-                                              is_background,
-                                              is_ghost_inter)
+            # Global indices of owners inner/outer normal of the
+            # intersection (is a tuple, and the first element is the one
+            # with the inner normal).
+            g_o_norms_inter = get_owners_normals_inter(inter      ,
+                                                       o_ranges[0],
+                                                       is_ghost_inter)
+            # List containing 0 or 1 to indicate inner normal or outer normal.
+            labels = []
+            # Masked global indices of owners inner/outer normal of the
+            # intersection.
+            m_g_o_norms_inter = map(mask_octant, g_o_norms_inter)
             # Normal to the intersection, and its numpy version.
             normal_inter, n_normal_inter = pablo.get_normal(inter,
                                                             True) # We want also
                                                                   # a \"numpy\"
                                                                   # version
+            # Normal's axis, indicating the non-zero component of the
+            # normal.
+            n_axis = numpy.nonzero(n_normal_inter)[0][0]
+            # Number of intersection's owners.
+            n_i_owners = 2
+            # Looping on the owners of the intersection.
+            for j in xrange(0, n_i_owners):
+                py_oct = get_octant(g_o_norms_inter[j])
+                center = get_center(py_oct,
+                                    True)[: dimension]
+                numpy_center = narray(center)
+                owners_centers.append(numpy_center)
+                # Check to know if an octant on the background is penalized.
+                is_penalized = False
+                # Background grid.
+                if (is_background):
+                    is_penalized = True
+                    oct_corners, numpy_corners = g_n(py_oct)
 
-            if (not is_bound_inter):
-                # Number of intersection's owners.
-                n_i_owners = 2 if (dim == 2) else 4
-                # Looping on the owners of the intersection.
-                for j in xrange(0, n_i_owners):
-                    # Masked global octant.
-                    m_g_octant = mask_octant(g_owners_inter[j])
-                    py_oct = get_octant(g_owners_inter[j])
-                    center = get_center(py_oct,
-                                        True)[: dimension]
-                    numpy_center = narray(center)
-                    owners_centers.append(numpy_center)
-                    # Check to know if an octant on the background is penalized.
-                    is_penalized = False
-                    # Background grid.
-                    if (is_background):
-                        is_penalized = True
-                        oct_corners, numpy_corners = g_n(py_oct)
+	            is_penalized, \
+                    n_polygon = check_oct_corners(numpy_corners,
+                                                  c_t_dict     ,
+                                                  t_foregrounds)
+                if (not is_penalized):
+                    r_indices.append(m_g_octant)
+                    labels.append(j)
 
-	                is_penalized, \
-                        n_polygon = check_oct_corners(numpy_corners,
-                                                      c_t_dict     ,
-                                                      t_foregrounds)
+                if (is_bound_inter):
                     if (not is_penalized):
-                        indices.append(m_g_octant)
-                        t_center = apply_persp_trans(dimension   ,
-                                                     numpy_center,
-                                                     c_t_dict)[: dimension]
-                # If the owners of the intersection are not both covered.
-                if (indices):
-                    # Global indices of owners inner/outer normal of the
-                    # intersection (is a tuple, and the first element is the one
-                    # with the inner normal).
-                    g_o_norms_inter = get_owners_normals_inter(inter      ,
-                                                               o_ranges[0],
-                                                               is_ghost_inter)
-                    # Masked global indices of owners inner/outer normal of the
-                    # intersection.
-                    m_g_o_norms_inter = map(mask_octant, g_o_norms_inter)
-                    # Global indices of the octants owners of the nodes of the
-                    # intersection.
-                    g_o_nodes_inter, \
-                    # Local indices of the octants owners of the nodes of the
-                    # intersection (needed for \"find_right_neighbours\"
-                    # function).
-                    l_o_nodes_inter, \
-                    # The coordinates of the nodes.
-                    nodes_inter = get_owners_nodes_inter(inter          ,
-                                                         g_owners_inter ,
-                                                         o_ranges[0]    ,
-                                                         also_l_i = True,
-                                                         also_nodes = True)
-                    # Normal's axis, indicating the non-zero component of the
-                    # normal.
-                    n_axis = numpy.nonzero(n_normal_inter)[0][0]
-                    # Distance between xs of nodes of the intersection (greater
-                    # coordinates are in the second (remember, we are now in 2D)
-                    # value of \"normal_nodes\").
-                    d_nodes_x = numpy.absolute(nodes_inter[1][0] - \
-                                               nodes_inter[0][0])
-                    # Distance between ys of nodes of the intersection (greater
-                    # coordinates are in the second (remember, we are now in 2D)
-                    # value of \"normal_nodes\").
-                    d_nodes_y = numpy.absolute(nodes_inter[1][1] - \
-                                               nodes_inter[0][1])
+                        # Normal always directed outside the domain.
+                        labels[0] = 1
+                    break
 
+            # If the owners of the intersection are not both covered.
+            if (r_indices):
+                # Global indices of the octants owners of the nodes of the
+                # intersection.
+                g_o_nodes_inter, \
+                # Local indices of the octants owners of the nodes of the
+                # intersection (needed for \"find_right_neighbours\"
+                # function).
+                l_o_nodes_inter, \
+                # The coordinates of the nodes.
+                nodes_inter = get_owners_nodes_inter(inter          ,
+                                                     g_owners_inter ,
+                                                     o_ranges[0]    ,
+                                                     also_l_i = True,
+                                                     also_nodes = True)
+                # Distance between xs of nodes of the intersection (greater
+                # coordinates are in the second (remember, we are now in 2D)
+                # value of \"normal_nodes\").
+                d_nodes_x = numpy.absolute(nodes_inter[1][0] - \
+                                           nodes_inter[0][0])
+                # Distance between ys of nodes of the intersection (greater
+                # coordinates are in the second (remember, we are now in 2D)
+                # value of \"normal_nodes\").
+                d_nodes_y = numpy.absolute(nodes_inter[1][1] - \
+                                           nodes_inter[0][1])
+                # Center of the intersection.
+                c_inter = ((nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
+                           (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0)
+
+                if (is_bound_inter):
+                    if (n_axis == 0):
+                        # Distance between x of center of the octant owner of
+                        # the intersection and the extern boundary.
+                        d_o_centers_x = h
+                        # Distance between y of center of the octant owner of
+                        # the intersection and the extern boundary.
+                        d_o_centers_y = 0.0
+                    else:
+                        d_o_centers_x = 0.0
+                        d_o_centers_y = h
+                else:
                     # Distance between xs of centers of the octants partaging
                     # the intersection.
                     d_o_centers_x = numpy.absolute(owners_centers[1][0] - \
@@ -1301,15 +1318,122 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # the intersection.
                     d_o_centers_y = numpy.absolute(owners_centers[1][1] - \
                                                    owners_centers[0][1])
-                    # Neighbour centers neighbours indices: it is a list of
-                    # tuple, and in each tuple are contained the lists of
-                    # centers and indices of each local owner of the nodes.
-                    n_cs_n_is = map(f_r_n, l_o_nodes_inter)
-
+                # Neighbour centers neighbours indices: it is a list of
+                # tuple, and in each tuple are contained the lists of
+                # centers and indices of each local owner of the nodes.
+                n_cs_n_is = map(f_r_n,
+                                l_o_nodes_inter)
+                l_s_coeffs = map(l_s,
+                                 zip([pair[0] for pair in n_cs_n_is],
+                                     [narray(node) for node in nodes_inter]))
+                # Normal is parallel to x-axis.
+                if (n_axis == 0):
+                    coeff_in = 1.0 / d_o_centers_x
+                    coeff_out = -1.0 * coeff_in
+                    coeff_node_1 = (-1.0 * d_o_centers_y) / \
+                                   (d_o_centers_x * d_nodes_y)
+                    coeff_node_0 = -1.0 * coeff_node_1
+                # Normal is parallel to y-axis.
+                else:
+                    coeff_in = 1.0 / d_o_centers_y
+                    coeff_out = -1.0 * coeff_in
+                    coeff_node_1 = (-1.0 * d_o_centers_x) / \
+                                   (d_o_centers_y * d_nodes_x)
+                    coeff_node_0 = -1.0 * coeff_node_1
+                n_coeffs = numpy.array([coeff_in    ,
+                                        coeff_out   ,
+                                        coeff_node_1,
+                                        coeff_node_0])
+                n_coeffs = n_coeffs * n_normal_inter[n_axis] * h
+                coeffs_node_1 = l_s_coeffs[1] * n_coeffs[2]
+                coeffs_node_0 = l_s_coeffs[0] * n_coeffs[3]
+                # Both the owners of the intersection are not penalized.
+                if (len(r_indices) == 2):
+                    # Values to insert in \"r_indices\"; each sub list contains
+                    # values for each owner of the intersection.
+                    values = [[], []]
+                    # \"values[0]\" is for the owner with the inner normal,
+                    # while \"values[1]\" is for the owner with the outer one.
+                    values[0].append(n_coeffs[0])
+                    values[1].append(n_coeffs[0] * -1.0)
+                    values[0].append(n_coeffs[1])
+                    values[1].append(n_coeffs[1] * -1.0)
+                    values[0].extend(coeffs_node_1.tolist())
+                    values[1].extend((coeffs_node_1 * -1.0).tolist())
+                    values[0].extend(coeffs_node_0.tolist())
+                    values[1].extend((coeffs_node_0 * -1.0).tolist())
+                    c_indices.extend(r_indices)
+                    c_indices.extend(n_cs_n_is[1][1])
+                    c_indices.extend(n_cs_n_is[0][1])
+                # Just one owner is not penalized.
+                else:
+                    # Values to insert in \"r_indices\".
+                    values = []
+                    # Here we can be only on the background, where some octants
+                    # are penalized.
+                    if (not is_bound_inter):
+                        mult = -1.0
+                        # Owner with the inner normal is not penalized, so we
+                        # have to add the coefficients in the corresponding row,
+                        # instead of subtract them.
+                        if (labels[0]):
+                            mult = 1.0
+                        values.append(n_coeffs[labels[0]] * mult)
+                        values.extend((coeffs_node_1 * mult).tolist())
+                        values.extend((coeffs_node_0 * mult).tolist())
+                        c_indices.extend(r_indices)
+                        c_indices.extend(n_cs_n_is[1][1])
+                        c_indices.extend(n_cs_n_is[0][1])
+                        value_to_store = n_coeffs[1 - labels[0]] * mult
+                        key = (0, g_o_norms_inter[1 - labels[0]], h)
+                        if (self._p_inter):
+                            key = key + (-1, -1,)
+                        stencil = self._edl.get(key)
+                        for (k in stencil[::5]):
+                            if (stencil[k] == g_o_norms_inter[labels[0]]):
+                                stencil[k + dimension + 1] = value_to_store
+                                stencil[k + dimension + 2] = "BOHHHHHHHHHH"
+                    # We are on a boundary intersection; here normal is always
+                    # directed outside, so the owner is the one with the outer
+                    # normal.
+                    else:
+                        if (is_background):
+                            mult = -1.0
+                            values.append(n_coeffs[labels[0]] * mult)
+                            values.extend((coeffs_node_1 * mult).tolist())
+                            values.extend((coeffs_node_0 * mult).tolist())
+                            c_indices.extend(r_indices)
+                            c_indices.extend(n_cs_n_is[1][1])
+                            c_indices.extend(n_cs_n_is[0][1])
+                            value_to_store = n_coeffs[1 - labels[0]] * mult
+                            self._rhs[g_o_norms_inter[labels[0]]] += value_to_store
+                        else:
+                            mult = -1.0
+                            # Owner with the inner normal is not penalized, so
+                            # we have to add the coefficients in the
+                            # corresponding row, instead of subtract them.
+                            if (labels[0]):
+                                mult = 1.0
+                            values.append(n_coeffs[labels[0]] * mult)
+                            values.extend((coeffs_node_1 * mult).tolist())
+                            values.extend((coeffs_node_0 * mult).tolist())
+                            c_indices.extend(r_indices)
+                            c_indices.extend(n_cs_n_is[1][1])
+                            c_indices.extend(n_cs_n_is[0][1])
+                            value_to_store = n_coeffs[1 - labels[0]] * mult
+                            # TODO: change key for \"self._edl\" for foreground
+                            # grids to be as the one for background grids.
+                            key = (grid                                       ,
+                                   mask_octant(g_o_norms_inter[1 - labels[0]]),
+                                   h)
+                            if (self._p_inter):
+                                key = key + (-1, -1,)
+                            stencil = self._edl.get(key)
+                            stencil[(dimension * 2) + 1] = value_to_store
 
         for octant in xrange(0, n_oct):
             indices, values = ([] for i in range(0, 2)) # Indices/values
-            # TODO: check if for background grdis it is not yet suddicient to
+            # TODO: check if for background grids it is not yet suddicient to
             # use pablo \"get_global_idx\" function, instead of doing what we
             # have done in the function \"get_ranges\".
             g_octant = o_ranges[0] + octant
