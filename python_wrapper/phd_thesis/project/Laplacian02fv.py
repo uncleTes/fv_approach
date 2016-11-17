@@ -1423,8 +1423,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             value_to_store = n_coeffs[1 - labels[0]] * mult
                             # TODO: change key for \"self._edl\" for foreground
                             # grids to be as the one for background grids.
-                            key = (grid                                       ,
-                                   mask_octant(g_o_norms_inter[1 - labels[0]]),
+                            key = (grid                                   ,
+                                   mask_octant(g_o_norms_inter[labels[0]]),
                                    h)
                             if (self._p_inter):
                                 key = key + (-1, -1,)
