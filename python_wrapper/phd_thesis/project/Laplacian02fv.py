@@ -764,7 +764,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
         get_bound = octree.get_bound
-        check_neighbour = self.check_neighbour
+        check_neighbours = self.check_neighbours
         check_oct_corners = self.check_oct_corners
 
         for octant in octants:
@@ -772,38 +772,46 @@ class Laplacian(BaseClass2D.BaseClass2D):
             g_octant = g_octants[octant]
             py_oct = py_octs[octant]
             # Lambda function.
-            g_b = lambda x : get_bound(py_oct, x)
+            g_b = lambda x : get_bound(py_oct,
+                                       x)
             center  = centers[octant]
             # Check to know if an octant is penalized.
             is_penalized = False
             # Background grid.
             if (is_background):
-                is_penalized = True
-                oct_corners, numpy_corners = get_nodes(octant   ,
-                                                       dimension,
-                                                       also_numpy_nodes = True)
+                oct_corners, \
+                numpy_corners = get_nodes(octant   ,
+                                          dimension,
+                                          also_numpy_nodes = True)
 		
-                is_penalized, n_polygon = check_oct_corners(numpy_corners,
-                                                            c_t_dict     ,
-                                                            t_foregrounds)
+                is_penalized, \
+                n_polygon = check_oct_corners(numpy_corners,
+                                              c_t_dict     ,
+                                              t_foregrounds)
             if (is_penalized):
                 self._nln[octant] = -1
+                # Moved \"h\" from the \"key\" to the \"stencil\", preferring
+                # not to use float into dict keys.
                 key = (n_polygon, # Foreground grid to which the node belongs to
-                       g_octant , # Global index (not yet masked)
-                       # TODO: think about the fact that maybe is not a good
-                       #       practise use a \"float\" inside a dict key, for
-                       # the way \"hash maps\" are built in Python and for the
-                       # way they get the \"key\" (maybe there is no problem).
-                       h)         # Node edge's size
-                if (self._p_inter):
-                    key = key + (-1, -1,)
-                # If the octant is covered by the foreground grids, we need
-                # to store info of the stencil it belongs to to push on the
-                # relative rows of the matrix, the right indices of the octants
-                # of the foreground grid owning the penalized one.
-                stencil = [-1] * 43 if (dimension == 2) else [-1] * 52
-                stencil[0] = g_octant
-                stencil[1 : (dimension + 1)] = center
+                       g_octant ) # Global index (not yet masked)
+                # If the octant is covered by the foreground grids, we need to
+                # store info of the stencil it belongs to to push on the rela-
+                # tive rows of the matrix, the right indices of the octants of
+                # the foreground grid owning the penalized one:
+                # first \"stencil\"'s element: \"h\";
+                # second \"stencil\"'s element: index global of the penalized
+                # octant;
+                # third, fourth and fifth \"stencil\"'s elements: center of the
+                # penalized octant;
+                # others \"stencil\"'s elements: global indices and centers of
+                # the neighbours not penalized (being in a case of a possible
+                # jump of 1 level between elements, we have to store two possi-
+                # ble neighbours for each face of the current octant), and coef-
+                # ficient to multiply \"least squares\" approximation.
+                stencil = [-1] * 36 if (dimension == 2) else [-1] * 45
+                stencil[0] = h
+                stencil[1] = g_octant
+                stencil[2 : (dimension + 1)] = center
                 # http://www.laurentluce.com/posts/python-dictionary-implementation/
                 # http://effbot.org/zone/python-hash.htm
                 self._edl.update({key : stencil})
@@ -812,66 +820,40 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 new_oct_count += 1
                 d_count += 1
             # \"stencil\"'s index.
-            s_i = 3 if (dimension == 2) else 4
-            # Nodes yet seen.
-            n_y_s = set()
-            # Nodes to not see.
-            n_t_n_s = set()
-
+            s_i = 4 if (dimension == 2) else 5
+            # Number of neighbours (Being the possibility ot a jump between oc-
+            # tants, we can have a minimum of 4 and a maximum of 8 neighbours.
+            n_neighbours = 0
             # Faces' loop.
             for face in xrange(0, nfaces):
-                # Boundary nodes.
-                b_ns = face_node[face][0 : dimension] if (dimension == 2) else \
-                       face_node[face]
                 # Not boundary face.
                 if (not g_b(face)):
-                    n_y_s.update(b_ns)
-                    (d_count, 
-                     o_count, 
-                     s_i) = check_neighbour(1                            ,
-                                            face                         ,
-                                            octant                       ,
-                                            o_count                      ,
-                                            d_count                      ,
-                                            s_i                          ,
-                                            key if is_penalized else None,
-                                            is_penalized                 ,
-                                            is_background                ,
-                                            n_polygon if (is_background) \
-                                                      else None          )
+                    d_count,
+                    o_count,
+                    s_i    ,
+                    n_neighs = check_neighbours(1                            ,
+                                                face                         ,
+                                                octant                       ,
+                                                o_count                      ,
+                                                d_count                      ,
+                                                s_i                          ,
+                                                key if is_penalized else None,
+                                                is_penalized                 ,
+                                                is_background)
                 else:
-                    # Remove (if present) from set \"n_y_s\" the nodes on the
-                    # intersection between an edge on the boundary and an edge
-                    # not on the boundary.
-                    n_t_n_s.update(b_ns)
-            # New set with elements in \"n_y_s\" but not in \"n_t_n_s\". 
-            n_y_s = n_y_s.difference(n_t_n_s)
-            if (not is_background):
-                for node in n_t_n_s:
-                    # Adding elements for the octants of the background to use
-                    # to interpolate stencil values for boundary conditions of
-                    # the octants of the foreground grid. Note that we are con-
-                    # sidering the fact that the foreground grids elements are
-                    # contained into the background, and we are not checking it
-                    # or if they are outside it (it should not have a lot of
-                    # sense however). That's why we are adding always \"+9\" to
-                    # the \"o_count\" variable.
-                    o_count += 9
-            # Nodes' loop.
-            for node in n_y_s:
-                (d_count, 
-                 o_count, 
-                 s_i) = check_neighbour(2                            ,
-                                        node                         ,
-                                        octant                       ,
-                                        o_count                      ,
-                                        d_count                      ,
-                                        s_i                          ,
-                                        key if is_penalized else None,
-                                        is_penalized                 ,
-                                        is_background                ,
-                                        n_polygon if (is_background) \
-                                                  else None          )
+                    if (not is_background):
+                        # Adding elements for the octants of the background to
+                        # use to interpolate stencil values for boundary condi-
+                        # tions of the octants of the foreground grid. Note that
+                        # we are considering the fact that the foreground grids
+                        # elements are contained into the background, and we are
+                        # not checking it or if they are outside it (it should
+                        # not have a lot of sense however). That's why we are
+                        # adding always +9 to the \"o_count\" variable.
+                        o_count += 9
+
+                n_neighbours += n_neighs
+
             if (not is_penalized):
                 d_nnz.append(d_count)
                 o_nnz.append(o_count)
