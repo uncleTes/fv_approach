@@ -289,20 +289,28 @@ cdef class Py_Para_Tree:
 
         self.thisptr.writeTest(c_file_name, c_data)
 
-    def get_center(self         , 
-                   uintptr_t idx, 
-                   ptr_octant = False):
+    def get_center(self              ,
+                   uintptr_t idx     ,
+                   ptr_octant = False,
+                   bool also_numpy_center = False):
         cdef darray3 center
-        py_center = []
+        cdef int c_size = 3
+        py_center = [0] * c_size
+        cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 1] np_center = \
+             numpy.zeros(shape = (c_size, ), dtype = numpy.float64)
         
         if (ptr_octant):
             center = self.thisptr.getCenter(<Octant*><void*>idx)
         else:
             center = self.thisptr.getCenter(<uint32_t>idx)
         
-        for i in xrange(0, center.size()):
-            py_center.append(center[i])
-        
+        for i in xrange(0, c_size):
+            py_center[i] = center[i]
+            if (also_numpy_center):
+                np_center[i] = center[i]
+
+        if (also_numpy_center):
+            return (py_center, np_center)
         return py_center
 	
     def compute_connectivity(self):
