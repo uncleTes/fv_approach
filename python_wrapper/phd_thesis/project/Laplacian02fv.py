@@ -612,20 +612,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
     
     # --------------------------------------------------------------------------
-    def check_neighbour(self         ,
-                        codim        ,
-                        f_o_n        ,
-                        octant       ,
-                        o_count      ,
-                        d_count      ,
-                        # Stencil's index.
-                        s_i          ,
-                        key          ,
-                        is_penalized ,
-                        is_background,
-                        # Number of polygon to which the neigbour became to.
-                        n_polygon_n  ,
-                        yet_masked = False):
+    def check_neighbours(self         ,
+                         codim        ,
+                         f_o_n        ,
+                         octant       ,
+                         o_count      ,
+                         d_count      ,
+                         # Stencil's index.
+                         s_i          ,
+                         key          ,
+                         is_penalized ,
+                         is_background):
         logger = self.logger
         log_file = logger.handlers[0].baseFilename
         dimension = self._dim
@@ -643,66 +640,60 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
 
-        if (yet_masked):
-            oct_offset = o_count
-            o_ranges = d_count
         # Check to know if a neighbour of an octant is penalized.
         is_n_penalized = False
         neighs, ghosts = ([] for i in range(0, 2))
-        (neighs, ghosts) = find_neighbours(octant,
-                                           f_o_n ,
-                                           codim ,
-                                           neighs,
-                                           ghosts)
-        # If we are outside the current octree...
-        # Empty lists in python are \"False\".
-        #TODO: check if this \"if\" is useful or not.
-        if ((codim == 2) and (not ghosts)):
-            return (d_count, o_count, s_i) if (not yet_masked) else \
-                   (None, None, None)
-        # ...else...
-        if not ghosts[0]:
-            if (yet_masked):
-                n_center = get_center(neighs[0])[: dimension]
-                index = neighs[0] + o_ranges[0]
-                # Masked index.
-                m_index = mask_octant(index)
-            else:
-                index = get_global_idx(neighs[0])
-                n_center = get_center(neighs[0])[: dimension]
-        else:
-            index = get_ghost_global_idx(neighs[0])
-            py_ghost_oct = get_ghost_octant(neighs[0])
-            n_center = get_center(py_ghost_oct,
-                                  True)[: dimension]
-            if (yet_masked):
-                m_index = mask_octant(index)
-                m_index = m_index + oct_offset
-        if is_background:
-            is_n_penalized = True
-            t_foregrounds = self._t_foregrounds
-            # Current transformation matrix's dictionary.
-            c_t_dict = self.get_trans(0)
-            idx_or_oct = neighs[0] if (not ghosts[0]) else py_ghost_oct
-            is_ptr = False if (not ghosts[0]) else True
-            oct_corners, numpy_corners = get_nodes(idx_or_oct,
-                                                   dimension ,
-                                                   is_ptr    ,
-                                                   also_numpy_nodes = True)
 
-            is_n_penalized, n_polygon = check_oct_corners(numpy_corners,
-                                                          c_t_dict     ,
-                                                          t_foregrounds)
-        if (not yet_masked):
+        neighs, \
+        ghosts = find_neighbours(octant,
+                                 f_o_n ,
+                                 codim ,
+                                 neighs,
+                                 ghosts)
+
+        n_neighbours = len(neighs)
+
+        # Being in a case of a possible jump of 1 level between elements, we
+        # have to consider two possible neighbours for each face of the octant.
+        # ...else...
+        for i in xrange(0, n_neighbours):
+            if (not ghosts[i]):
+                    index = get_global_idx(neighs[i])
+                    n_center = get_center(neighs[i])[: dimension]
+            else:
+                index = get_ghost_global_idx(neighs[i])
+                py_ghost_oct = get_ghost_octant(neighs[i])
+                n_center = get_center(py_ghost_oct,
+                                      True)[: dimension]
+            if (is_background):
+                is_n_penalized = True
+                t_foregrounds = self._t_foregrounds
+                # Current transformation matrix's dictionary.
+                c_t_dict = self.get_trans(0)
+                idx_or_oct = neighs[i] if (not ghosts[i]) else \
+                             py_ghost_oct
+                is_ptr = False if (not ghosts[0]) else \
+                         True
+
+                oct_corners, \
+                numpy_corners = get_nodes(idx_or_oct,
+                                          dimension ,
+                                          is_ptr    ,
+                                          also_numpy_nodes = True)
+
+                is_n_penalized, \
+                n_polygon = check_oct_corners(numpy_corners,
+                                              c_t_dict     ,
+                                              t_foregrounds)
             if (not is_penalized):
                 if (is_n_penalized):
-                    # Being the neighbour penalized, it means that it 
-                    # will be substituted by 9 octant being part of 
-                    # the foreground grids, so being on the non diagonal
-                    # part of the grid.
+                    # Being the neighbour penalized, it means that it will
+                    # be substituted by 9 octant being part of the fore-
+                    # ground grids, so being on the non diagonal part of the
+                    # grid.
                     o_count += 9
                 else:
-                    if (ghosts[0]):
+                    if (ghosts[i]):
                         o_count += 1
                     else:
                         d_count += 1
@@ -711,24 +702,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     stencil = self._edl.get(key)
                     stencil[s_i] = index
                     stencil[s_i + 1 : s_i + (dimension + 1)] = n_center
-                    stencil[s_i + 3] = codim
-                    stencil[s_i + 4] = f_o_n
-                    s_i += 5 if (dimension == 2) else 6
+                    s_i += 4 if (dimension == 2) else 5
 
             extra_msg = ""
 
-        else:
-            extra_msg = "yet masked"
-
-        msg = "Checked neighbour for "               + \
-              ("edge " if (codim == 1) else "node ") + \
-              str(index)
-        self.log_msg(msg   ,
-                     "info",
-                     extra_msg)
+            msg = "Checked neighbour for "               + \
+                  ("edge " if (codim == 1) else "node ") + \
+                  str(index)
+            self.log_msg(msg   ,
+                         "info",
+                         extra_msg)
         
-        return (d_count, o_count, s_i) if (not yet_masked) else \
-               (m_index, is_n_penalized, n_center)
+        return (d_count,
+                o_count,
+                s_i    ,
+                n_neighbours)
     # --------------------------------------------------------------------------
     
     # --------------------------------------------------------------------------
