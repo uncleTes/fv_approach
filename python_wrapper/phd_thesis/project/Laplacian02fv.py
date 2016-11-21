@@ -840,6 +840,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 key if is_penalized else None,
                                                 is_penalized                 ,
                                                 is_background)
+                    n_neighbours += n_neighs
                 else:
                     if (not is_background):
                         # Adding elements for the octants of the background to
@@ -852,8 +853,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # adding always +9 to the \"o_count\" variable.
                         o_count += 9
 
-                n_neighbours += n_neighs
-
+            # For the moment, we have to store space in the \"PETSc\" matrix for
+            # the octants that will interpolate with the least square method (9
+            # octants in 2D at maximum) for the vertices of each intersection.
+            # And these vertices are equal to the number of neighbours of the
+            # current octant (With a gap of one level, we can have as maximum
+            # two neighbours for each face).
+            # TODO: find a better algorithm to store just the right number of e-
+            # lements for \"d_count\" and for \"o_count\".
+            d_count += (9 * n_neighbours)
+            o_count += (9 * n_neighbours)
             if (not is_penalized):
                 d_nnz.append(d_count)
                 o_nnz.append(o_count)
