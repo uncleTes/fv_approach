@@ -1161,7 +1161,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_point_inside_polygons = utilities.is_point_inside_polygons
         metric_coefficients = utilities.metric_coefficients
         square = numpy.square
-        check_neighbour = self.check_neighbour
+        check_neighbours = self.check_neighbours
         get_bound = octree.get_bound
         narray = numpy.array
         check_oct_corners = self.check_oct_corners
@@ -1182,13 +1182,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        x[1])
 
         for i in xrange(0, ninters):
-            r_indices, c_indices = ([] for i in range(0, 2)) # Rows indices /
-                                                             # column ones
+            # Rows and columns indices for the \"PETSC\" matrix.
+            r_indices, \
+            c_indices = ([] for i in range(0, 2))
             # Centers of the owners of the intersection.
             owners_centers = []
             # Centers and indices of the neighbours of the octants owners of
             # the nodes of the intersection.
-            neigh_centers, neigh_indices = ([] for i in range(0, 2))
+            neigh_centers, \
+            neigh_indices = ([] for i in range(0, 2))
             inter = get_intersection(i)
             # Is a ghost intersection.
             is_ghost_inter = get_is_ghost(inter,
@@ -1209,30 +1211,34 @@ class Laplacian(BaseClass2D.BaseClass2D):
             labels = []
             # Masked global indices of owners inner/outer normal of the
             # intersection.
-            m_g_o_norms_inter = map(mask_octant, g_o_norms_inter)
+            m_g_o_norms_inter = map(mask_octant,
+                                    g_o_norms_inter)
             # Normal to the intersection, and its numpy version.
-            normal_inter, n_normal_inter = pablo.get_normal(inter,
-                                                            True) # We want also
-                                                                  # a \"numpy\"
-                                                                  # version
+            normal_inter, \
+            n_normal_inter = pablo.get_normal(inter,
+                                              True) # We want also
+                                                    # a \"numpy\"
+                                                    # version
             # Normal's axis, indicating the non-zero component of the
             # normal.
             n_axis = numpy.nonzero(n_normal_inter)[0][0]
-            # Number of intersection's owners.
+            # Number of intersection's owners (both in 2D and 3D, it will be
+            # always equal to 2).
             n_i_owners = 2
             # Looping on the owners of the intersection.
             for j in xrange(0, n_i_owners):
                 py_oct = get_octant(g_o_norms_inter[j])
-                center = get_center(py_oct,
-                                    True)[: dimension]
-                numpy_center = narray(center)
+                center, \
+                numpy_center = get_center(py_oct,
+                                          True  ,
+                                          also_numpy_center = True)[: dimension]
                 owners_centers.append(numpy_center)
                 # Check to know if an octant on the background is penalized.
                 is_penalized = False
                 # Background grid.
                 if (is_background):
-                    is_penalized = True
-                    oct_corners, numpy_corners = g_n(py_oct)
+                    oct_corners, \
+                    numpy_corners = g_n(py_oct)
 
 	            is_penalized, \
                     n_polygon = check_oct_corners(numpy_corners,
@@ -1241,12 +1247,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (not is_penalized):
                     r_indices.append(m_g_octant)
                     labels.append(j)
-
-                if (is_bound_inter):
-                    if (not is_penalized):
+                    if (is_bound_inter):
                         # Normal always directed outside the domain.
                         labels[0] = 1
-                    break
+                        break
 
             # If the owners of the intersection are not both covered.
             if (r_indices):
@@ -1277,17 +1281,22 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 c_inter = ((nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
                            (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0)
 
+                d_o_centers_x = 0.0
+                d_o_centers_y = 0.0
+
+                h = d_nodes_y if (n_axis) else d_node_x
+
                 if (is_bound_inter):
-                    if (n_axis == 0):
+                    # Normal parallel to y-axis.
+                    if (n_axis):
+                        # Distance between y of center of the octant owner of
+                        # the intersection and the extern boundary.
+                        d_o_centers_y = h
+                    # Normal parallel to x-axis.
+                    else:
                         # Distance between x of center of the octant owner of
                         # the intersection and the extern boundary.
                         d_o_centers_x = h
-                        # Distance between y of center of the octant owner of
-                        # the intersection and the extern boundary.
-                        d_o_centers_y = 0.0
-                    else:
-                        d_o_centers_x = 0.0
-                        d_o_centers_y = h
                 else:
                     # Distance between xs of centers of the octants partaging
                     # the intersection.
@@ -1302,48 +1311,52 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # centers and indices of each local owner of the nodes.
                 n_cs_n_is = map(f_r_n,
                                 l_o_nodes_inter)
+                # Least square coefficients.
                 l_s_coeffs = map(l_s,
                                  zip([pair[0] for pair in n_cs_n_is],
                                      [narray(node) for node in nodes_inter]))
-                # Normal is parallel to x-axis.
-                if (n_axis == 0):
-                    coeff_in = 1.0 / d_o_centers_x
-                    coeff_out = -1.0 * coeff_in
-                    coeff_node_1 = (-1.0 * d_o_centers_y) / \
-                                   (d_o_centers_x * d_nodes_y)
-                    coeff_node_0 = -1.0 * coeff_node_1
                 # Normal is parallel to y-axis.
-                else:
-                    coeff_in = 1.0 / d_o_centers_y
-                    coeff_out = -1.0 * coeff_in
-                    coeff_node_1 = (-1.0 * d_o_centers_x) / \
-                                   (d_o_centers_y * d_nodes_x)
-                    coeff_node_0 = -1.0 * coeff_node_1
+                if (n_axis):
+                    temp = d_o_centers_x
+                    d_o_centers_x = d_o_centers_y
+                    d_o_centers_y = temp
+                    d_nodes_y = d_nodes_x
+
+                coeff_in = 1.0 / d_o_centers_x
+                coeff_out = -1.0 * coeff_in
+                coeff_node_1 = (-1.0 * d_o_centers_y) / \
+                               (d_o_centers_x * d_nodes_y)
+                coeff_node_0 = -1.0 * coeff_node_1
+                # \"Numpy\" coefficients.
                 n_coeffs = numpy.array([coeff_in    ,
                                         coeff_out   ,
                                         coeff_node_1,
                                         coeff_node_0])
+                # Multiplying \"numpy\" coefficients for the normal to the in-
+                # tersection and for the length of the intersection.
                 n_coeffs = n_coeffs * n_normal_inter[n_axis] * h
+
                 coeffs_node_1 = l_s_coeffs[1] * n_coeffs[2]
                 coeffs_node_0 = l_s_coeffs[0] * n_coeffs[3]
+
+
+                c_indices.extend(r_indices)
+                c_indices.extend(n_cs_n_is[1][1])
+                c_indices.extend(n_cs_n_is[0][1])
                 # Both the owners of the intersection are not penalized.
                 if (len(r_indices) == 2):
                     # Values to insert in \"r_indices\"; each sub list contains
                     # values for each owner of the intersection.
                     values = [[], []]
+                    # \"Numpy\" temprary array
+                    n_t_array = numpy.array([n_coeffs[0],
+                                             n_coeffs[1]])
+                    n_t_array = numpy.append(n_t_array, coeffs_node_1)
+                    n_t_array = numpy.append(n_t_array, coeffs_node_0)
                     # \"values[0]\" is for the owner with the inner normal,
                     # while \"values[1]\" is for the owner with the outer one.
-                    values[0].append(n_coeffs[0])
-                    values[1].append(n_coeffs[0] * -1.0)
-                    values[0].append(n_coeffs[1])
-                    values[1].append(n_coeffs[1] * -1.0)
-                    values[0].extend(coeffs_node_1.tolist())
-                    values[1].extend((coeffs_node_1 * -1.0).tolist())
-                    values[0].extend(coeffs_node_0.tolist())
-                    values[1].extend((coeffs_node_0 * -1.0).tolist())
-                    c_indices.extend(r_indices)
-                    c_indices.extend(n_cs_n_is[1][1])
-                    c_indices.extend(n_cs_n_is[0][1])
+                    values[0] = n_t_array.tolist()
+                    values[1] = (n_t_array * -1).tolist()
                 # Just one owner is not penalized.
                 else:
                     # Values to insert in \"r_indices\".
@@ -1357,180 +1370,67 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # instead of subtract them.
                         if (labels[0]):
                             mult = 1.0
-                        values.append(n_coeffs[labels[0]] * mult)
-                        values.extend((coeffs_node_1 * mult).tolist())
-                        values.extend((coeffs_node_0 * mult).tolist())
-                        c_indices.extend(r_indices)
-                        c_indices.extend(n_cs_n_is[1][1])
-                        c_indices.extend(n_cs_n_is[0][1])
+                        n_t_array = numpy.array([n_coeffs[labels[0]]])
+                        n_t_array = numpy.append(n_t_array,
+                                                 coeffs_node_1)
+                        n_t_array = numpy.append(n_t_array,
+                                                 coeffs_node_0)
+                        values = (n_t_array * mult).tolist()
+                        # Row global index.
+                        r_g_index = g_o_norms_inter[labels[0]]
+                        # Penalized global index.
+                        p_g_index = g_o_norms_inter[1 - labels[0]]
                         value_to_store = n_coeffs[1 - labels[0]] * mult
-                        key = (0, g_o_norms_inter[1 - labels[0]], h)
-                        if (self._p_inter):
-                            key = key + (-1, -1,)
+
+                        key = (0        ,
+                               p_g_index,
+                               h)
+
                         stencil = self._edl.get(key)
-                        for (k in stencil[::5]):
-                            if (stencil[k] == g_o_norms_inter[labels[0]]):
+                        step = 4 if (dimension == 2) else 5
+                        for (k in stencil[step::step]):
+                            if (stencil[k] == r_g_index):
                                 stencil[k + dimension + 1] = value_to_store
-                                stencil[k + dimension + 2] = "BOHHHHHHHHHH"
                     # We are on a boundary intersection; here normal is always
                     # directed outside, so the owner is the one with the outer
                     # normal.
                     else:
+                        mult = 1.0
                         if (is_background):
-                            mult = -1.0
-                            values.append(n_coeffs[labels[0]] * mult)
-                            values.extend((coeffs_node_1 * mult).tolist())
-                            values.extend((coeffs_node_0 * mult).tolist())
-                            c_indices.extend(r_indices)
-                            c_indices.extend(n_cs_n_is[1][1])
-                            c_indices.extend(n_cs_n_is[0][1])
+                            n_t_array = numpy.array([n_coeffs[labels[0]]])
+                            n_t_array = numpy.append(n_t_array,
+                                                     coeffs_node_1)
+                            n_t_array = numpy.append(n_t_array,
+                                                     coeffs_node_0)
+                            values = (n_t_array * mult).tolist()
+                            # Row global index.
+                            r_g_index = g_o_norms_inter[labels[0]]
                             value_to_store = n_coeffs[1 - labels[0]] * mult
-                            self._rhs[g_o_norms_inter[labels[0]]] += value_to_store
+                            # TODO: evaluate exact solution on the boundary.
+                            self._rhs[r_g_index] += value_to_store * exact_solution
                         else:
-                            mult = -1.0
-                            # Owner with the inner normal is not penalized, so
-                            # we have to add the coefficients in the
-                            # corresponding row, instead of subtract them.
-                            if (labels[0]):
-                                mult = 1.0
-                            values.append(n_coeffs[labels[0]] * mult)
-                            values.extend((coeffs_node_1 * mult).tolist())
-                            values.extend((coeffs_node_0 * mult).tolist())
-                            c_indices.extend(r_indices)
-                            c_indices.extend(n_cs_n_is[1][1])
-                            c_indices.extend(n_cs_n_is[0][1])
+                            n_t_array = numpy.array([n_coeffs[labels[0]]])
+                            n_t_array = numpy.append(n_t_array,
+                                                     coeffs_node_1)
+                            n_t_array = numpy.append(n_t_array,
+                                                     coeffs_node_0)
+                            values = (n_t_array * mult).tolist()
+                            # Row global index.
+                            r_g_index = g_o_norms_inter[labels[0]]
+                        # Penalized global index.
+                        p_g_index = g_o_norms_inter[1 - labels[0]]
                             value_to_store = n_coeffs[1 - labels[0]] * mult
                             # TODO: change key for \"self._edl\" for foreground
                             # grids to be as the one for background grids.
-                            key = (grid                                   ,
-                                   mask_octant(g_o_norms_inter[labels[0]]),
+                            key = (grid                  ,
+                                   mask_octant(r_g_index),
                                    h)
-                            if (self._p_inter):
-                                key = key + (-1, -1,)
                             stencil = self._edl.get(key)
                             stencil[(dimension * 2) + 1] = value_to_store
 
-        for octant in xrange(0, n_oct):
-            indices, values = ([] for i in range(0, 2)) # Indices/values
-            # TODO: check if for background grids it is not yet suddicient to
-            # use pablo \"get_global_idx\" function, instead of doing what we
-            # have done in the function \"get_ranges\".
-            g_octant = o_ranges[0] + octant
-            # Masked global octant.
-            m_g_octant = mask_octant(g_octant)
-            py_oct = get_octant(octant)
-            center = get_center(octant)[: dimension]
-            # Lambda function.
-            g_b = lambda x : get_bound(py_oct, x)
-            # Check to know if an octant on the background is penalized.
-            is_penalized = False
-            # Background grid.
-            if (is_background):
-                is_penalized = True
-                threshold = 0.0
-                oct_corners, numpy_corners = g_n(octant)
-                
-		is_penalized, n_polygon = check_oct_corners(numpy_corners,
-                                                            c_t_dict     ,
-                                                            t_foregrounds)
-            if (not is_penalized):
-                indices.append(m_g_octant)
-                numpy_center = narray(center)
-                t_center = apply_persp_trans(dimension   ,
-                                             numpy_center,
-                                             c_t_dict)[: dimension]
-                i_metric_coefficients = metric_coefficients(dimension,
-                                                            [t_center],
-                                                            c_t_a_dict,
-                                                            logger,
-                                                            log_file)
-                A00 = i_metric_coefficients[0] 
-                A10 = i_metric_coefficients[1]
-                A01 = i_metric_coefficients[2]
-                A11 = i_metric_coefficients[3]
-                ds2_epsilon_x = i_metric_coefficients[4]
-                ds2_epsilon_y = i_metric_coefficients[5]
-                ds2_nu_x = i_metric_coefficients[6]
-                ds2_nu_y = i_metric_coefficients[7]
-                A002 = square(A00)
-                A102 = square(A10)
-                A012 = square(A01)
-                A112 = square(A11)
-                ds2_epsilon_x = i_metric_coefficients[4]
-                ds2_epsilon_y = i_metric_coefficients[5]
-                ds2_nu_x = i_metric_coefficients[6]
-                ds2_nu_y = i_metric_coefficients[7]
-                t_m = (-2.0) * ((A002 + A102) + (A012 + A112))
-                value_to_append = t_m * h2_inv
-                values.append(value_to_append)
-                # Nodes yet seen.
-                n_y_s = set()
-                # Nodes to not see.
-                n_t_n_s = set()
-                for face in xrange(0, nfaces):
-                    if (not g_b(face)):
-                        n_y_s.update(face_node[face][0 : 2])
-
-                        (m_index       , 
-                         is_n_penalized,
-                         n_center) = check_neighbour(1                         ,
-                                                     face                      ,
-                                                     octant                    ,
-                                                     oct_offset                ,
-                                                     o_ranges                  ,
-                                                     0                         ,
-                                                     None                      ,
-                                                     is_penalized              ,
-                                                     is_background             ,
-                                                     n_polygon if is_background\
-                                                               else None       ,
-                                                     yet_masked = True)
-                        if not is_n_penalized:
-                            indices.append(m_index)
-                            # Temporary multiplier.
-                            t_m = (A002 + A102) if (face < 2) else \
-                                  (A012 + A112)
-                            # Temporary multiplier 02.
-                            t_m02 = (ds2_epsilon_x + ds2_epsilon_y) if \
-                                    (face < 2) else (ds2_nu_x + ds2_nu_y)
-                            t_m02 *= h_half
-                            t_m += t_m02 if ((face % 2) == 1) else \
-                                   (-1.0 * t_m02)   
-                            value_to_append = t_m * h2_inv
-                            values.append(value_to_append)
-                    else:
-                        # Removing nodes being on the boundaries. They will not
-                        # be counted in the stencil.
-                        b_ns = face_node[face][0 : 2]
-                        n_t_n_s.update(b_ns)
-                # New set with elements in \"n_y_s\" but not in \"n_t_n_s\". 
-                n_y_s = n_y_s.difference(n_t_n_s)
-                for node in n_y_s:
-                    (m_index       , 
-                     is_n_penalized,
-                     n_center) = check_neighbour(2                         ,
-                                                 node                      ,
-                                                 octant                    ,
-                                                 oct_offset                ,
-                                                 o_ranges                  ,
-                                                 0                         ,
-                                                 None                      ,
-                                                 is_penalized              ,
-                                                 is_background             ,
-                                                 n_polygon if is_background\
-                                                           else None       ,
-                                                 yet_masked = True)
-                    if not is_n_penalized:
-                        indices.append(m_index)
-                        t_m = (A00 * A01) + (A10 * A11)
-                        t_m *= 0.5 if ((node == 0) or (node == 3)) \
-                                   else -0.5
-                        value_to_append = t_m * h2_inv
-                        values.append(value_to_append)
-
-                self._b_mat.setValues(m_g_octant, # Row
-                                      indices   , # Columns
-                                      values)     # Values to be inserted
+                self._b_mat.setValues(r_indices, # Row
+                                      c_indices, # Columns
+                                      values)    # Values to be inserted
     
         # We have inserted argument \"assebly\" equal to 
         # \"PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY\" because the final assembly
