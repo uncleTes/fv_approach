@@ -47,6 +47,8 @@ cdef extern from "MyPabloUniform.hpp" namespace "bitpit":
 
         # FV approach...
         double _getArea(Intersection* inter)
+        double _getArea(Octant* inter)
+        double _getArea(uint32_t inter)
 
         darray3 _getNormal(Intersection* inter)
         
@@ -287,8 +289,19 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
         return g_nodes
 
     # FV approach...
-    def get_area(self,
-                 uintptr_t inter):
+    def get_area(self               ,
+                 uintptr_t idx      ,
+                 bool is_ptr = False,
+                 bool is_inter = False):
+        double area = 0.0
+
+        if (is_ptr):
+            if (is_inter):
+                area = self.der_thisptr._getArea(<Intersection*><void*>inter)
+            else:
+                area = self.der_thisptr._getArea(<Octant*><void*>inter)
+        else:
+            area = self.der_thisptr._getArea(<uint32_t>inter)
 
         area = self.der_thisptr._getArea(<Intersection*><void*>inter)
 
