@@ -1250,6 +1250,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     if (is_bound_inter):
                         # Normal always directed outside the domain.
                         labels[0] = 1
+                        # Exiting the loop because there is only one octant
+                        # owner of the boundary intersection.
                         break
 
             # If the owners of the intersection are not both covered.
@@ -1283,8 +1285,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                 d_o_centers_x = 0.0
                 d_o_centers_y = 0.0
-
-                h = d_nodes_y if (n_axis) else d_node_x
+                # evaluating length of the intersection,  depending on its di-
+                # rection.
+                h = d_nodes_y if (n_axis) else d_nodes_x
 
                 if (is_bound_inter):
                     # Normal parallel to y-axis.
@@ -1354,9 +1357,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     n_t_array = numpy.append(n_t_array, coeffs_node_1)
                     n_t_array = numpy.append(n_t_array, coeffs_node_0)
                     # \"values[0]\" is for the owner with the inner normal,
-                    # while \"values[1]\" is for the owner with the outer one.
-                    values[0] = n_t_array.tolist()
-                    values[1] = (n_t_array * -1).tolist()
+                    # while \"values[1]\" is for the owner with the outer one:
+                    # Add to the octant with the outer normal, subtract to the
+                    # one with the inner normal.
+                    values[1] = n_t_array.tolist()
+                    values[0] = (n_t_array * -1).tolist()
                 # Just one owner is not penalized.
                 else:
                     # Values to insert in \"r_indices\".
@@ -1365,7 +1370,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # are penalized.
                     if (not is_bound_inter):
                         mult = -1.0
-                        # Owner with the inner normal is not penalized, so we
+                        # Owner with the outer normal is not penalized, so we
                         # have to add the coefficients in the corresponding row,
                         # instead of subtract them.
                         if (labels[0]):
@@ -1405,9 +1410,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             values = (n_t_array * mult).tolist()
                             # Row global index.
                             r_g_index = g_o_norms_inter[labels[0]]
-                            value_to_store = n_coeffs[1 - labels[0]] * mult
+                            # The multiplication for \"(-1 * mult)\" is due to
+                            # the fact that we have to move the coefficients to
+                            # the \"rhs\", so we have to change its sign.
+                            rhs_value = n_coeffs[1 - labels[0]] * (-1 * mult)
                             # TODO: evaluate exact solution on the boundary.
-                            self._rhs[r_g_index] += value_to_store * exact_solution
+                            self._rhs[r_g_index] += rhs_value * exact_solution
                         else:
                             n_t_array = numpy.array([n_coeffs[labels[0]]])
                             n_t_array = numpy.append(n_t_array,
