@@ -173,6 +173,8 @@ cdef extern from "ParaTree.hpp" namespace "bitpit":
         darr3vector getNodes(uint32_t idx)
 
         double getArea(Intersection* inter)
+        double getArea(Octant* inter)
+        double getArea(uint32_t inter)
 
         darray3 getNormal(Intersection* inter)
 
@@ -630,9 +632,19 @@ cdef class Py_Para_Tree:
 
         return py_nodes
 
-    def get_area(self,
-                 uintptr_t inter):
-        area = self.thisptr.getArea(<Intersection*><void*>inter)
+    def get_area(self               ,
+                 uintptr_t idx      ,
+                 bool is_ptr = False,
+                 bool is_inter = False)):
+        double area = 0.0
+
+        if (is_ptr):
+            if (is_inter):
+                area = self.thisptr.getArea(<Intersection*><void*>ptr)
+            else:
+                area = self.thisptr.getArea(<Octant*><void*>ptr)
+        else:
+            area = self.thisptr.getArea(<uint32_t>ptr)
 
         return area
 
