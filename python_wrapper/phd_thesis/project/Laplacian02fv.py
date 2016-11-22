@@ -1366,6 +1366,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 else:
                     # Values to insert in \"r_indices\".
                     values = []
+
+                    n_t_array = numpy.array([n_coeffs[labels[0]]])
+                    n_t_array = numpy.append(n_t_array,
+                                             coeffs_node_1)
+                    n_t_array = numpy.append(n_t_array,
+                                             coeffs_node_0)
+                    # Row global index.
+                    r_g_index = g_o_norms_inter[labels[0]]
+
                     # Here we can be only on the background, where some octants
                     # are penalized.
                     if (not is_bound_inter):
@@ -1375,14 +1384,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # instead of subtract them.
                         if (labels[0]):
                             mult = 1.0
-                        n_t_array = numpy.array([n_coeffs[labels[0]]])
-                        n_t_array = numpy.append(n_t_array,
-                                                 coeffs_node_1)
-                        n_t_array = numpy.append(n_t_array,
-                                                 coeffs_node_0)
-                        values = (n_t_array * mult).tolist()
-                        # Row global index.
-                        r_g_index = g_o_norms_inter[labels[0]]
                         # Penalized global index.
                         p_g_index = g_o_norms_inter[1 - labels[0]]
                         value_to_store = n_coeffs[1 - labels[0]] * mult
@@ -1402,14 +1403,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     else:
                         mult = 1.0
                         if (is_background):
-                            n_t_array = numpy.array([n_coeffs[labels[0]]])
-                            n_t_array = numpy.append(n_t_array,
-                                                     coeffs_node_1)
-                            n_t_array = numpy.append(n_t_array,
-                                                     coeffs_node_0)
-                            values = (n_t_array * mult).tolist()
-                            # Row global index.
-                            r_g_index = g_o_norms_inter[labels[0]]
                             # The multiplication for \"(-1 * mult)\" is due to
                             # the fact that we have to move the coefficients to
                             # the \"rhs\", so we have to change its sign.
@@ -1417,16 +1410,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             # TODO: evaluate exact solution on the boundary.
                             self._rhs[r_g_index] += rhs_value * exact_solution
                         else:
-                            n_t_array = numpy.array([n_coeffs[labels[0]]])
-                            n_t_array = numpy.append(n_t_array,
-                                                     coeffs_node_1)
-                            n_t_array = numpy.append(n_t_array,
-                                                     coeffs_node_0)
-                            values = (n_t_array * mult).tolist()
-                            # Row global index.
-                            r_g_index = g_o_norms_inter[labels[0]]
-                        # Penalized global index.
-                        p_g_index = g_o_norms_inter[1 - labels[0]]
+                            # Penalized global index.
+                            p_g_index = g_o_norms_inter[1 - labels[0]]
                             value_to_store = n_coeffs[1 - labels[0]] * mult
                             # TODO: change key for \"self._edl\" for foreground
                             # grids to be as the one for background grids.
@@ -1435,6 +1420,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    h)
                             stencil = self._edl.get(key)
                             stencil[(dimension * 2) + 1] = value_to_store
+
+                    values = (n_t_array * mult).tolist()
 
                 self._b_mat.setValues(r_indices, # Row
                                       c_indices, # Columns
