@@ -442,8 +442,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Lambda function.
                 g_b = lambda x : get_bound(py_oct, x)
 
-                # Nodes yet seen. Using Python \"sets\" to avoid duplicates.
-                n_y_s = set()
                 for face in xrange(0, nfaces):
                     # If we have an edge on the boundary.
                     if (g_b(face)):
@@ -451,17 +449,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         b_f_o_n.append(face)
                         b_centers.append(center)
                         b_codim.append(1)
-                        n_y_s.update(face_node[face][0 : 2])
-                for node in n_y_s:
-                    b_indices.append(m_g_octant)
-                    b_f_o_n.append(node)
-                    b_centers.append(center)
-                    b_codim.append(2)
-        
+
         (b_values, c_neighs) = self.eval_b_c(b_centers,
                                              b_f_o_n  ,
                                              b_codim)
-        
+
         prev_b_center = None
         prev_t_b_center = None
         for i, b_center in enumerate(b_centers):
@@ -481,9 +473,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 numpy_b_center,
                                                 c_t_dict)[: dimension]
                 prev_t_b_center = t_b_center
-                
+
             t_b_centers.append(t_b_center)
-                    
 
         # Grids not of the background: equal to number >= 1.
         if (grid):
