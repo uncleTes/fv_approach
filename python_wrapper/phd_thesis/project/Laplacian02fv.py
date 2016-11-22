@@ -427,6 +427,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         narray = numpy.array
 
         for octant in xrange(0, n_oct):
+            h2 = octree.get_area(inter        ,
+                                 is_ptr = True,
+                                 is_inter = False)
+            h = numpy.sqrt(h2)
             # Global index of the current local octant \"octant\".
             g_octant = o_ranges[0] + octant
             m_g_octant = mask_octant(g_octant)
@@ -499,18 +503,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # http://stackoverflow.com/questions/7257588/why-cant-i-use-a-list-as-a-dict-key-in-python
                     # https://wiki.python.org/moin/DictionaryKeys
                     key = (grid        , # Grid to which the index belongs to
-                           b_indices[i], # Masked global index of the octant
-                           b_f_o_n[i]  , # Boundary face
-                           b_codim[i]  , # Boundary codimension
-                           h)            # Edge's length
+                           b_indices[i]) # Masked global index of the octant
                     # We store the center of the cell on the boundary.
                     # TODO: why we store also \"center\" and not just 
                     #       \"b_centers[i]\"? Think about it.
-                    t_value = tuple(center[: dimension])
+                    t_value = (h,) + tuple(center[: dimension])
                     t_value = t_value + tuple(b_centers[i][: dimension])
-                    n_mask = 43 - len(t_value)
-                    stencil = (t_value + ((-1,) * (n_mask))\
-                               if (self._p_inter) else t_value)
+                    # Length of the stencil.
+                    l_stencil = 36 if (dimension == 2) else 45
+                    n_mask = l_stencil - len(t_value)
+                    stencil = (t_value + ((-1,) * (n_mask)))
                     self._edl.update({key : stencil})
                     # The new corresponding value inside \"b_values\" would be
                     # \"0.0\", because the boundary value is given by the 
