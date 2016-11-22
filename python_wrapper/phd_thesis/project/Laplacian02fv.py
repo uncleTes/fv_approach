@@ -1121,10 +1121,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         tot_oct = self._tot_oct
         is_background = False if (grid) else True
         # Range deplacement.
-        h = self._h
-        h_half = 0.5 * h
-        h2 = h * h
-        h2_inv = 1.0 / h2
         oct_offset = 0
         t_foregrounds = self._t_foregrounds
         for i in xrange(0, grid):
@@ -1285,9 +1281,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                 d_o_centers_x = 0.0
                 d_o_centers_y = 0.0
-                # evaluating length of the intersection,  depending on its di-
-                # rection.
-                h = d_nodes_y if (n_axis) else d_nodes_x
+                # evaluating length of the intersection, depending on its direc-
+                # tion.
+                h = octree.get_area(inter        ,
+                                    is_ptr = True,
+                                    is_inter = True)
 
                 if (is_bound_inter):
                     # Normal parallel to y-axis.
@@ -1413,11 +1411,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             # Penalized global index.
                             p_g_index = g_o_norms_inter[1 - labels[0]]
                             value_to_store = n_coeffs[1 - labels[0]] * mult
-                            # TODO: change key for \"self._edl\" for foreground
-                            # grids to be as the one for background grids.
                             key = (grid                  ,
-                                   mask_octant(r_g_index),
-                                   h)
+                                   mask_octant(r_g_index))
                             stencil = self._edl.get(key)
                             stencil[(dimension * 2) + 1] = value_to_store
 
