@@ -702,9 +702,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             d_count, o_count = 0, 0
             g_octant = g_octants[octant]
             py_oct = py_octs[octant]
-            h = octree.get_area(py_oct       ,
-                                is_ptr = True,
-                                is_inter = False)
+            h2 = octree.get_area(py_oct       ,
+                                 is_ptr = True,
+                                 is_inter = False)
+            h = numpy.sqrt(h2)
             # Lambda function.
             g_b = lambda x : get_bound(py_oct,
                                        x)
@@ -717,7 +718,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 numpy_corners = get_nodes(octant   ,
                                           dimension,
                                           also_numpy_nodes = True)
-		
+
                 is_penalized, \
                 n_polygon = check_oct_corners(numpy_corners,
                                               c_t_dict     ,
