@@ -930,9 +930,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     # Get global indices of the owners of the outer/inner normals of the
     # intersection.
-    def get_owners_normals_inter(self          ,
-                                 inter         ,
-                                 starting_index,
+    def get_owners_normals_inter(self ,
+                                 inter,
                                  is_ghost_inter):
         octree = self._octree
         # Is owner outer normal ghost.
@@ -947,7 +946,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         g_i_o_o_n = None
 
         if (is_ghost_inter):
-            # Is owner outer normal ghost.
             is_o_o_n_g = octree.get_out_is_ghost(inter)
             if (is_o_o_n_g):
                 g_i_o_o_n = octree.get_ghost_global_idx(i_o_o_n)
@@ -959,17 +957,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
             g_i_o_o_n = octree.get_global_idx(i_o_o_n)
             g_i_o_i_n = octree.get_global_idx(i_o_i_n)
 
-        if (not is_background):
-            g_i_o_o_n += starting_index
-            g_i_o_i_n += starting_index
-
         return (g_i_o_i_n, g_i_o_o_n)
 
     def get_owners_nodes_inter(self            ,
                                inter           ,
                                g_owners_inter  ,
                                start_index     ,
-                               also_l_i = False, # Also local indices
+                               also_l_i = False,    # Also local indices
                                also_nodes = False): # Return also the nodes of
                                                     # the intersection, not just
                                                     # their owners
