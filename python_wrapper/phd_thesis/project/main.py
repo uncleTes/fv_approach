@@ -69,7 +69,9 @@ try:
                                                             "Refinements"), 
                                                  ",")
     dimension = config.getint("PROBLEM", "Dimension")
-
+    # TODO: change way to evaluate total number of octants, because now we are
+    # using real octrees and not only cartesian grids, and we allow a 2:1 balan-
+    # cing inside each single octree.
     # Octants for grid.
     oct_f_g = [pow(2**dimension, ref) for ref in refinements]
 
