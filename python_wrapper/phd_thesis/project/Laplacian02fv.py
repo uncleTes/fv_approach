@@ -589,7 +589,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         # Being in a case of a possible jump of 1 level between elements, we
         # have to consider two possible neighbours for each face of the octant.
-        # ...else...
         for i in xrange(0, n_neighbours):
             if (not ghosts[i]):
                     index = get_global_idx(neighs[i])
@@ -600,7 +599,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 n_center = get_center(py_ghost_oct,
                                       True)[: dimension]
             if (is_background):
-                is_n_penalized = True
                 t_foregrounds = self._t_foregrounds
                 # Current transformation matrix's dictionary.
                 c_t_dict = self.get_trans(0)
