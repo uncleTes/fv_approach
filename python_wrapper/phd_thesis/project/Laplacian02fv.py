@@ -1851,12 +1851,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         l_s = list_edg[0][1].size
         keys = numpy.array([list_edg[i][0] for i in 
                             range(0, l_l_edg)]).reshape(l_l_edg, l_k)
-        h2s = keys[:, 2] * keys[:, 2]
         stencils = numpy.array([list_edg[i][1] for i in 
-                                # TODO: 12 or 16 instead of 9 for grid not
-                                # perfectly superposed??
                                 range(0, l_l_edg)]).reshape(l_l_edg, l_s)
-        centers = [(stencils[i][1], stencils[i][2], 0) for i in range(0, l_l_edg)]
+        centers = [(stencils[i][2], stencils[i][3], 0) for i in range(0, l_l_edg)]
         n_centers = len(centers)
         t_centers = [None] * n_centers
 
@@ -1909,73 +1906,25 @@ class Laplacian(BaseClass2D.BaseClass2D):
              neigh_indices)  = f_r_n(local_idxs[idx])
             coeffs = least_squares(neigh_centers,
                                    numpy_centers[idx])
-            h2 = h2s[idx]
-            h = numpy.sqrt(h2)
-            h2_inv = 1.0 / h2
-            h_half = 0.5 * h
 
             # Checkout how the \"stencil\" is created in the function
             # \"create_mask\".
-            for i in xrange(6, len(stencils[idx]), 5):
-                b_codim = int(stencils[idx][i])
-                index = int(stencils[idx][i + 1])
-                x_s = t_centers[idx][0]
-                y_s = t_centers[idx][1]
-
-                row_index = int(stencils[idx][i - 3])
-                n_center = [stencils[idx][i - 2], stencils[idx][i - 1]]
+            step = 4 if (dimension == 2) else 5
+            for i in xrange(step, len(stencils[idx]), step):
+                row_index = int(stencils[idx][i])
+                n_center = [stencils[idx][i + 1], stencils[idx][i + 2]]
+                value_to_multiply = stencils[idx][i + dimension + 1]
                 numpy_n_center = narray(n_center)
                 t_n_center = apply_persp_trans(dimension     ,
                                                numpy_n_center,
                                                b_t_dict)[: dimension]
 
-                i_metric_coefficients = metric_coefficients(dimension   ,
-                                                            [t_n_center],
-                                                            b_t_adj_dict,
-                                                            logger      ,
-                                                            log_file)
-                A00 = i_metric_coefficients[0] 
-                A10 = i_metric_coefficients[1]
-                A01 = i_metric_coefficients[2]
-                A11 = i_metric_coefficients[3]
-                ds2_epsilon_x = i_metric_coefficients[4]
-                ds2_epsilon_y = i_metric_coefficients[5]
-                ds2_nu_x = i_metric_coefficients[6]
-                ds2_nu_y = i_metric_coefficients[7]
-                A002 = numpy.square(A00)
-                A102 = numpy.square(A10)
-                A012 = numpy.square(A01)
-                A112 = numpy.square(A11)
-                if (b_codim == 1):
-                    # Temporary multiplier.
-                    t_m = (A002 + A102) if (index < 2) else (A012 + A112)
-                    # Temporary multiplier 02.
-                    t_m02 = (ds2_epsilon_x + ds2_epsilon_y) if \
-                            (index < 2) else (ds2_nu_x + ds2_nu_y)
-                    t_m02 *= h_half
-                    # IMPORTANT
-                    # Note that here the signs MUST be opposite respect to the same part
-                    # into "set_b_c" and "update_bg_grids" functions, because they have to
-                    # be considered as stencil of the neighbours, and so with opposite face.
-                    t_m += t_m02 if ((index % 2) == 0) else \
-                           (-1.0 * t_m02)   
-                    value_to_multiply = h2_inv * t_m
-                elif (b_codim == 2):
-                    t_m = (A00 * A01) + (A10 * A11)
-                    t_m *= 0.5 if ((index == 0) or (index == 3)) \
-                               else -0.5
-                    value_to_multiply = h2_inv * t_m
-                elif (b_codim ==  -1):
-                    break
                 new_coeffs = [coeff * value_to_multiply for coeff in \
                               coeffs]
                 apply_rest_prol_ops(row_index     ,
                                     neigh_indices ,
                                     new_coeffs,
                                     neigh_centers)
-
-        #end = time.time()
-        #print("fg update " + str(end - start))
 
         msg = "Updated prolongation blocks"
         self.log_msg(msg   ,
