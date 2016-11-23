@@ -1052,16 +1052,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
         logger = self.logger
         f_bound = self._f_bound
         grid = self._proc_g
+
+        # Ghosts' deplacement.
+        g_d = 0
+        for i in xrange(0, grid):
+            g_d = g_d + self._oct_f_g[i]
+
         comm_w = self._comm_w
         rank_w = self._rank_w
         octree = self._octree
         tot_oct = self._tot_oct
         is_background = False if (grid) else True
-        # Range deplacement.
-        oct_offset = 0
         t_foregrounds = self._t_foregrounds
-        for i in xrange(0, grid):
-            oct_offset += self._oct_f_g[i]
 
         n_oct = self._n_oct
         nfaces = octree.get_n_faces()
@@ -1103,7 +1105,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_owners_nodes_inter = self.get_owners_nodes_inter
         get_is_ghost = octree.get_is_ghost
         least_squares = utilities.least_squares
-        # Lambda function.
+        # Lambda functions.
         g_n = lambda x : get_nodes(x            ,
                                    dimension    ,
                                    is_ptr = True,
@@ -1136,16 +1138,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               # are giving to the second arg
             # Global indices of owners inner/outer normal of the
             # intersection (is a tuple, and the first element is the one
-            # with the inner normal).
-            g_o_norms_inter = get_owners_normals_inter(inter      ,
-                                                       o_ranges[0],
+            # with the inner normal). Here, global means global in the current
+            # octree. To have the global for the totatlity of the octrees, we
+            # have to  add \"g_d\".
+            g_o_norms_inter = get_owners_normals_inter(inter,
                                                        is_ghost_inter)
             # List containing 0 or 1 to indicate inner normal or outer normal.
             labels = []
             # Masked global indices of owners inner/outer normal of the
             # intersection.
             m_g_o_norms_inter = map(mask_octant,
-                                    g_o_norms_inter)
+                                    [(g_o_norm_inter + g_d) for g_o_norm_inter \
+                                     in g_o_norms_inter])
             # Normal to the intersection, and its numpy version.
             normal_inter, \
             n_normal_inter = pablo.get_normal(inter,
@@ -1160,6 +1164,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_i_owners = 2
             # Looping on the owners of the intersection.
             for j in xrange(0, n_i_owners):
+                # First owner will be the one with the inner normal.
                 py_oct = get_octant(g_o_norms_inter[j])
                 center, \
                 numpy_center = get_center(py_oct,
@@ -1190,16 +1195,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # If the owners of the intersection are not both covered.
             if (r_indices):
                 # Global indices of the octants owners of the nodes of the
-                # intersection.
+                # intersection. Here, global means in the totality of the oc-
+                # trees.
                 g_o_nodes_inter, \
                 # Local indices of the octants owners of the nodes of the
                 # intersection (needed for \"find_right_neighbours\"
-                # function).
+                # function). Here, local means global but in the current octant.
                 l_o_nodes_inter, \
                 # The coordinates of the nodes.
                 nodes_inter = get_owners_nodes_inter(inter          ,
-                                                     g_owners_inter ,
-                                                     o_ranges[0]    ,
+                                                     g_o_norms_inter,
+                                                     g_d            ,
                                                      also_l_i = True,
                                                      also_nodes = True)
                 # Distance between xs of nodes of the intersection (greater
