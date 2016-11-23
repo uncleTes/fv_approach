@@ -986,13 +986,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
             l_owner = octree.get_point_owner_idx(nodes[i])
             # If the index of the owner if bigger than the total number of
             # octants present in the problem, we have reached or a ghost
-            # octant or we are otuside the domain.
+            # octant or we are outside the domain.
             if (l_owner > tot_oct):
+                # In this case, the owner will be one of the owners of the in-
+                # tersection (it will be different for each node).
                 g_owner = g_owners_inter[i]
             else:
-                g_owner = octree.get_global_idx(l_owners[0])
-            g_owners[i] = g_owner
-            l_owners[i] = g_owner - start_index
+                g_owner = octree.get_global_idx(l_owner)
+            # Here \"start_index\" is added to \"g_owners[i]\" because
+            # \"g_owners(i]\" represents for the moment yes the global octant,
+            # but in a single octree, and we want the global index for the to-
+            # tality of the octants. So, we add \"start_index\" which is the
+            # count from where the global numeration of the current octant star-
+            # ts.
+            g_owners[i] = g_owner + start_index
+            l_owners[i] = g_owner
 
         if (also_nodes):
             if (also_l_i):
