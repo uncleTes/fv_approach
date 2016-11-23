@@ -1339,8 +1339,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             # the fact that we have to move the coefficients to
                             # the \"rhs\", so we have to change its sign.
                             rhs_value = n_coeffs[1 - labels[0]] * (-1 * mult)
-                            # TODO: evaluate exact solution on the boundary.
-                            self._rhs[r_g_index] += rhs_value * exact_solution
+                            self._rhs[r_g_index] *= rhs_value
                         else:
                             # Penalized global index.
                             p_g_index = g_o_norms_inter[1 - labels[0]]
