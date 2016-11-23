@@ -396,9 +396,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         octree = self._octree
         nfaces = octree.get_n_faces()
         face_node = octree.get_face_node()
-        h = self._h
-        h_half = 0.5 * h
-        h2 = h * h
         h2_inv_neg = -1.0 / h2
         is_background = False if (grid) else True
         o_ranges = self.get_ranges()
@@ -481,7 +478,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             for i, center in enumerate(c_neighs):
                 check = False
                 # Check if foreground grid is inside the background one.
-                threshold = 0.0
                 numpy_center = narray(center)
                 t_center, n_t_center =  apply_persp_trans(dimension   ,
                                                           numpy_center,
@@ -510,62 +506,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # coefficients of the bilinear operator in the \"extension\"
                     # matrix.
                     b_values[i] = 0.0
-        
-        metric_coefficients = utilities.metric_coefficients(dimension,
-                                                            t_b_centers,
-                                                            c_t_adj_dict,
-                                                            logger,
-                                                            log_file)
-        n_values = len(b_values)
-        # Temporary multipliers.
-        #t_ms = [0] * n_values
-        # \"adj_matrix[0][0]\"...
 
-        for i in xrange(0, n_values):
-            i_metric_coefficients = metric_coefficients[:, i]
-            codim = b_codim[i]
-            index = b_f_o_n[i]
-            A00 = i_metric_coefficients[0] 
-            A10 = i_metric_coefficients[1]
-            A01 = i_metric_coefficients[2]
-            A11 = i_metric_coefficients[3]
-            ds2_epsilon_x = i_metric_coefficients[4]
-            ds2_epsilon_y = i_metric_coefficients[5]
-            ds2_nu_x = i_metric_coefficients[6]
-            ds2_nu_y = i_metric_coefficients[7]
-            A002 = numpy.square(A00)
-            A102 = numpy.square(A10)
-            A012 = numpy.square(A01)
-            A112 = numpy.square(A11)
-            if (codim == 1):
-                # Temporary multiplier.
-                t_m = (A002 + A102) if (index < 2) else \
-                      (A012 + A112)
-                # Temporary multiplier 02.
-                t_m02 = (ds2_epsilon_x + ds2_epsilon_y) if \
-                        (index < 2) else (ds2_nu_x + ds2_nu_y)
-                t_m02 *= h_half
-                t_m += t_m02 if ((index % 2) == 1) else \
-                       (-1.0 * t_m02)   
-            # Codim == 2, so we are speaking about nodes and not edges.
-            else:
-                t_m = (A00 * A01) + (A10 * A11)
-                t_m *= 0.5 if ((index == 0) or (index == 3)) \
-                           else -0.5
-
-            # TODO: Sum coefficients^2 for 3D.
-            if (dimension == 3):
-                pass
-
-            t_m = h2_inv_neg * t_m
-            b_values[i] = b_values[i] * t_m
-            # The three following lines are just syntactic sugar to express
-            # some python's capabilities. But the previous one line is just
-            # faster. Tested personally on a list of 10000.
-            #t_ms[i] = t_m
-        #b_values = map(lambda pair : (pair[0] * pair[1]), 
-        #               zip(b_values, t_ms))
-   
         insert_mode = PETSc.InsertMode.ADD_VALUES
         self._rhs.setValues(b_indices,
                             b_values ,
