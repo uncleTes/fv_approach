@@ -2023,6 +2023,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         i_centers = numpy.array([list_edg[i][1][0][dimension : (dimension * 2)]\
                                  for i in range(0, l_l_edg)]).reshape(l_l_edg, 
                                                                       dimension)
+        values_to_multiply = numpy.array([list_edg[i][1][(dimension * 2) + 1] \
+                                          for i in xrange(0, l_l_edg)]).reshape(l_l_edg, dimension)
         # Number of outside centers.
         n_o_centers = o_centers.shape[0]
         t_o_centers = [None] * n_o_centers
@@ -2048,11 +2050,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             t_o_centers[i] = apply_persp_trans_inv(dimension       ,
                                                    numpy_t_o_center,
                                                    c_t_adj_dict)
-        #TODO: understand why here we need to pass \"center[0:2]\" to the 
-        # function \"get_point_owner_dx\", while in the previous version of
-        # PABLitO we passed all the array \"center\". I think that it is due to
-        # the change of type of the input arguments from \"dvector\" to 
-        # \"darray\".
+        # Here we need to pass \"center[0:2]\" to the function \"get_point_ow-
+        # ner_dx\", while in the previous version of \"PABLitO\" we passed all
+        # the array \"center\". I think that it is due to the change of type of
+        # the input arguments from \"dvector\" to \"darray\".
         local_idxs = numpy.array([octree.get_point_owner_idx((center[0], 
                                                               center[1],
                                                               center[2] if    \
@@ -2075,68 +2076,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             numpy_i_center,
                                             f_t_dict)[: dimension]
 
-            i_metric_coefficients = metric_coefficients(dimension,
-                                                        [t_i_center],
-                                                        f_t_adj_dict,
-                                                        logger,
-                                                        log_file)
-            
             neigh_centers, neigh_indices = ([] for i in range(0, 2)) 
-            # New neighbour indices.
-            n_n_i = []
             (neigh_centers, 
              neigh_indices)  = find_right_neighbours(local_idxs[idx],
                                                      o_ranges[0]    ,
                                                      True)
             coeffs = least_squares(neigh_centers,
                                    numpy_t_o_centers[idx])
-            
-            n_n_i = neigh_indices
 
-            b_codim = int(keys[idx][3])
-            index = int(keys[idx][2])
-
-            h2 = h2s[idx]
-            h = numpy.sqrt(h2)
-            h2_inv = 1.0 / h2
-            h_half = 0.5 * h
-
-            A00 = i_metric_coefficients[0] 
-            A10 = i_metric_coefficients[1]
-            A01 = i_metric_coefficients[2]
-            A11 = i_metric_coefficients[3]
-            ds2_epsilon_x = i_metric_coefficients[4]
-            ds2_epsilon_y = i_metric_coefficients[5]
-            ds2_nu_x = i_metric_coefficients[6]
-            ds2_nu_y = i_metric_coefficients[7]
-            A002 = numpy.square(A00)
-            A102 = numpy.square(A10)
-            A012 = numpy.square(A01)
-            A112 = numpy.square(A11)
-            if (b_codim == 1):
-                # Temporary multiplier.
-                t_m = (A002 + A102) if (index < 2) else (A012 + A112)
-                # Temporary multiplier 02.
-                t_m02 = (ds2_epsilon_x + ds2_epsilon_y) if \
-                        (index < 2) else (ds2_nu_x + ds2_nu_y)
-                t_m02 *= h_half
-                t_m += t_m02 if ((index % 2) == 1) else \
-                       (-1.0 * t_m02)   
-
-                value_to_multiply = h2_inv * t_m
-            else:
-                t_m = (A00 * A01) + (A10 * A11)
-                t_m *= 0.5 if ((index == 0) or (index == 3)) \
-                           else -0.5
-                value_to_multiply = h2_inv * t_m
-
-            coeffs = [coeff * value_to_multiply for coeff in coeffs]
+            coeffs = [coeff * values_to_multiply[idx] for coeff in coeffs]
             apply_rest_prol_ops(int(keys[idx][1]),
-                                n_n_i            ,
+                                neigh_centers    ,
                                 coeffs           ,
                                 neigh_centers)
-        #end = time.time()
-        #print("bg update " + str(end - start))
 
         msg = "Updated restriction blocks"
         self.log_msg(msg   ,
