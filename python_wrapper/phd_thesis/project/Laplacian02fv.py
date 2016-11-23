@@ -676,7 +676,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         octree = self._octree
         nfaces = octree.get_n_faces()
         face_node = octree.get_face_node()
-        h = self._h
         dimension = self._dim
         is_background = True if (not grid) else False
         # Lists containing number of non zero elements for diagonal and non
@@ -705,6 +704,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             d_count, o_count = 0, 0
             g_octant = g_octants[octant]
             py_oct = py_octs[octant]
+            h = octree.get_area(py_oct       ,
+                                is_ptr = True,
+                                is_inter = False)
             # Lambda function.
             g_b = lambda x : get_bound(py_oct,
                                        x)
@@ -727,7 +729,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Moved \"h\" from the \"key\" to the \"stencil\", preferring
                 # not to use float into dict keys.
                 key = (n_polygon, # Foreground grid to which the node belongs to
-                       g_octant ) # Global index (not yet masked)
+                       g_octant)  # Global index (not yet masked)
                 # If the octant is covered by the foreground grids, we need to
                 # store info of the stencil it belongs to to push on the rela-
                 # tive rows of the matrix, the right indices of the octants of
