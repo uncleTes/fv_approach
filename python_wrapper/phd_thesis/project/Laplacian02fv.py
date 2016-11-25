@@ -1727,6 +1727,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 	"""Method which initializes structures used to exchange data between
 	   different grids."""
 
+        dimension = self._dim
         grid = self._proc_g
         is_background = True
         if grid:
@@ -1756,28 +1757,33 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Numpy edg. The \"self._n_edg\" will contains the excahnged data 
         # between grids of different levels.
         self._n_edg = None
+        # TODO: check to see if is better to use int64 or uint64.
         if not is_background:
-            self._d_type_s = numpy.dtype('(1, 5)f8, (1, 43)f8') if self._p_inter\
-                             else numpy.dtype('(1, 5)f8, (1, 2)f8')
-            blocks_length_s = [5, 43] if self._p_inter else [5, 2]
-            blocks_displacement_s = [0, 40]
-            mpi_datatypes = [MPI.DOUBLE,
+            self._d_type_s = numpy.dtype('(1, 2)i8, (1, 36)f8') if \
+                             (dimension == 2) else                 \
+                             numpy.dtype('(1, 2)i8, (1, 45)f8')
+            blocks_length_s = [2, 36] if (dimension == 2) else [2, 45]
+            blocks_displacement_s = [0, 16]
+            mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 5)f8, (1, 43)f8') if self._p_inter\
-                             else numpy.dtype('(1, 3)f8, (1, 43)f8')
-            blocks_length_r = [5, 43] if self._p_inter else [3, 43]
-            blocks_displacement_r = [0, 40] if self._p_inter else [0, 24]
+            self._d_type_r = numpy.dtype('(1, 2)i8, (1, 36)f8') if \
+                             (dimension == 2) else                 \
+                             numpy.dtype('(1, 2)i8, (1, 45)f8')
+            blocks_length_r = [2, 36] if (dimension == 2) else [2, 45]
+            blocks_displacement_r = [0, 16]
         else:
-            self._d_type_s = numpy.dtype('(1, 5)f8, (1, 43)f8') if self._p_inter\
-                             else numpy.dtype('(1, 3)f8, (1, 43)f8')
-            blocks_length_s = [5, 43] if self._p_inter else [3, 43]
-            blocks_displacement_s = [0, 40] if self._p_inter else [0, 24]
-            mpi_datatypes = [MPI.DOUBLE,
+            self._d_type_s = numpy.dtype('(1, 2)i8, (1, 36)f8') if \
+                             (dimension == 2) else                 \
+                             numpy.dtype('(1, 2)i8, (1, 45)f8')
+            blocks_length_s = [2, 36] if (dimension == 2) else [2, 45]
+            blocks_displacement_s = [0, 16]
+            mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 5)f8, (1, 43)f8') if self._p_inter\
-                             else numpy.dtype('(1, 5)f8, (1,2)f8')
-            blocks_length_r = [5, 43] if self._p_inter else [5, 2]
-            blocks_displacement_r = [0, 40]
+            self._d_type_r = numpy.dtype('(1, 2)i8, (1, 36)f8') if \
+                             (dimension == 2) else                 \
+                             numpy.dtype('(1, 2)i8, (1,45)f8')
+            blocks_length_r = [2, 36] if (dimension == 2) else [2, 45]
+            blocks_displacement_r = [0, 16]
         # MPI data type to send.
         self._mpi_d_t_s = MPI.Datatype.Create_struct(blocks_length_s      ,
                                                      blocks_displacement_s,
