@@ -396,7 +396,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         octree = self._octree
         nfaces = octree.get_n_faces()
         face_node = octree.get_face_node()
-        h2_inv_neg = -1.0 / h2
         is_background = False if (grid) else True
         o_ranges = self.get_ranges()
         dimension = self._dim
@@ -477,7 +476,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         if (grid):
             for i, center in enumerate(c_neighs):
                 check = False
-                # Check if foreground grid is inside the background one.
+                # Check if the \"ghost\" points outside the foreground grids are
+                # inside the background one.
                 numpy_center = narray(center)
                 t_center, n_t_center =  apply_persp_trans(dimension   ,
                                                           numpy_center,
@@ -486,14 +486,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 check = is_point_inside_polygon(t_center    ,
                                                 t_background)
                 if (check):
+                    n_axis = 0 if (b_f_o_n[i] < 2) else 1
                     # Can't use list as dictionary's keys.
                     # http://stackoverflow.com/questions/7257588/why-cant-i-use-a-list-as-a-dict-key-in-python
                     # https://wiki.python.org/moin/DictionaryKeys
                     key = (grid        , # Grid to which the index belongs to
-                           b_indices[i]) # Masked global index of the octant
+                           b_indices[i], # Masked global index of the octant
+                           n_axis)
                     # We store the center of the cell on the boundary.
                     # TODO: why we store also \"center\" and not just 
-                    #       \"b_centers[i]\"? Think about it.
+                    #       \"b_centers[i]\"? Think about it. And why add also
+                    #       \"h\": is not useless in a fv approach?
                     t_value = (h,) + tuple(center[: dimension])
                     t_value = t_value + tuple(b_centers[i][: dimension])
                     # Length of the stencil.
@@ -584,7 +587,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  codim ,
                                  neighs,
                                  ghosts)
-
+        # Number of neighbours.
         n_neighbours = len(neighs)
 
         # Being in a case of a possible jump of 1 level between elements, we
@@ -728,7 +731,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Moved \"h\" from the \"key\" to the \"stencil\", preferring
                 # not to use float into dict keys.
                 key = (n_polygon, # Foreground grid to which the node belongs to
-                       g_octant)  # Global index (not yet masked)
+                       g_octant,  # Global index (not yet masked)
+                       0)
                 # If the octant is covered by the foreground grids, we need to
                 # store info of the stencil it belongs to to push on the rela-
                 # tive rows of the matrix, the right indices of the octants of
@@ -744,7 +748,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # ble neighbours for each face of the current octant), and coef-
                 # ficient to multiply \"least squares\" approximation.
                 stencil = [-1] * 36 if (dimension == 2) else [-1] * 45
-                stencil[0] = h
+                stencil[0] = h # TODO: is this useful or not? I think not.
                 stencil[1] = g_octant
                 stencil[2 : (dimension + 1)] = center
                 # http://www.laurentluce.com/posts/python-dictionary-implementation/
@@ -756,7 +760,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 d_count += 1
             # \"stencil\"'s index.
             s_i = 4 if (dimension == 2) else 5
-            # Number of neighbours (Being the possibility ot a jump between oc-
+            # Number of neighbours (Being the possibility of a jump between oc-
             # tants, we can have a minimum of 4 and a maximum of 8 neighbours.
             n_neighbours = 0
             # Faces' loop.
@@ -777,6 +781,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 is_background)
                     n_neighbours += n_neighs
                 else:
+                    n_neighbours += 1
+
                     if (not is_background):
                         # Adding elements for the octants of the background to
                         # use to interpolate stencil values for boundary condi-
@@ -785,7 +791,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # elements are contained into the background, and we are
                         # not checking it or if they are outside it (it should
                         # not have a lot of sense however). That's why we are
-                        # adding always +9 to the \"o_count\" variable.
+                        # adding always +9 to the \"o_count\" variable, despite
+                        # the fact that they could be on the border of the back-
+                        # ground domain, exactly, and in this case we should not
+                        # add anything to \"o_count\" and \"d_count\", being an
+                        # exact boundary condition.
+                        # TODO: write a better way to modify \"d_count\" and
+                        # \"o_count\".
                         o_count += 9
 
             # For the moment, we have to store space in the \"PETSc\" matrix for
@@ -1257,6 +1269,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # for the totality of the octrees, we have to add \"g_d\".
             #
             # First owner will be the one with the inner normal.
+            #
+            # Owner ghost equal to 1 means that is ghost the one with the outer
+            # normal, if is 0 is ghost the one with the inner.
             g_o_norms_inter,
             l_o_norms_inter,
             o_ghost = get_owners_normals_inter(inter,
@@ -1294,17 +1309,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           ptr_octant = True,
                                           also_numpy_center = True)[: dimension]
                 owners_centers.append(numpy_center)
-                # Check to know if an octant on the background is penalized.
+                m_g_octant = m_g_o_norms_inter[j]
                 is_penalized = False
-                # Background grid.
-                if (is_background):
-                    oct_corners, \
-                    numpy_corners = g_n(py_oct)
-
-	            is_penalized, \
-                    n_polygon = check_oct_corners(numpy_corners,
-                                                  c_t_dict     ,
-                                                  t_foregrounds)
+                # If an intersection owner is penalized (it could be just for
+                # background grid)...
+                if (m_g_octant == -1):
+                    is_penalized = True
+                # ...else...
                 if (not is_penalized):
                     r_indices.append(m_g_octant)
                     if (is_bound_inter):
@@ -1350,7 +1361,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # Using \"extend.([number])\" to avoid \"TypeError: 'int'
                     # object is not iterable\" error.
                     c_indices.extend([r_indices[1 - o_ghost]])
-                    if (o_ghost == 0):
+                    # The owner of the inner normal will add values also for the
+                    # nodes of the intersection.
+                    if (o_ghost == 1):
                         c_indices.extend(n_cs_n_is[1][1])
                         c_indices.extend(n_cs_n_is[0][1])
                 else:
@@ -1362,20 +1375,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # Values to insert in \"r_indices\"; each sub list contains
                     # values for each owner of the intersection.
                     values = [[], []]
-                    # \"Numpy\" temprary array
+                    # \"Numpy\" temporary array.
                     n_t_array = numpy.array([n_coeffs[0],
                                              n_coeffs[1]])
-                    n_t_array = numpy.append(n_t_array,
-                                             coeffs_node_1)
-                    n_t_array = numpy.append(n_t_array,
-                                             coeffs_node_0)
+                    # If is a ghost intersection, we store just one coefficient
+                    # for each time we will pass on the current intersection
+                    # (being ghost, there will be two processes owning it).
                     if (is_ghost_inter):
                         n_t_array = numpy.array([n_coeffs[1 - o_ghost])
-                        if (o_ghost == 0):
-                            n_t_array = numpy.append(n_t_array,
-                                                     coeffs_node_1)
-                            n_t_array = numpy.append(n_t_array,
-                                                     coeffs_node_0)
+                    # So, if there is no ghost intersection or if the ghost is
+                    # the owner of the outer normal.
+                    if (o_ghost != 0): 
+                        n_t_array = numpy.append(n_t_array,
+                                                 coeffs_node_1)
+                        n_t_array = numpy.append(n_t_array,
+                                                 coeffs_node_0)
                     # \"values[0]\" is for the owner with the inner normal,
                     # while \"values[1]\" is for the owner with the outer one:
                     # Add to the octant with the outer normal, subtract to the
@@ -1386,15 +1400,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 else:
                     # Values to insert in \"r_indices\".
                     values = []
-
                     n_t_array = numpy.array([n_coeffs[labels[0]]])
                     n_t_array = numpy.append(n_t_array,
                                              coeffs_node_1)
                     n_t_array = numpy.append(n_t_array,
                                              coeffs_node_0)
-                    # Row global index.
-                    r_g_index = g_o_norms_inter[labels[0]]
-
                     # Here we can be only on the background, where some octants
                     # are penalized.
                     if (not is_bound_inter):
@@ -1404,36 +1414,40 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # instead of subtract them.
                         if (labels[0]):
                             mult = 1.0
-                        # Penalized global index.
+                        # Penalized global index, not masked.
                         p_g_index = g_o_norms_inter[1 - labels[0]]
                         value_to_store = n_coeffs[1 - labels[0]] * mult
 
                         key = (0        ,
                                p_g_index,
-                               h)
+                               0)
 
                         stencil = self._edl.get(key)
                         step = 4 if (dimension == 2) else 5
                         for (k in stencil[step::step]):
-                            if (stencil[k] == r_g_index):
+                            if (stencil[k] == p_g_index):
                                 stencil[k + dimension + 1] = value_to_store
                     # We are on a boundary intersection; here normal is always
                     # directed outside, so the owner is the one with the outer
                     # normal.
                     else:
+                        m_octant = m_g_o_norms_inter[labels[0]]
                         mult = 1.0
+                        value_to_store = n_coeffs[1 - labels[0]] * mult
                         if (is_background):
                             # The multiplication for \"(-1 * mult)\" is due to
                             # the fact that we have to move the coefficients to
                             # the \"rhs\", so we have to change its sign.
-                            rhs_value = n_coeffs[1 - labels[0]] * (-1 * mult)
-                            self._rhs[r_g_index] *= rhs_value
+                            value_to_store = value_to_store * -1
+                            # Previous \"rhs\" value.
+                            p_rhs_v = self._rhs[m_octant]
+                            self._rhs.setValues(m_octant                ,
+                                                p_rhs_v * value_to_store,
+                                                PETSc.InsertMode.INSERT_VALUES)
                         else:
-                            # Penalized global index.
-                            p_g_index = g_o_norms_inter[1 - labels[0]]
-                            value_to_store = n_coeffs[1 - labels[0]] * mult
-                            key = (grid                  ,
-                                   mask_octant(r_g_index))
+                            key = (grid      ,
+                                   m_g_octant,
+                                   n_axis)
                             stencil = self._edl.get(key)
                             stencil[(dimension * 2) + 1] = value_to_store
 
@@ -1448,6 +1462,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # will be done after inserting the prolongation and restriction blocks.
         self.assembly_petsc_struct("matrix",
                                    PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY)
+        self.assembly_petsc_struct("rhs")
         
         msg = "Initialized diagonal parts of the monolithic  matrix"
         extra_msg = "with sizes \"" + str(self._b_mat.getSizes()) + \
@@ -1593,6 +1608,47 @@ class Laplacian(BaseClass2D.BaseClass2D):
     
         return res_sol
     # --------------------------------------------------------------------------
+
+    def add_rhs(self,
+                numpy_array):
+        self._rhs = self.add_array("right hand side",
+                                   True             ,
+                                   self._rhs        ,
+                                   numpy_array)
+        msg = "Added array to \"rhs\""
+        self.log_msg(msg,
+                     "info")
+
+    def add_array(self             ,
+                  a_name = ""      ,
+                  petsc_size = True,
+                  vec              ,
+                  array_to_add):
+        if not petsc_size:
+            n_oct = self._n_oct
+            tot_oct = self._tot_oct
+            sizes = (n_oct, tot_oct)
+        else: 
+            sizes = self.find_sizes()
+        try:
+            assert isinstance(array_to_add, numpy.ndarray)
+            # Temporary PETSc vector.
+            t_petsc = PETSc.Vec().createWithArray(array_to_add,
+                                                  size = sizes,
+                                                  comm = self._comm_w)
+            vec.axpy(1.0, t_petsc)
+        except AssertionError:
+            msg = "\"MPI Abort\" called during array's initialization"
+            extra_msg = "Parameter \"array\" not an instance of " + \
+                        "\"numpy.ndarray\"."
+            self.log_msg(msg    ,
+                         "error",
+                         extra_msg)
+            self._comm_w.Abort(1)
+        msg = "Added array to \"" + str(a_name) + "\""
+        self.log_msg(msg,
+                     "info")
+        return vec
    
     # --------------------------------------------------------------------------
     # Initializes a \"PTESc\" array, being made of zeros or values passed by.
@@ -1759,31 +1815,31 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._n_edg = None
         # TODO: check to see if is better to use int64 or uint64.
         if not is_background:
-            self._d_type_s = numpy.dtype('(1, 2)i8, (1, 36)f8') if \
+            self._d_type_s = numpy.dtype('(1, 3)i8, (1, 36)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 2)i8, (1, 45)f8')
-            blocks_length_s = [2, 36] if (dimension == 2) else [2, 45]
-            blocks_displacement_s = [0, 16]
+                             numpy.dtype('(1, 3)i8, (1, 45)f8')
+            blocks_length_s = [3, 36] if (dimension == 2) else [3, 45]
+            blocks_displacement_s = [0, 24]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 2)i8, (1, 36)f8') if \
+            self._d_type_r = numpy.dtype('(1, 3)i8, (1, 36)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 2)i8, (1, 45)f8')
-            blocks_length_r = [2, 36] if (dimension == 2) else [2, 45]
-            blocks_displacement_r = [0, 16]
+                             numpy.dtype('(1, 3)i8, (1, 45)f8')
+            blocks_length_r = [3, 36] if (dimension == 2) else [3, 45]
+            blocks_displacement_r = [0, 24]
         else:
-            self._d_type_s = numpy.dtype('(1, 2)i8, (1, 36)f8') if \
+            self._d_type_s = numpy.dtype('(1, 3)i8, (1, 36)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 2)i8, (1, 45)f8')
-            blocks_length_s = [2, 36] if (dimension == 2) else [2, 45]
-            blocks_displacement_s = [0, 16]
+                             numpy.dtype('(1, 3)i8, (1, 45)f8')
+            blocks_length_s = [3, 36] if (dimension == 2) else [3, 45]
+            blocks_displacement_s = [0, 24]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 2)i8, (1, 36)f8') if \
+            self._d_type_r = numpy.dtype('(1, 3)i8, (1, 36)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 2)i8, (1,45)f8')
-            blocks_length_r = [2, 36] if (dimension == 2) else [2, 45]
-            blocks_displacement_r = [0, 16]
+                             numpy.dtype('(1, 3)i8, (1,45)f8')
+            blocks_length_r = [3, 36] if (dimension == 2) else [3, 45]
+            blocks_displacement_r = [0, 24]
         # MPI data type to send.
         self._mpi_d_t_s = MPI.Datatype.Create_struct(blocks_length_s      ,
                                                      blocks_displacement_s,
@@ -2057,7 +2113,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         l_s = list_edg[0][1].size
         keys = numpy.array([list_edg[i][0] for i in 
                             xrange(0, l_l_edg)]).reshape(l_l_edg, l_k)
-        h2s = keys[:, 4] * keys[:, 4]
         # Outside centers.
         o_centers = numpy.array([list_edg[i][1][0][: dimension] for i in 
                                  range(0, l_l_edg)]).reshape(l_l_edg, dimension)
@@ -2128,7 +2183,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
             coeffs = [coeff * values_to_multiply[idx] for coeff in coeffs]
             apply_rest_prol_ops(int(keys[idx][1]),
-                                neigh_centers    ,
+                                neigh_indices    ,
                                 coeffs           ,
                                 neigh_centers)
 
@@ -2238,7 +2293,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     centers.append(cell_center)
                     indices.append(m_index)
             # ...we need to evaluate boundary values (background) or not to 
-            # consider the indeces and centers found (foreground).
+            # consider the indices and centers found (foreground).
             else:
                 to_consider = True
                 border_center = neighbour_centers(c_c  ,

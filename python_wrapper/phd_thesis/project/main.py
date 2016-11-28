@@ -406,7 +406,6 @@ def compute(comm_dictionary     ,
     (d_nnz, o_nnz) = laplacian.create_mask()
     laplacian.init_sol()
 
-    laplacian.init_mat((d_nnz, o_nnz))
     not_penalized_centers = laplacian.not_pen_centers
     numpy_not_penalized_centers = [numpy.array(n_p_c) for n_p_c in \
                                    not_penalized_centers]
@@ -432,8 +431,10 @@ def compute(comm_dictionary     ,
     exact_solution.e_s_der(n_p_centers[:, 0], 
                            n_p_centers[:, 1],
                            n_p_centers[:, 2] if (dimension == 3) else None)
-    laplacian.init_rhs(exact_solution.s_der)
+    laplacian.init_rhs()
     laplacian.set_b_c()
+    laplacian.init_mat((d_nnz, o_nnz))
+    laplacian.add_rhs(exact_solution.s_der)
     laplacian.update_values(intercomm_dictionary)
     laplacian.solve()
     (norm_inf, norm_L2) = laplacian.evaluate_norms(exact_solution.sol,
