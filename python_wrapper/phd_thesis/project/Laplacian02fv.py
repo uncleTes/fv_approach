@@ -2007,6 +2007,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         list_edg = list(self._n_edg)
         # Length list edg.
         l_l_edg = len(list_edg)
+        # TODO: delete this.
         p_inter = self._p_inter
         if (p_inter):
             list_edg = [list_edg[i] for i in xrange(0, l_l_edg) if
@@ -2021,7 +2022,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             range(0, l_l_edg)]).reshape(l_l_edg, l_k)
         stencils = numpy.array([list_edg[i][1] for i in 
                                 range(0, l_l_edg)]).reshape(l_l_edg, l_s)
-        centers = [(stencils[i][2], stencils[i][3], 0) for i in range(0, l_l_edg)]
+        centers = [(stencils[i][2 : 2 + dimension]) for i in range(0, l_l_edg)]
         n_centers = len(centers)
         t_centers = [None] * n_centers
 
@@ -2038,15 +2039,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
         f_r_n = lambda x : find_right_neighbours(x, o_ranges[0])
 
         for i in xrange(0, n_centers):
-                numpy_center = narray(centers[i])
-                centers[i] = apply_persp_trans(dimension   ,
+            numpy_center = narray(centers[i])
+            centers[i] = apply_persp_trans(dimension   ,
+                                           numpy_center,
+                                           b_t_dict)[: dimension]
+            t_centers[i] = centers[i]
+            numpy_center = narray(centers[i])
+            centers[i] = apply_persp_trans_inv(dimension   ,
                                                numpy_center,
-                                               b_t_dict)[: dimension]
-                t_centers[i] = centers[i]
-                numpy_center = narray(centers[i])
-                centers[i] = apply_persp_trans_inv(dimension   ,
-                                                   numpy_center,
-                                                   c_t_adj_dict)[: dimension]
+                                               c_t_adj_dict)[: dimension]
         # Vectorized functions are just syntactic sugar:
         # http://stackoverflow.com/questions/7701429/efficient-evaluation-of-a-function-at-every-cell-of-a-numpy-array
         # http://stackoverflow.com/questions/8079061/function-application-over-numpys-matrix-row-column
