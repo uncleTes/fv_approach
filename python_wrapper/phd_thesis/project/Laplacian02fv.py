@@ -497,6 +497,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # TODO: why we store also \"center\" and not just 
                     #       \"b_centers[i]\"? Think about it. And why add also
                     #       \"h\": is not useless in a fv approach?
+                    #       And it is not useless also \"b_centers[i]\"?
                     t_value = (h,) + tuple(center[: dimension])
                     t_value = t_value + tuple(b_centers[i][: dimension])
                     # Length of the stencil.
@@ -732,7 +733,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # not to use float into dict keys.
                 key = (n_polygon, # Foreground grid to which the node belongs to
                        g_octant,  # Global index (not yet masked)
-                       0)
+                       0)         # Useless field, use to pair with the \"key\"
+                                  # for foreground grids.
                 # If the octant is covered by the foreground grids, we need to
                 # store info of the stencil it belongs to to push on the rela-
                 # tive rows of the matrix, the right indices of the octants of
@@ -750,7 +752,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 stencil = [-1] * 36 if (dimension == 2) else [-1] * 45
                 stencil[0] = h # TODO: is this useful or not? I think not.
                 stencil[1] = g_octant
-                stencil[2 : (dimension + 1)] = center
+                stencil[2 : (dimension + 1)] = center # TODO: is this useful or
+                                                      # not? I think not, in a
+                                                      # fv approach.
                 # http://www.laurentluce.com/posts/python-dictionary-implementation/
                 # http://effbot.org/zone/python-hash.htm
                 self._edl.update({key : stencil})
@@ -805,7 +809,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # octants in 2D at maximum) for the vertices of each intersection.
             # And these vertices are equal to the number of neighbours of the
             # current octant (With a gap of one level, we can have as maximum
-            # two neighbours for each face).
+            # two neighbours for each face), but we do not know a priori if the
+            # owners of the nodes will be ghosts (\"o_count\"), or not
+            # (\"d_count\").
             # TODO: find a better algorithm to store just the right number of e-
             # lements for \"d_count\" and for \"o_count\".
             d_count += (9 * n_neighbours)
@@ -987,6 +993,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                    # the intersection
                                    l_s_coeffs    , # Least square coefficients.
                                    is_bound_inter, # is a boundary intersection
+                                   n_normal_inter, # numpy normal vector to the
+                                                   # intersection
                                    n_axis):        # directional axis of the
                                                    # Normal (0 for x, 1 for y)
         # evaluating length of the intersection, depending on its direc-
@@ -1315,6 +1323,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # background grid)...
                 if (m_g_octant == -1):
                     is_penalized = True
+
+                    oct_corners,
+                    numpy_corners = g_n(py_oct)
+                    # \"is_penalized_useless\" will not be used because we al-
+                    # ready know that the octant is penalized (we entered the
+                    # \"if\" clause). But we need \"n_polygon\" to be used in
+                    # the \"key\" for the background grid.
+                    is_penalized_useless,
+                    n_polygon = check_oct_corners(numpy_corners,
+                                                  c_t_dict     ,
+                                                  t_foregrounds)
                 # ...else...
                 if (not is_penalized):
                     r_indices.append(m_g_octant)
@@ -1323,7 +1342,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         labels.append(1)
                     else:
                         labels.append(j)
-            if (is_bound_inter):
+            if (is_bound_inter and (len(r_indices) == 2)):
                 # Being a boundary intersection, owner is the same.
                 del r_indices[-1]
             # If the owners of the intersection are not both covered.
@@ -1355,6 +1374,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                    owners_center ,
                                                                    l_s_coeffs    ,
                                                                    is_bound_inter,
+                                                                   n_normal_inter,
                                                                    n_axis)
 
                 if (is_ghost_inter and (len(r_indices) == 2)):
@@ -1418,7 +1438,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         p_g_index = g_o_norms_inter[1 - labels[0]]
                         value_to_store = n_coeffs[1 - labels[0]] * mult
 
-                        key = (0        ,
+                        key = (n_polygon,
                                p_g_index,
                                0)
 
@@ -1712,15 +1732,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
     # Initializes \"rhs\".
     def init_rhs(self, 
-                 numpy_array):
+                 numpy_array = None):
 	"""Method which intializes the right hand side.
             
            Arguments:
                 numpy_array (numpy.array) : array to use to initialize with it
                                             the \"rhs\"."""
 
-        self._rhs = self.init_array("right hand side",
-                                    True             ,
+        self._rhs = self.init_array(a_name = "right hand side",
+                                    petsc_size = True         ,
                                     numpy_array)
         
         msg = "Initialized \"rhs\""
