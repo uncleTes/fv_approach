@@ -69,14 +69,6 @@ try:
                                                             "Refinements"), 
                                                  ",")
     dimension = config.getint("PROBLEM", "Dimension")
-    # TODO: change way to evaluate total number of octants, because now we are
-    # using real octrees and not only cartesian grids, and we allow a 2:1 balan-
-    # cing inside each single octree.
-    # Octants for grid.
-    oct_f_g = [pow(2**dimension, ref) for ref in refinements]
-
-    # Total number of octants on the totality of the grids.
-    tot_oct = sum(oct_f_g)
 
     assert (len(anchors) == n_grids)
     assert (len(edges) == n_grids)
@@ -152,7 +144,8 @@ def set_trans_dicts(n_grids,
 # ------------------------------------------------------------------------------
 def set_comm_dict(n_grids  ,
                   proc_grid,
-                  comm_l):
+                  comm_l   ,
+                  oct_f_g):
     """Method which set a dictionary (\"comm_dictionary\") which is necessary 
        for the parallelized classes like \"ExactSolution2D\" or 
        \"Laplacian\".
@@ -169,6 +162,8 @@ def set_comm_dict(n_grids  ,
 
     # Edge's length for PABLO.
     ed = edges[proc_grid]
+
+    tot_oct = numpy.sum(oct_f_g)
 
     comm_dictionary = {}
     comm_dictionary.update({"edge" : ed})
@@ -516,12 +511,51 @@ def main():
                           logger       ,
                           intercomm_dictionary)
 
-    comm_dictionary = set_comm_dict(n_grids  ,
-                                    proc_grid,
-                               	    comm_l)
-
     pablo, centers = set_octree(comm_l,
                                 proc_grid)
+
+    n_octs = pablo.get_num_octants()
+    n_nodes = pablo.get_num_nodes()
+
+    comm_w_s = comm_w.size
+    comm_l_s = comm_l.size
+
+    # Octant for \"MPI\" processes.
+    octs_f_p = numpy.empty(comm_l_s,
+                           dtype = int)
+    comm_l.Allgather(n_octs,
+                     octs_f_p)
+
+    l_tot_oct = 0
+
+    # Octant for grids.
+    octs_f_g = numpy.empty(n_grids,
+                          dtype = int)
+
+    s_counts = numpy.empty(comm_w_s,
+                           dtype = numpy.int64)
+    displs = numpy.empty(comm_w_s, dtype = numpy.int64)
+
+    l_displ = numpy.zeros(1, dtype = numpy.int64)
+    l_s_count = numpy.zeros(1, dtype = numpy.int64)
+
+    if (comm_l.Get_rank() == 0):
+        l_tot_oct = numpy.sum(octs_f_p)
+        l_s_count[0] = 1
+        l_displ[0] = n_grid
+
+    comm_w.Allgather(l_s_count,
+                     [s_counts, 1, MPI.INT64_T])
+    comm_w.Allgather(l_displs,
+                     [displs, 1, MPI.INT64_T])
+
+    comm_w.Allgatherv(l_tot_oct,
+                      [oct_f_g, s_counts, displs, MPI.INT64_T])
+
+    comm_dictionary = set_comm_dict(n_grids  ,
+                                    proc_grid,
+                                    comm_l   ,
+                                    oct_f_g)
 
     comm_dictionary.update({"octree" : pablo})
     comm_dictionary.update({"grid processes" : procs_l_lists[proc_grid]})
@@ -533,9 +567,6 @@ def main():
                                         proc_grid           ,
                                         centers             ,
                                         logger)
-
-    n_octs = pablo.get_num_octants()
-    n_nodes = pablo.get_num_nodes()
 
     #(geo_nodes, ghost_geo_nodes) = pablo.apply_persp_trans(dimension  ,
     #                                                       trans_coeff, 
