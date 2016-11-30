@@ -637,8 +637,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (not is_n_penalized):
                     stencil = self._edl.get(key)
                     stencil[s_i] = index
-                    stencil[s_i + 1 : s_i + (dimension + 1)] = n_center
-                    s_i += 4 if (dimension == 2) else 5
+                    s_i += 2
 
             extra_msg = ""
 
@@ -749,12 +748,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # jump of 1 level between elements, we have to store two possi-
                 # ble neighbours for each face of the current octant), and coef-
                 # ficient to multiply \"least squares\" approximation.
-                stencil = [-1] * 36 if (dimension == 2) else [-1] * 45
+                stencil = [-1] * 20 if (dimension == 2) else [-1] * 21
                 stencil[0] = h # TODO: is this useful or not? I think not.
                 stencil[1] = g_octant
-                stencil[2 : (dimension + 1)] = center # TODO: is this useful or
-                                                      # not? I think not, in a
-                                                      # fv approach.
+                stencil[2 : (dimension + 1)] = center
                 # http://www.laurentluce.com/posts/python-dictionary-implementation/
                 # http://effbot.org/zone/python-hash.htm
                 self._edl.update({key : stencil})
@@ -1959,7 +1956,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         for i, mpi_request in enumerate(mpi_requests):
             status = MPI.Status()
             mpi_request.Wait(status)
-        if not is_background:
+        if (not is_background):
             self.update_fg_grids(o_ranges,
                                  ids_octree_contained)
         else:
@@ -2078,15 +2075,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
             # Checkout how the \"stencil\" is created in the function
             # \"create_mask\".
-            step = 4 if (dimension == 2) else 5
-            for i in xrange(step, len(stencils[idx]), step):
+            displ = 4 if (dimension == 2) else 5
+            step = 2
+            for i in xrange(displ, len(stencils[idx]), step):
                 row_index = int(stencils[idx][i])
-                n_center = [stencils[idx][i + 1], stencils[idx][i + 2]]
-                value_to_multiply = stencils[idx][i + dimension + 1]
-                numpy_n_center = narray(n_center)
-                t_n_center = apply_persp_trans(dimension     ,
-                                               numpy_n_center,
-                                               b_t_dict)[: dimension]
+                value_to_multiply = stencils[idx][i + 1]
 
                 new_coeffs = [coeff * value_to_multiply for coeff in \
                               coeffs]
