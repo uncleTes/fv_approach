@@ -633,10 +633,10 @@ cdef class Py_Para_Tree:
         return py_nodes
 
     def get_area(self               ,
-                 uintptr_t idx      ,
+                 uintptr_t ptr      ,
                  bool is_ptr = False,
-                 bool is_inter = False)):
-        double area = 0.0
+                 bool is_inter = False):
+        cdef double area = 0.0
 
         if (is_ptr):
             if (is_inter):

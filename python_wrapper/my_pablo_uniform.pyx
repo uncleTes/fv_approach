@@ -290,20 +290,18 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
 
     # FV approach...
     def get_area(self               ,
-                 uintptr_t idx      ,
+                 uintptr_t ptr      ,
                  bool is_ptr = False,
                  bool is_inter = False):
-        double area = 0.0
+        cdef double area = 0.0
 
         if (is_ptr):
             if (is_inter):
-                area = self.der_thisptr._getArea(<Intersection*><void*>inter)
+                area = self.der_thisptr._getArea(<Intersection*><void*>ptr)
             else:
-                area = self.der_thisptr._getArea(<Octant*><void*>inter)
+                area = self.der_thisptr._getArea(<Octant*><void*>ptr)
         else:
-            area = self.der_thisptr._getArea(<uint32_t>inter)
-
-        area = self.der_thisptr._getArea(<Intersection*><void*>inter)
+            area = self.der_thisptr._getArea(<uint32_t>ptr)
 
         return area
 
