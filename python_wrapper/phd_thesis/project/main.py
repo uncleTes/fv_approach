@@ -162,7 +162,7 @@ def set_comm_dict(n_grids  ,
 
     # Edge's length for PABLO.
     ed = edges[proc_grid]
-
+    # Total number of octants present in the problem.
     tot_oct = numpy.sum(oct_f_g)
 
     comm_dictionary = {}
@@ -525,20 +525,30 @@ def main():
                            dtype = int)
     comm_l.Allgather(n_octs,
                      octs_f_p)
-
+    # Local number of total octants (here \"local\" means that is for each
+    # octree).
     l_tot_oct = 0
 
-    # Octant for grids.
+    # Octant for grids (here we wanto to store an array of size \"n_grids\" to
+    # save the number of octants for each grid (not for each \"MPI\" process).
     octs_f_g = numpy.empty(n_grids,
                           dtype = int)
-
+    # Send counts. Here we store how many element are sent by each process in
+    # the world communicator.
     s_counts = numpy.empty(comm_w_s,
                            dtype = numpy.int64)
+    # Displacements for each process in the world communicator.
     displs = numpy.empty(comm_w_s, dtype = numpy.int64)
-
+    # Local displacement for each process in the local communicator.
     l_displ = numpy.zeros(1, dtype = numpy.int64)
+    # Send count for each process in the local communicator.
     l_s_count = numpy.zeros(1, dtype = numpy.int64)
-
+    # If the rank of the process in the local communicator is equal to \"0\",
+    # then we want it to send globally the \"l_tot_count\" parameter, with a
+    # displacement in the final array where we will receive the data
+    # (\"octs_f_g\") equal to the number of the current grid. If the rank of the
+    # process, otherwies, is different from \"0\", it will send nothing global-
+    # ly.
     if (comm_l.Get_rank() == 0):
         l_tot_oct = numpy.sum(octs_f_p)
         l_s_count[0] = 1
