@@ -423,7 +423,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         narray = numpy.array
 
         for octant in xrange(0, n_oct):
-            h2 = octree.get_area(inter        ,
+            py_oct = get_octant(octant)
+            h2 = octree.get_area(py_oct       ,
                                  is_ptr = True,
                                  is_inter = False)
             h = numpy.sqrt(h2)
@@ -432,7 +433,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             m_g_octant = mask_octant(g_octant)
             # Check if the octant is not penalized.
             if (m_g_octant != -1):
-                py_oct = get_octant(octant)
                 center  = get_center(octant)[: dimension]
 
                 # Lambda function.
@@ -502,7 +502,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     stencil = (t_value + ((-1,) * (n_mask)))
                     self._edl.update({key : stencil})
                     # The new corresponding value inside \"b_values\" would be
-                    # \"0.0\", because the boundary value is given by the 
+                    # \"0.0\", because the boundary value is given by the
                     # coefficients of the bilinear operator in the \"extension\"
                     # matrix.
                     b_values[i] = 0.0
@@ -764,9 +764,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             for face in xrange(0, nfaces):
                 # Not boundary face.
                 if (not g_b(face)):
-                    d_count,
-                    o_count,
-                    s_i    ,
+                    d_count, \
+                    o_count, \
+                    s_i    , \
                     n_neighs = check_neighbours(1                            ,
                                                 face                         ,
                                                 octant                       ,
@@ -776,7 +776,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 key if is_penalized else None,
                                                 is_penalized                 ,
                                                 is_background)
-                    n_neighbours += n_neighs
+                    n_neighbours = n_neighbours + n_neighs
                 else:
                     n_neighbours += 1
 
@@ -1158,10 +1158,32 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         return g_owners_inter
 
-    # --------------------------------------------------------------------------
-    # Initialize diagonal matrices of the block matrix.
     def init_mat(self,
                  (d_nnz, o_nnz)):
+	log_file = self.logger.handlers[0].baseFilename
+        logger = self.logger
+
+        comm_w = self._comm_w
+
+        sizes = self.find_sizes()
+
+        self._b_mat = PETSc.Mat().createAIJ(size = (sizes, sizes),
+                                            nnz = (d_nnz, o_nnz) ,
+                                            comm = comm_w)
+        # If an element is being allocated in a place not preallocate, then
+        # the program will stop.
+        self._b_mat.setOption(self._b_mat.Option.NEW_NONZERO_ALLOCATION_ERR,
+                              True)
+        msg = "Initialized monolithic  matrix"
+        extra_msg = "with sizes \"" + str(self._b_mat.getSizes()) + \
+                    "\" and type \"" + str(self._b_mat.getType()) + "\""
+        self.log_msg(msg   ,
+                     "info",
+                     extra_msg)
+
+    # --------------------------------------------------------------------------
+    # Initialize diagonal matrices of the block matrix.
+    def fill_mat(self):
         """Method which initialize the diagonal parts of the monolithic matrix 
            of the system.
            
@@ -1195,13 +1217,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         dimension = self._dim
         sizes = self.find_sizes()
 
-        self._b_mat = PETSc.Mat().createAIJ(size = (sizes, sizes),
-                                            nnz = (d_nnz, o_nnz) ,
-                                            comm = comm_w)
-        # If an element is being allocated in a place not preallocate, then 
-        # the program will stop.
-        self._b_mat.setOption(self._b_mat.Option.NEW_NONZERO_ALLOCATION_ERR, 
-                              True)
         o_ranges = self.get_ranges()
 
         # Current transformation matrix's dictionary.
@@ -1226,7 +1241,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         check_oct_corners = self.check_oct_corners
         get_owners_inter = self.get_owners_inter
         get_owners_normals_inter = self.get_owners_normals_inter
-        get_owners_nodes_inter = self.get_owners_nodes_inter
         get_is_ghost = octree.get_is_ghost
         least_squares = utilities.least_squares
         # Lambda functions.
@@ -1395,7 +1409,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # for each time we will pass on the current intersection
                     # (being ghost, there will be two processes owning it).
                     if (is_ghost_inter):
-                        n_t_array = numpy.array([n_coeffs[1 - o_ghost])
+                        n_t_array = numpy.array(n_coeffs[1 - o_ghost])
                     # So, if there is no ghost intersection or if the ghost is
                     # the owner of the outer normal.
                     if (o_ghost != 0): 
@@ -1436,10 +1450,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                0)
 
                         stencil = self._edl.get(key)
-                        step = 4 if (dimension == 2) else 5
-                        for (k in stencil[step::step]):
+                        displ = 4 if (dimension == 2) else 5
+                        step = 2
+                        for k in stencil[displ::step]:
                             if (stencil[k] == p_g_index):
-                                stencil[k + dimension + 1] = value_to_store
+                                stencil[k + 1] = value_to_store
                     # We are on a boundary intersection; here normal is always
                     # directed outside, so the owner is the one with the outer
                     # normal.
@@ -1624,19 +1639,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     def add_rhs(self,
                 numpy_array):
-        self._rhs = self.add_array("right hand side",
+        self._rhs = self.add_array(self._rhs        ,
+                                   numpy_array      ,
                                    True             ,
-                                   self._rhs        ,
-                                   numpy_array)
+                                   "right hand side")
         msg = "Added array to \"rhs\""
         self.log_msg(msg,
                      "info")
 
     def add_array(self             ,
-                  a_name = ""      ,
-                  petsc_size = True,
                   vec              ,
-                  array_to_add):
+                  array_to_add     ,
+                  a_name = ""      ,
+                  petsc_size = True):
         if not petsc_size:
             n_oct = self._n_oct
             tot_oct = self._tot_oct
@@ -1732,8 +1747,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 numpy_array (numpy.array) : array to use to initialize with it
                                             the \"rhs\"."""
 
-        self._rhs = self.init_array(a_name = "right hand side",
-                                    petsc_size = True         ,
+        self._rhs = self.init_array("right hand side",
+                                    True             ,
                                     numpy_array)
         
         msg = "Initialized \"rhs\""
