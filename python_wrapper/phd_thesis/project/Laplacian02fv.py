@@ -1828,30 +1828,30 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._n_edg = None
         # TODO: check to see if is better to use int64 or uint64.
         if not is_background:
-            self._d_type_s = numpy.dtype('(1, 3)i8, (1, 36)f8') if \
+            self._d_type_s = numpy.dtype('(1, 3)i8, (1, 20)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 3)i8, (1, 45)f8')
-            blocks_length_s = [3, 36] if (dimension == 2) else [3, 45]
+                             numpy.dtype('(1, 3)i8, (1, 21)f8')
+            blocks_length_s = [3, 20] if (dimension == 2) else [3, 21]
             blocks_displacement_s = [0, 24]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 3)i8, (1, 36)f8') if \
+            self._d_type_r = numpy.dtype('(1, 3)i8, (1, 20)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 3)i8, (1, 45)f8')
-            blocks_length_r = [3, 36] if (dimension == 2) else [3, 45]
+                             numpy.dtype('(1, 3)i8, (1, 21)f8')
+            blocks_length_r = [3, 20] if (dimension == 2) else [3, 21]
             blocks_displacement_r = [0, 24]
         else:
-            self._d_type_s = numpy.dtype('(1, 3)i8, (1, 36)f8') if \
+            self._d_type_s = numpy.dtype('(1, 3)i8, (1, 20)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 3)i8, (1, 45)f8')
-            blocks_length_s = [3, 36] if (dimension == 2) else [3, 45]
+                             numpy.dtype('(1, 3)i8, (1, 21)f8')
+            blocks_length_s = [3, 20] if (dimension == 2) else [3, 21]
             blocks_displacement_s = [0, 24]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 3)i8, (1, 36)f8') if \
+            self._d_type_r = numpy.dtype('(1, 3)i8, (1, 20)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 3)i8, (1,45)f8')
-            blocks_length_r = [3, 36] if (dimension == 2) else [3, 45]
+                             numpy.dtype('(1, 3)i8, (1,21)f8')
+            blocks_length_r = [3, 20] if (dimension == 2) else [3, 21]
             blocks_displacement_r = [0, 24]
         # MPI data type to send.
         self._mpi_d_t_s = MPI.Datatype.Create_struct(blocks_length_s      ,
