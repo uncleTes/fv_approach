@@ -493,15 +493,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     key = (grid        , # Grid to which the index belongs to
                            b_indices[i], # Masked global index of the octant
                            n_axis)
-                    # We store the center of the cell on the boundary.
-                    # TODO: why we store also \"center\" and not just 
-                    #       \"b_centers[i]\"? Think about it. And why add also
-                    #       \"h\": is not useless in a fv approach?
-                    #       And it is not useless also \"b_centers[i]\"?
+                    # We store the center of the cells ghost ooutside the boun-
+                    # dary of the borders of the foreground grids.
                     t_value = (h,) + tuple(center[: dimension])
-                    t_value = t_value + tuple(b_centers[i][: dimension])
                     # Length of the stencil.
-                    l_stencil = 36 if (dimension == 2) else 45
+                    l_stencil = 20 if (dimension == 2) else 21
                     n_mask = l_stencil - len(t_value)
                     stencil = (t_value + ((-1,) * (n_mask)))
                     self._edl.update({key : stencil})
@@ -2179,14 +2175,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         numpy_t_o_centers = [numpy.array(t_o_center) for t_o_center in \
                              t_o_centers]
         for idx in idxs[0]:
-            # Foreground transformation matrix adjoint's dictionary.
-            f_t_adj_dict = get_trans_adj(int(keys[idx][0]))
-            f_t_dict = get_trans(int(keys[idx][0]))
-            numpy_i_center = narray(i_centers[idx])
-            t_i_center =  apply_persp_trans(dimension     ,
-                                            numpy_i_center,
-                                            f_t_dict)[: dimension]
-
             neigh_centers, neigh_indices = ([] for i in range(0, 2)) 
             (neigh_centers, 
              neigh_indices)  = find_right_neighbours(local_idxs[idx],
