@@ -3,7 +3,7 @@
 import ConfigParser
 import copy
 import ExactSolution2D as ExactSolution2D
-import Laplacian02 as Laplacian
+import Laplacian02fv as Laplacian
 from   mpi4py import MPI
 import my_class_vtk
 import my_pablo_uniform
@@ -145,7 +145,7 @@ def set_trans_dicts(n_grids,
 def set_comm_dict(n_grids  ,
                   proc_grid,
                   comm_l   ,
-                  oct_f_g):
+                  octs_f_g):
     """Method which set a dictionary (\"comm_dictionary\") which is necessary 
        for the parallelized classes like \"ExactSolution2D\" or 
        \"Laplacian\".
@@ -163,13 +163,13 @@ def set_comm_dict(n_grids  ,
     # Edge's length for PABLO.
     ed = edges[proc_grid]
     # Total number of octants present in the problem.
-    tot_oct = numpy.sum(oct_f_g)
+    tot_oct = numpy.sum(octs_f_g)
 
     comm_dictionary = {}
     comm_dictionary.update({"edge" : ed})
     comm_dictionary.update({"communicator" : comm_l})
     comm_dictionary.update({"world communicator" : comm_w})
-    comm_dictionary.update({"octants for grids" : oct_f_g})
+    comm_dictionary.update({"octants for grids" : octs_f_g})
     comm_dictionary.update({"total octants number" : tot_oct})
     background_boundaries = [anchors[0][0], anchors[0][0] + edges[0],
                              anchors[0][1], anchors[0][1] + edges[0]]
@@ -427,8 +427,9 @@ def compute(comm_dictionary     ,
                            n_p_centers[:, 1],
                            n_p_centers[:, 2] if (dimension == 3) else None)
     laplacian.init_rhs()
-    laplacian.set_b_c()
     laplacian.init_mat((d_nnz, o_nnz))
+    laplacian.set_b_c()
+    laplacian.fill_mat()
     laplacian.add_rhs(exact_solution.s_der)
     laplacian.update_values(intercomm_dictionary)
     laplacian.solve()
@@ -514,58 +515,70 @@ def main():
     pablo, centers = set_octree(comm_l,
                                 proc_grid)
 
-    n_octs = pablo.get_num_octants()
+    n_octs = numpy.zeros(1,
+                         numpy.int64)
+    n_octs[0] = pablo.get_num_octants()
     n_nodes = pablo.get_num_nodes()
 
     comm_w_s = comm_w.size
     comm_l_s = comm_l.size
 
     # Octant for \"MPI\" processes.
-    octs_f_p = numpy.empty(comm_l_s,
+    octs_f_p = numpy.zeros(comm_l_s,
                            dtype = int)
     comm_l.Allgather(n_octs,
-                     octs_f_p)
+                     [octs_f_p, 1, MPI.INT64_T])
     # Local number of total octants (here \"local\" means that is for each
     # octree).
-    l_tot_oct = 0
+    l_tot_oct = numpy.zeros(1,
+                            numpy.int64)
 
     # Octant for grids (here we wanto to store an array of size \"n_grids\" to
     # save the number of octants for each grid (not for each \"MPI\" process).
-    octs_f_g = numpy.empty(n_grids,
-                          dtype = int)
+    octs_f_g = numpy.zeros(n_grids,
+                           dtype = int)
     # Send counts. Here we store how many element are sent by each process in
     # the world communicator.
-    s_counts = numpy.empty(comm_w_s,
+    s_counts = numpy.zeros(comm_w_s,
                            dtype = numpy.int64)
     # Displacements for each process in the world communicator.
-    displs = numpy.empty(comm_w_s, dtype = numpy.int64)
+    displs = numpy.zeros(comm_w_s,
+                         dtype = numpy.int64)
     # Local displacement for each process in the local communicator.
-    l_displ = numpy.zeros(1, dtype = numpy.int64)
+    l_displ = numpy.zeros(1,
+                          dtype = numpy.int64)
     # Send count for each process in the local communicator.
-    l_s_count = numpy.zeros(1, dtype = numpy.int64)
+    l_s_count = numpy.zeros(1,
+                            dtype = numpy.int64)
+
+    if (comm_l.Get_rank() == 0):
+        l_tot_oct[0] = numpy.sum(octs_f_p)
+        l_displ[0] = proc_grid
+        l_s_count[0] = 1
     # If the rank of the process in the local communicator is equal to \"0\",
     # then we want it to send globally the \"l_tot_count\" parameter, with a
     # displacement in the final array where we will receive the data
     # (\"octs_f_g\") equal to the number of the current grid. If the rank of the
     # process, otherwies, is different from \"0\", it will send nothing global-
     # ly.
-    if (comm_l.Get_rank() == 0):
-        l_tot_oct = numpy.sum(octs_f_p)
-        l_s_count[0] = 1
-        l_displ[0] = n_grid
-
     comm_w.Allgather(l_s_count,
                      [s_counts, 1, MPI.INT64_T])
-    comm_w.Allgather(l_displs,
+    comm_w.Allgather(l_displ,
                      [displs, 1, MPI.INT64_T])
 
+    if (comm_l.Get_rank()):
+        l_tot_oct = numpy.zeros(0,
+                                dtype = numpy.int64)
     comm_w.Allgatherv(l_tot_oct,
-                      [oct_f_g, s_counts, displs, MPI.INT64_T])
+                      [octs_f_g, s_counts, displs, MPI.INT64_T])
+    #print(s_counts)
+    #print(displs)
+    #print(str(comm_w.Get_rank()) + " " + str(octs_f_g))
 
     comm_dictionary = set_comm_dict(n_grids  ,
                                     proc_grid,
                                     comm_l   ,
-                                    oct_f_g)
+                                    octs_f_g)
 
     comm_dictionary.update({"octree" : pablo})
     comm_dictionary.update({"grid processes" : procs_l_lists[proc_grid]})
@@ -587,15 +600,15 @@ def main():
                                         logger     , 
                                         log_file)
 
-    vtk = my_class_vtk.Py_My_Class_VTK(data_to_save            , # Data
-                                       pablo                   , # Octree
-                                       "./data/"               , # Dir
-                                       "laplacian_" + comm_name, # Name
-                                       "ascii"                 , # Type
-                                       n_octs                  , # Ncells
-                                       n_nodes                 , # Nnodes
-                                       (2**dimension) * n_octs)  # (Nnodes * 
-                                                                 #  pow(2,dim))
+    vtk = my_class_vtk.Py_My_Class_VTK(data_to_save            ,  # Data
+                                       pablo                   ,  # Octree
+                                       "./data/"               ,  # Dir
+                                       "laplacian_" + comm_name,  # Name
+                                       "ascii"                 ,  # Type
+                                       n_octs[0]               ,  # Ncells
+                                       n_nodes                 ,  # Nnodes
+                                       (2**dimension) * n_octs[0])# (Nnodes *
+                                                                  #  pow(2,dim))
     #vtk.apply_trans(geo_nodes, ghost_geo_nodes) 
     vtk.apply_trans(geo_nodes) 
     ## Add data to "vtk" object to be written later.
