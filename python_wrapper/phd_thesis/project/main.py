@@ -432,6 +432,7 @@ def compute(comm_dictionary     ,
     laplacian.fill_mat()
     laplacian.add_rhs(exact_solution.s_der)
     laplacian.update_values(intercomm_dictionary)
+    #laplacian.mat.view()
     laplacian.solve()
     (norm_inf, norm_L2) = laplacian.evaluate_norms(exact_solution.sol,
                                                    laplacian.sol.getArray())
@@ -571,9 +572,6 @@ def main():
                                 dtype = numpy.int64)
     comm_w.Allgatherv(l_tot_oct,
                       [octs_f_g, s_counts, displs, MPI.INT64_T])
-    #print(s_counts)
-    #print(displs)
-    #print(str(comm_w.Get_rank()) + " " + str(octs_f_g))
 
     comm_dictionary = set_comm_dict(n_grids  ,
                                     proc_grid,
