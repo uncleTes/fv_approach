@@ -348,6 +348,8 @@ def set_octree(comm_l,
    
     pablo.load_balance()
     pablo.update_connectivity()
+    # Computing new intersections.
+    pablo.compute_intersections()
     #pablo.update_ghosts_connectivity()
 
     n_octs = pablo.get_num_octants()
