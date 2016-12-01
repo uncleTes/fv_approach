@@ -817,6 +817,25 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         self.new_spread_new_background_numeration(is_background)
 
+        sizes = self.find_sizes()
+        # Max value that can be inserted into \"d_nnz\". It is equal to the lo-
+        # cal dimension of the matrix in the current octant.
+        max_d_nnz = sizes[0]
+        # Max value that can be inserted into \"o_nnz\". It is equal to the to-
+        # tal dimension of the matrix minus the local one of the current octant.
+        max_o_nnz = sizes[1] - sizes[0]
+        # A \"numpy\" version of \"d_nnz\" list.
+        n_d_nnz = numpy.array(d_nnz)
+        # A \"numpy\" version of \"o_nnz\" list.
+        n_o_nnz = numpy.array(o_nnz)
+        # Imposing maximum value of numbers contained in \"d_nnz\" and \"o_nnz\"
+        # because, if not done, the values coould exceed the \"sizes\" of the
+        # matrix, especially for little matrices.
+        n_d_nnz[n_d_nnz > max_d_nnz] = max_d_nnz
+        n_o_nnz[n_o_nnz > max_o_nnz] = max_o_nnz
+        d_nnz = n_d_nnz.tolist()
+        o_nnz = n_o_nnz.tolist()
+
         msg = "Created mask"
         self.log_msg(msg   ,
                      "info")
