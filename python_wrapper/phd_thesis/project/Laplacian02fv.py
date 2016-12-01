@@ -493,13 +493,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     key = (grid        , # Grid to which the index belongs to
                            b_indices[i], # Masked global index of the octant
                            n_axis)
-                    # We store the center of the cells ghost ooutside the boun-
-                    # dary of the borders of the foreground grids.
-                    t_value = (h,) + tuple(center[: dimension])
-                    # Length of the stencil.
                     l_stencil = 20 if (dimension == 2) else 21
-                    n_mask = l_stencil - len(t_value)
-                    stencil = (t_value + ((-1,) * (n_mask)))
+                    stencil = [-1] * l_stencil
+                    stencil[0] = h
+                    # We store the center of the cells ghost outside the boun-
+                    # dary of the borders of the foreground grids.
+                    for j in xrange(dimension):
+                        stencil[1 + j] = center[j]
                     self._edl.update({key : stencil})
                     # The new corresponding value inside \"b_values\" would be
                     # \"0.0\", because the boundary value is given by the
@@ -1002,7 +1002,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    dimension     , # 2D/3D
                                    nodes_inter   , # Coordinates of the nodes
                                                    # of the intersection
-                                   owners_center , # Centers of the owners of
+                                   owners_centers, # Centers of the owners of
                                                    # the intersection
                                    l_s_coeffs    , # Least square coefficients.
                                    is_bound_inter, # is a boundary intersection
@@ -1010,6 +1010,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                    # intersection
                                    n_axis):        # directional axis of the
                                                    # Normal (0 for x, 1 for y)
+        octree = self._octree
         # evaluating length of the intersection, depending on its direc-
         # tion.
         h = octree.get_area(inter        ,
@@ -1020,10 +1021,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
         d_nodes_y    , \
         c_inter      , \
         d_o_centers_x, \
-        d_o_centers_y,  =  self.get_interface_distances(dimension     ,
-                                                        nodes_inter   ,
-                                                        is_bound_inter,
-                                                        n_axis)
+        d_o_centers_y = self.get_interface_distances(dimension     ,
+                                                     h             ,
+                                                     nodes_inter   ,
+                                                     owners_centers,
+                                                     is_bound_inter,
+                                                     n_axis)
         # Normal is parallel to y-axis.
         if (n_axis):
             temp = d_o_centers_x
@@ -1054,9 +1057,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     def get_interface_distances(self          ,
                                 dimension     ,
+                                inter_size    ,
                                 nodes_inter   ,
+                                owners_centers,
                                 is_bound_inter,
                                 n_axis):
+        h = inter_size
         # Distance between xs of nodes of the intersection (greater
         # coordinates are in the second (remember, we are now in 2D)
         # value of \"normal_nodes\").
@@ -1094,11 +1100,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
             d_o_centers_y = numpy.absolute(owners_centers[1][1] - \
                                            owners_centers[0][1])
 
-            return (d_nodes_x    ,
-                    d_nodes_y    ,
-                    c_inter      ,
-                    d_o_centers_x,
-                    d_o_centers_y)
+        return (d_nodes_x    ,
+                d_nodes_y    ,
+                c_inter      ,
+                d_o_centers_x,
+                d_o_centers_y)
 
 
     def get_l_owners_nodes_inter(self          ,
@@ -1263,18 +1269,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_owners_normals_inter = self.get_owners_normals_inter
         get_is_ghost = octree.get_is_ghost
         least_squares = utilities.least_squares
+        get_l_owners_nodes_inter = self.get_l_owners_nodes_inter
+        find_right_neighbours = self.find_right_neighbours
         # Lambda functions.
         g_n = lambda x : get_nodes(x               ,
                                    dimension       ,
                                    is_ptr = True   ,
                                    is_inter = False,
                                    also_numpy_nodes = True)
-        f_r_n = lambda x : find_right_neighbours(x          ,
-                                                 o_ranges[0],
-                                                 is_background)
+        f_r_n = lambda x : find_right_neighbours(x            ,
+                                                 o_ranges[0]  ,
+                                                 is_background,
+                                                 also_outside_boundary = False)
         l_s = lambda x : least_squares(x[0],
                                        x[1])
-
         for i in xrange(0, ninters):
             # Rows and columns indices for the \"PETSC\" matrix.
             r_indices, \
@@ -1307,8 +1315,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             #
             # Owner ghost equal to 1 means that is ghost the one with the outer
             # normal, if is 0 is ghost the one with the inner.
-            g_o_norms_inter,
-            l_o_norms_inter,
+            g_o_norms_inter, \
+            l_o_norms_inter, \
             o_ghost = get_owners_normals_inter(inter,
                                                is_ghost_inter)
             # List containing 0 or 1 to indicate inner normal or outer normal.
@@ -1320,7 +1328,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      in g_o_norms_inter])
             # Normal to the intersection, and its numpy version.
             normal_inter, \
-            n_normal_inter = pablo.get_normal(inter,
+            n_normal_inter = octree.get_normal(inter,
                                               True) # We want also
                                                     # a \"numpy\"
                                                     # version
@@ -1351,13 +1359,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (m_g_octant == -1):
                     is_penalized = True
 
-                    oct_corners,
+                    oct_corners,\
                     numpy_corners = g_n(py_oct)
                     # \"is_penalized_useless\" will not be used because we al-
                     # ready know that the octant is penalized (we entered the
                     # \"if\" clause). But we need \"n_polygon\" to be used in
                     # the \"key\" for the background grid.
-                    is_penalized_useless,
+                    is_penalized_useless, \
                     n_polygon = check_oct_corners(numpy_corners,
                                                   c_t_dict     ,
                                                   t_foregrounds)
@@ -1377,8 +1385,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Local indices of the octants owners of the nodes of the
                 # intersection (needed for \"find_right_neighbours\"
                 # function). Here, local means global but in the current octant.
+                #
+                # The coordinates of the nodes are given by \"nodes_inter\".
                 l_o_nodes_inter, \
-                # The coordinates of the nodes.
                 nodes_inter = get_l_owners_nodes_inter(inter          ,
                                                        l_o_norms_inter,
                                                        o_ghost        ,
@@ -1395,14 +1404,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                 n_coeffs     , \
                 coeffs_node_1, \
-                coeffs_node_0,  =  self.get_interface_coefficients(inter         ,
-                                                                   dimension     ,
-                                                                   nodes_inter   ,
-                                                                   owners_center ,
-                                                                   l_s_coeffs    ,
-                                                                   is_bound_inter,
-                                                                   n_normal_inter,
-                                                                   n_axis)
+                coeffs_node_0  =  self.get_interface_coefficients(inter         ,
+                                                                  dimension     ,
+                                                                  nodes_inter   ,
+                                                                  owners_centers,
+                                                                  l_s_coeffs    ,
+                                                                  is_bound_inter,
+                                                                  n_normal_inter,
+                                                                  n_axis)
 
                 if (is_ghost_inter and (len(r_indices) == 2)):
                     # Using \"extend.([number])\" to avoid \"TypeError: 'int'
@@ -1472,9 +1481,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         stencil = self._edl.get(key)
                         displ = 4 if (dimension == 2) else 5
                         step = 2
-                        for k in stencil[displ::step]:
-                            if (stencil[k] == p_g_index):
-                                stencil[k + 1] = value_to_store
+                        # TODO: understand why it is sometimes equal to \"None\"
+                        #       because should not be as.
+                        if (stencil):
+                            for k in xrange(displ, len(stencil), step):
+                                if (stencil[k] == p_g_index):
+                                    stencil[k + 1] = value_to_store
                     # We are on a boundary intersection; here normal is always
                     # directed outside, so the owner is the one with the outer
                     # normal.
@@ -1497,10 +1509,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    m_g_octant,
                                    n_axis)
                             stencil = self._edl.get(key)
-                            stencil[dimension + 1] = value_to_store
+                            # TODO: understand why it is sometimes equal to
+                            #       \"None\". Should not be.
+                            if (stencil):
+                                stencil[dimension + 1] = value_to_store
 
                     values = (n_t_array * mult).tolist()
-
                 self._b_mat.setValues(r_indices, # Row
                                       c_indices, # Columns
                                       values)    # Values to be inserted
@@ -2035,7 +2049,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         list_edg = list(self._n_edg)
         # Length list edg.
         l_l_edg = len(list_edg)
-        # TODO: delete this.
+        # TODO: delete \"p_inter\" references: useless because by default now,
+        # we want particle interaction active.
         p_inter = self._p_inter
         if (p_inter):
             list_edg = [list_edg[i] for i in xrange(0, l_l_edg) if
@@ -2231,7 +2246,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def find_right_neighbours(self                 , 
                               current_octant       ,
                               start_octant         ,
-                              is_background = False):
+                              is_background = False,
+                              also_outside_boundary = True):
         """Method which compute the right 4 neighbours for the octant 
            \"current_octant\", considering first the label \"location\" to
            indicate in what directions go to choose the neighborhood.
@@ -2328,23 +2344,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # ...we need to evaluate boundary values (background) or not to 
             # consider the indices and centers found (foreground).
             else:
-                to_consider = True
-                border_center = neighbour_centers(c_c  ,
-                                                  codim,
-                                                  face_node)
+                if (also_outside_boundary):
+                    to_consider = True
+                    border_center = neighbour_centers(c_c  ,
+                                                      codim,
+                                                      face_node)
 
-                if (not is_background):
-                    numpy_border_center = narray(border_center)
-                    t_center =  apply_persp_trans(dimension          ,
-                                                  numpy_border_center,
-                                                  c_t_dict)[: dimension]
-                    check = is_point_inside_polygon(t_center    ,
-                                                    t_background)
-                    to_consider = (not check)
-                    
-                if (to_consider):
-                    centers.append(border_center)
-                    indices.append("outside_bg")
+                    if (not is_background):
+                        numpy_border_center = narray(border_center)
+                        t_center =  apply_persp_trans(dimension          ,
+                                                      numpy_border_center,
+                                                      c_t_dict)[: dimension]
+                        check = is_point_inside_polygon(t_center    ,
+                                                        t_background)
+                        to_consider = (not check)
+
+                    if (to_consider):
+                        centers.append(border_center)
+                        indices.append("outside_bg")
 
         numpy_centers = numpy.array(centers)
 
