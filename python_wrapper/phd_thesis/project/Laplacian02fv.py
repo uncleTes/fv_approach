@@ -747,7 +747,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 stencil = [-1] * 20 if (dimension == 2) else [-1] * 21
                 stencil[0] = h # TODO: is this useful or not? I think not.
                 stencil[1] = g_octant
-                stencil[2 : (dimension + 1)] = center
+                for i in xrange(dimension):
+                    stencil[2 + i] = center[i]
                 # http://www.laurentluce.com/posts/python-dictionary-implementation/
                 # http://effbot.org/zone/python-hash.htm
                 self._edl.update({key : stencil})
@@ -1477,7 +1478,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    m_g_octant,
                                    n_axis)
                             stencil = self._edl.get(key)
-                            stencil[(dimension * 2) + 1] = value_to_store
+                            stencil[dimension + 1] = value_to_store
 
                     values = (n_t_array * mult).tolist()
 
@@ -2139,14 +2140,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         keys = numpy.array([list_edg[i][0] for i in 
                             xrange(0, l_l_edg)]).reshape(l_l_edg, l_k)
         # Outside centers.
-        o_centers = numpy.array([list_edg[i][1][0][: dimension] for i in 
+        o_centers = numpy.array([list_edg[i][1][0][1 : (dimension + 1)] for i in
                                  range(0, l_l_edg)]).reshape(l_l_edg, dimension)
-        # Inside centers.
-        i_centers = numpy.array([list_edg[i][1][0][dimension : (dimension * 2)]\
-                                 for i in range(0, l_l_edg)]).reshape(l_l_edg, 
-                                                                      dimension)
-        values_to_multiply = numpy.array([list_edg[i][1][(dimension * 2) + 1] \
-                                          for i in xrange(0, l_l_edg)]).reshape(l_l_edg, dimension)
+        values_to_multiply = numpy.array([list_edg[i][1][0][dimension + 2] \
+                                          for i in xrange(0, l_l_edg)]).reshape(l_l_edg, 1)
         # Number of outside centers.
         n_o_centers = o_centers.shape[0]
         t_o_centers = [None] * n_o_centers
