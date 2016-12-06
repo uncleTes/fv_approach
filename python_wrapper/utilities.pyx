@@ -473,89 +473,171 @@ def p_t_coeffs_adj(int dimension,
 
     return adj_matrix
 
-def metric_coefficients(dimension          ,
-                        in_points          ,
-                        matrix_coefficients,
-                        logger             ,
-                        log_file):
-    logger = check_null_logger(logger, log_file)
-    dim = dimension
-    A = matrix_coefficients
-    # http://stackoverflow.com/questions/12569452/how-to-identify-numpy-types-in-python
-    if (type(in_points).__module__ == numpy.__name__):
-        points = in_points
-    else: 
-        points = numpy.array(in_points)
-    # Denominators.
+def metric_coefficients(int dimension                                          ,
+                        numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point ,
+                        numpy.ndarray[dtype = numpy.float64_t, ndim = 2] coeffs):
+    cdef int dim = dimension
+    cdef double den = 0.0
+    cdef double num_epsilon_01 = 0.0
+    cdef double num_epsilon_02 = 0.0
+    cdef double num_nu_01 = 0.0
+    cdef double num_nu_02 = 0.0
+    cdef double den2 = 0.0
+    cdef double d_epsilon_x = 0.0
+    cdef double d_epsilon_y = 0.0
+    cdef double d_nu_x = 0.0
+    cdef double d_nu_y = 0.0
+    # \"Numpy\" metric coefficients.
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] n_m_cs = numpy.zeros(shape = (dim, \
+                                                               dim) \
+                                                      dtype = numpy.float64)
+
+    add = numpy.add
+    true_divide = numpy.true_divide
+    square = numpy.square
+    subtract = numpy.subtract
+    multiply = numpy.multiply
     # A02*x + A12*y...
-    dens = (numpy.add(numpy.multiply(points[:, 0], A[0][dim]), \
-                      numpy.multiply(points[:, 1], A[1][dim])))
+    den = add(numpy.multiply(point[0], coeffs[0][dim]), \
+              numpy.multiply(point[1], coeffs[1][dim]))
     # ...+ A22.
-    dens = numpy.add(dens, A[dim][dim])
-    # Part 01 of numerators for epsilon coordinate.
-    nums_epsilon_01 = dens 
-    # Part 01 of numerators for nu coordinate.
-    nums_nu_01 = dens 
+    den = add(den, coeffs[dim][dim])
     # (A02*x + A12*y + A22)^2.
-    dens2 = numpy.square(dens)
-    # (A02*x + A12*y + A22)^4.
-    dens4 = numpy.square(dens2)
+    den2 = square(den)
+    # Part 01 of numerator for epsilon coordinate.
+    num_epsilon_01 = den
+    # Part 01 of numerator for nu coordinate.
+    num_nu_01 = den
     # Part 02 of numerators for epsilon coordinate.
     # A00*x + A10*y...
-    nums_epsilon_02 = (numpy.add(numpy.multiply(points[:, 0], A[0][0]), \
-                                 numpy.multiply(points[:, 1], A[1][0])))
+    num_epsilon_02 = add(numpy.multiply(point[0], coeffs[0][0]), \
+                         numpy.multiply(point[1], coeffs[1][0]))
     # ...+ A20
-    nums_epsilon_02 = numpy.add(nums_epsilon_02, A[dim][0])
+    num_epsilon_02 = add(num_epsilon_02, coeffs[dim][0])
     # Part 02 of numerators for nu coordinate.
     # A01*x + A11*y...
-    nums_nu_02 = (numpy.add(numpy.multiply(points[:, 0], A[0][1]), \
-                            numpy.multiply(points[:, 1], A[1][1])))
+    num_nu_02 = add(numpy.multiply(point[0], coeffs[0][1]), \
+                    numpy.multiply(point[1], coeffs[1][1]))
     # ...+ A21
-    nums_nu_02 = numpy.add(nums_nu_02, A[dim][1])
-
-    ds_epsilon_x = numpy.true_divide(numpy.subtract(numpy.multiply(nums_epsilon_01, A[0][0]),
-                                                    numpy.multiply(nums_epsilon_02, A[0][dim])),
-                                     dens2)
-    ds_epsilon_y = numpy.true_divide(numpy.subtract(numpy.multiply(nums_epsilon_01, A[1][0]),
-                                                    numpy.multiply(nums_epsilon_02, A[1][dim])),
-                                     dens2)
-    ds_nu_x = numpy.true_divide(numpy.subtract(numpy.multiply(nums_nu_01, A[0][1]),
-                                               numpy.multiply(nums_nu_02, A[0][dim])),
-                                dens2)
-    ds_nu_y = numpy.true_divide(numpy.subtract(numpy.multiply(nums_nu_01, A[1][1]),
-                                               numpy.multiply(nums_nu_02, A[1][dim])),
-                                dens2)
-    ds2_epsilon_x = numpy.true_divide(numpy.multiply(numpy.multiply(-2*A[0][2],
-                                                                    dens),
-                                                     numpy.sum([numpy.multiply(A[0][0]*A[1][2] - A[0][2]*A[1][0],
-                                                                              points[:, 1]),
-                                                               (A[0][0]*A[2][2] - A[0][2]*A[2][0])])),
-                                      dens4)
-    ds2_epsilon_y = numpy.true_divide(numpy.multiply(numpy.multiply(-2*A[1][2],
-                                                                    dens),
-                                                     numpy.sum([numpy.multiply(A[1][0]*A[0][2] - A[1][2]*A[0][0],
-                                                                              points[:, 0]),
-                                                               (A[1][0]*A[2][2] - A[1][2]*A[2][0])])),
-                                      dens4)
-    ds2_nu_x = numpy.true_divide(numpy.multiply(numpy.multiply(-2*A[0][2],
-                                                               dens),
-                                                numpy.sum([numpy.multiply(A[0][1]*A[1][2] - A[0][2]*A[1][1],
-                                                                         points[:, 1]),
-                                                          (A[0][1]*A[2][2] - A[0][2]*A[2][1])])),
-                                 dens4)
-    ds2_nu_y = numpy.true_divide(numpy.multiply(numpy.multiply(-2*A[1][2],
-                                                               dens),
-                                                numpy.sum([numpy.multiply(A[1][1]*A[0][2] - A[1][2]*A[0][1],
-                                                                         points[:, 0]),
-                                                          (A[1][1]*A[2][2] - A[1][2]*A[2][1])])),
-                                      dens4)
-                                                                    
-    # Metric coefficients.
-    m_cs = [ds_epsilon_x, ds_epsilon_y, ds_nu_x, ds_nu_y, ds2_epsilon_x, ds2_epsilon_y, ds2_nu_x, ds2_nu_y]
-    # Numpy metric coefficients.
-    n_m_cs = numpy.array(m_cs)
+    num_nu_02 = add(num_nu_02, coeffs[dim][1])
+    # Derivative respect to \"epsilon\" for \"x\".
+    d_epsilon_x = true_divide(subtract(multiply(num_epsilon_01,   \
+                                                coeffs[0][0]),    \
+                                       multiply(num_epsilon_02,   \
+                                                coeffs[0][dim])), \
+                              den2)
+    # Derivative respect to \"epsilon\" for \"y\".
+    d_epsilon_y = true_divide(subtract(multiply(num_epsilon_01,   \
+                                                coeffs[1][0]),    \
+                                       multiply(num_epsilon_02,   \
+                                                coeffs[1][dim])), \
+                              den2)
+    # Derivative respect to \"nu\" for \"x\".
+    d_nu_x = true_divide(subtract(multiply(num_nu_01,        \
+                                           coeffs[0][1]),    \
+                                  multiply(num_nu_02,        \
+                                           coeffs[0][dim])), \
+                         den2)
+    # Derivative respect to \"nu\" for \"y\".
+    d_nu_y = true_divide(subtract(multiply(num_nu_01,        \
+                                           coeffs[1][1]),    \
+                                  multiply(num_nu_02,        \
+                                           coeffs[1][dim])), \
+                         den2)
+    # \"Numpy\" metric coefficients:
+    # | \"d_epsilon_x\"    \"d_nu_x\" |
+    # | \"d_epsilon_y\"    \"d_nu_y\" |
+    n_m_cs[0][0] = d_epsilon_x
+    n_m_cs[0][1] = d_nu_x
+    n_m_cs[1][0] = d_epsilon_y
+    n_m_cs[1][1] = d_nu_y
 
     return n_m_cs
+
+#def metric_coefficients(dimension          ,
+#                        in_points          ,
+#                        matrix_coefficients,
+#                        logger             ,
+#                        log_file):
+#    logger = check_null_logger(logger, log_file)
+#    dim = dimension
+#    A = matrix_coefficients
+#    # http://stackoverflow.com/questions/12569452/how-to-identify-numpy-types-in-python
+#    if (type(in_points).__module__ == numpy.__name__):
+#        points = in_points
+#    else: 
+#        points = numpy.array(in_points)
+#    # Denominators.
+#    # A02*x + A12*y...
+#    dens = (numpy.add(numpy.multiply(points[:, 0], A[0][dim]), \
+#                      numpy.multiply(points[:, 1], A[1][dim])))
+#    # ...+ A22.
+#    dens = numpy.add(dens, A[dim][dim])
+#    # Part 01 of numerators for epsilon coordinate.
+#    nums_epsilon_01 = dens 
+#    # Part 01 of numerators for nu coordinate.
+#    nums_nu_01 = dens 
+#    # (A02*x + A12*y + A22)^2.
+#    dens2 = numpy.square(dens)
+#    # (A02*x + A12*y + A22)^4.
+#    dens4 = numpy.square(dens2)
+#    # Part 02 of numerators for epsilon coordinate.
+#    # A00*x + A10*y...
+#    nums_epsilon_02 = (numpy.add(numpy.multiply(points[:, 0], A[0][0]), \
+#                                 numpy.multiply(points[:, 1], A[1][0])))
+#    # ...+ A20
+#    nums_epsilon_02 = numpy.add(nums_epsilon_02, A[dim][0])
+#    # Part 02 of numerators for nu coordinate.
+#    # A01*x + A11*y...
+#    nums_nu_02 = (numpy.add(numpy.multiply(points[:, 0], A[0][1]), \
+#                            numpy.multiply(points[:, 1], A[1][1])))
+#    # ...+ A21
+#    nums_nu_02 = numpy.add(nums_nu_02, A[dim][1])
+#
+#    ds_epsilon_x = numpy.true_divide(numpy.subtract(numpy.multiply(nums_epsilon_01, A[0][0]),
+#                                                    numpy.multiply(nums_epsilon_02, A[0][dim])),
+#                                     dens2)
+#    ds_epsilon_y = numpy.true_divide(numpy.subtract(numpy.multiply(nums_epsilon_01, A[1][0]),
+#                                                    numpy.multiply(nums_epsilon_02, A[1][dim])),
+#                                     dens2)
+#    ds_nu_x = numpy.true_divide(numpy.subtract(numpy.multiply(nums_nu_01, A[0][1]),
+#                                               numpy.multiply(nums_nu_02, A[0][dim])),
+#                                dens2)
+#    ds_nu_y = numpy.true_divide(numpy.subtract(numpy.multiply(nums_nu_01, A[1][1]),
+#                                               numpy.multiply(nums_nu_02, A[1][dim])),
+#                                dens2)
+#    ds2_epsilon_x = numpy.true_divide(numpy.multiply(numpy.multiply(-2*A[0][2],
+#                                                                    dens),
+#                                                     numpy.sum([numpy.multiply(A[0][0]*A[1][2] - A[0][2]*A[1][0],
+#                                                                              points[:, 1]),
+#                                                               (A[0][0]*A[2][2] - A[0][2]*A[2][0])])),
+#                                      dens4)
+#    ds2_epsilon_y = numpy.true_divide(numpy.multiply(numpy.multiply(-2*A[1][2],
+#                                                                    dens),
+#                                                     numpy.sum([numpy.multiply(A[1][0]*A[0][2] - A[1][2]*A[0][0],
+#                                                                              points[:, 0]),
+#                                                               (A[1][0]*A[2][2] - A[1][2]*A[2][0])])),
+#                                      dens4)
+#    ds2_nu_x = numpy.true_divide(numpy.multiply(numpy.multiply(-2*A[0][2],
+#                                                               dens),
+#                                                numpy.sum([numpy.multiply(A[0][1]*A[1][2] - A[0][2]*A[1][1],
+#                                                                         points[:, 1]),
+#                                                          (A[0][1]*A[2][2] - A[0][2]*A[2][1])])),
+#                                 dens4)
+#    ds2_nu_y = numpy.true_divide(numpy.multiply(numpy.multiply(-2*A[1][2],
+#                                                               dens),
+#                                                numpy.sum([numpy.multiply(A[1][1]*A[0][2] - A[1][2]*A[0][1],
+#                                                                         points[:, 0]),
+#                                                          (A[1][1]*A[2][2] - A[1][2]*A[2][1])])),
+#                                      dens4)
+#                                                                    
+#    # Metric coefficients.
+#    m_cs = [ds_epsilon_x, ds_epsilon_y, ds_nu_x, ds_nu_y, ds2_epsilon_x, ds2_epsilon_y, ds2_nu_x, ds2_nu_y]
+#    # Numpy metric coefficients.
+#    n_m_cs = numpy.array(m_cs)
+#
+#    return n_m_cs
        
 def apply_persp_trans_inv(int dimension                                                ,
                           numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point       ,

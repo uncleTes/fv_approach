@@ -1011,6 +1011,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    n_axis):        # directional axis of the
                                                    # Normal (0 for x, 1 for y)
         octree = self._octree
+        grid = self._proc_g
+        c_t_dict = self.get_trans(grid)
         # evaluating length of the intersection, depending on its direc-
         # tion.
         h = octree.get_area(inter        ,
@@ -1027,29 +1029,79 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                      owners_centers,
                                                      is_bound_inter,
                                                      n_axis)
-        # Normal is parallel to y-axis.
-        if (n_axis):
-            temp = d_o_centers_x
-            d_o_centers_x = d_o_centers_y
-            d_o_centers_y = temp
-            d_nodes_y = d_nodes_x
 
-        coeff_in = 1.0 / d_o_centers_x
-        coeff_out = -1.0 * coeff_in
-        coeff_node_1 = (-1.0 * d_o_centers_y) / \
-                       (d_o_centers_x * d_nodes_y)
-        coeff_node_0 = -1.0 * coeff_node_1
-        # \"Numpy\" coefficients.
-        n_coeffs = numpy.array([coeff_in    ,
-                                coeff_out   ,
-                                coeff_node_1,
-                                coeff_node_0])
-        # Multiplying \"numpy\" coefficients for the normal to the in-
-        # tersection and for the length of the intersection.
-        n_coeffs = n_coeffs * n_normal_inter[n_axis] * h
+        den = (d_o_centers_x * d_nodes_y) - \
+              (d_o_centers_y * d_nodes_x)
+
+        coeff_in_grad_x = d_nodes_y
+        coeff_in_grad_y = -1.0 * d_nodes_x
+        coeff_out_grad_x = -1.0 * coeff_in_grad_x
+        coeff_out_grad_y = -1.0 * coeff_in_grad_y
+        coeff_node_1_grad_x = -1.0 * d_o_centers_y
+        coeff_node_1_grad_y = d_o_centers_x
+        coeff_node_0_grad_x = -1.0 * coeff_node_1_grad_x
+        coeff_node_0_grad_y = -1.0 * coeff_node_1_grad_y
+
+        grad_transf = utilities.metric_coefficients(dimension           ,
+                                                    numpy.array(c_inter),
+                                                    c_t_dict)
+        grad_transf_inv = numpy.linalg.inv(grad_transf)
+        grad_transf_det = numpy.linalg.det(grad_transf)
+        cofactors = (grad_transf_inv * grad_transf_det).T
+        coeffs_trans = numpy.dot(grad_transf_inv, cofactors)
+
+        coeff_trans_x = coeffs_trans[0][1] if (n_axis) else \
+                        coeffs_trans[0][0]
+        coeff_trans_y = coeffs_trans[1][1] if (n_axis) else \
+                        coeffs_trans[1][0]
+
+        n_coeffs_grad_x = numpy.array([coeff_in_grad_x    ,
+                                       coeff_out_grad_x   ,
+                                       coeff_node_1_grad_x,
+                                       coeff_node_0_grad_x])
+        n_coeffs_grad_y = numpy.array([coeff_in_grad_y    ,
+                                       coeff_out_grad_y   ,
+                                       coeff_node_1_grad_y,
+                                       coeff_node_0_grad_y])
+
+        n_coeffs_grad_x = n_coeffs_grad_x * ((1/den)                * \
+                                             n_normal_inter[n_axis] * \
+                                             h                      * \
+                                             coeff_trans_x)
+        n_coeffs_grad_y = n_coeffs_grad_y * ((1/den)                * \
+                                             n_normal_inter[n_axis] * \
+                                             h                      * \
+                                             coeff_trans_y)
+
+        n_coeffs = n_coeffs_grad_x + n_coeffs_grad_y
 
         coeffs_node_1 = l_s_coeffs[1] * n_coeffs[2]
         coeffs_node_0 = l_s_coeffs[0] * n_coeffs[3]
+
+
+        ## Normal is parallel to y-axis.
+        #if (n_axis):
+        #    temp = d_o_centers_x
+        #    d_o_centers_x = d_o_centers_y
+        #    d_o_centers_y = temp
+        #    d_nodes_y = d_nodes_x
+
+        #coeff_in = 1.0 / d_o_centers_x
+        #coeff_out = -1.0 * coeff_in
+        #coeff_node_1 = (-1.0 * d_o_centers_y) / \
+        #               (d_o_centers_x * d_nodes_y)
+        #coeff_node_0 = -1.0 * coeff_node_1
+        ## \"Numpy\" coefficients.
+        #n_coeffs = numpy.array([coeff_in    ,
+        #                        coeff_out   ,
+        #                        coeff_node_1,
+        #                        coeff_node_0])
+        ## Multiplying \"numpy\" coefficients for the normal to the in-
+        ## tersection and for the length of the intersection.
+        #n_coeffs = n_coeffs * n_normal_inter[n_axis] * h
+
+        #coeffs_node_1 = l_s_coeffs[1] * n_coeffs[2]
+        #coeffs_node_0 = l_s_coeffs[0] * n_coeffs[3]
 
         return (n_coeffs     ,
                 coeffs_node_1,
