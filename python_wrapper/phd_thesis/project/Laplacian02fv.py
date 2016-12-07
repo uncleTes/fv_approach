@@ -153,12 +153,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # Returns the center of the face neighbour.
     # TODO: modify this function to be used in 3D case.
     def neighbour_centers(self   ,
-                          # Centers.
-                          cs     ,
-                          # Edges or nodes.
-                          es_o_ns,
-                          # Values.
-                          vs):
+                          cs     , # Centers
+                          es_o_ns, # Edges or nodes
+                          vs     , # Values
+                          hs):
         """Function which returns the centers of neighbours, depending on 
            for which face we are interested into.
            
@@ -171,28 +169,31 @@ class Laplacian(BaseClass2D.BaseClass2D):
                vs (int between 0 and 3 or list) : faces for which we are 
                                                   interested into knowing the 
                                                   neighbour's center.
+               hs (list) : size of faces on the boundary for each octant.
                                             
            Returns:
                a tuple or a list containing the centers evaluated."""
 
-        h = self._h
         centers = cs
         values = vs
-        edges_or_nodes = es_o_ns        
+        edges_or_nodes = es_o_ns
+        h_s = hs
         # Checking if passed arguments are lists or not. If not, we have to do
         # something.
         try:
             len(centers)
             len(values)
             len(edges_or_nodes)
+            len(h_s)
         # \"TypeError: object of type 'int' has no len()\", so are no lists but
         # single elements.
         except TypeError:
             t_center, t_value, t_e_o_n = centers, values, edges_or_nodes
-            centers, values, edges_or_nodes = ([] for i in range(0, 3))
+            centers, values, edges_or_nodes, h_s = ([] for i in range(0, 4))
             centers.append(t_center)
             values.append(t_value)
             edges_or_nodes.append(t_e_o_n)
+            h_s.append(hs)
 
         if ((len(values) != 1) and # TODO: Check if this first check is useless.
             (len(values) != len(centers))):
@@ -208,6 +209,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         eval_centers = []
         # Face or node.
         for i, value in enumerate(values):
+            h = h_s[i]
             (x_center, y_center) = centers[i]
             if not isinstance(value, numbers.Integral):
                 value = int(math.ceil(e_o_n))
@@ -268,6 +270,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def eval_b_c(self   ,
                  centers,
                  f_o_n  ,
+                 hs     ,
                  codim = None):
         """Method which evaluate boundary condition on one octree or more,
            depending by the number of the \"center\" passed by.
@@ -281,6 +284,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                             interested
                                                             into knowing the 
                                                             neighbour's center.
+               hs (list) : size of faces on the boundary for each octant.
+               codim (list) : list of index to point out if is a neighbour of
+                              face (\"1\") or node (\"2\").
                                                            
            Returns:
                boundary_values (int or list) : the evaluated boundary condition
@@ -304,7 +310,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Centers neighbours.
         c_neighs = self.neighbour_centers(centers       ,
                                           edges_or_nodes,
-                                          f_o_n)
+                                          f_o_n         ,
+                                          hs)
         # \"c_neighs\" is only a tuple, not a list.
         if not isinstance(c_neighs, list):
             just_one_neighbour = True
@@ -412,6 +419,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         b_indices, b_values = ([] for i in range(0, 2))# Boundary indices/values
         b_centers, b_f_o_n = ([] for i in range(0, 2)) # Boundary centers/faces
         b_codim = [] # Boundary codimensions
+        b_h = [] # Boundary length of intersection
 
         # Code hoisting.
         mask_octant = self.mask_octant
@@ -445,10 +453,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         b_f_o_n.append(face)
                         b_centers.append(center)
                         b_codim.append(1)
+                        b_h.append(h)
 
         (b_values, c_neighs) = self.eval_b_c(b_centers,
                                              b_f_o_n  ,
-                                             b_codim)
+                                             b_h      ,
+                                             b_codim  )
 
         prev_b_center = None
         prev_t_b_center = None
@@ -479,10 +489,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Check if the \"ghost\" points outside the foreground grids are
                 # inside the background one.
                 numpy_center = narray(center)
-                t_center, n_t_center =  apply_persp_trans(dimension   ,
-                                                          numpy_center,
-                                                          c_t_dict    ,
-                                                          True)[: dimension]
+                t_center, \
+                n_t_center =  apply_persp_trans(dimension   ,
+                                                numpy_center,
+                                                c_t_dict    ,
+                                                True)[: dimension]
                 check = is_point_inside_polygon(t_center    ,
                                                 t_background)
                 if (check):
@@ -495,7 +506,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                            n_axis)
                     l_stencil = 20 if (dimension == 2) else 21
                     stencil = [-1] * l_stencil
-                    stencil[0] = h
+                    stencil[0] = b_h[i]
                     # We store the center of the cells ghost outside the boun-
                     # dary of the borders of the foreground grids.
                     for j in xrange(dimension):
@@ -653,9 +664,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
     # Creates masking system for the octants of the background grid covered by 
     # the foreground meshes, and also determines the number of non zero elements
-    # to allocate for each row in the system's matrix. Be aware of that, for the
-    # moment, this last count is exact for the background grid but for the 
-    # foreground ones it consider the worst case (for the two levels gap).
+    # to allocate for each row in the system's matrix.
     #@profile
     def create_mask(self):
         """Method which creates the new octants' numerations and initialize non
@@ -678,6 +687,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Lists containing number of non zero elements for diagonal and non
         # diagonal part of the coefficients matrix, for row. 
         d_nnz, o_nnz = ([] for i in range(0, 2))
+        h_s = []
         new_oct_count = 0
         # \"range\" gives us a list, \"xrange\" an iterator.
         octants = xrange(0, n_oct)
@@ -756,6 +766,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 self._nln[octant] = new_oct_count
                 new_oct_count += 1
                 d_count += 1
+                h_s.append(h)
             # \"stencil\"'s index.
             s_i = 4 if (dimension == 2) else 5
             # Number of neighbours (Being the possibility of a jump between oc-
@@ -794,8 +805,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # ground domain, exactly, and in this case we should not
                         # add anything to \"o_count\" and \"d_count\", being an
                         # exact boundary condition.
-                        # TODO: write a better way to modify \"d_count\" and
-                        # \"o_count\".
                         o_count += 9
 
             # For the moment, we have to store space in the \"PETSc\" matrix for
@@ -840,7 +849,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self.log_msg(msg   ,
                      "info")
 
-        return (d_nnz, o_nnz)
+        n_h_s = numpy.array(h_s)
+        return (d_nnz,
+                o_nnz,
+                n_h_s)
     # --------------------------------------------------------------------------
     #@profile
     def new_spread_new_background_numeration(self,
@@ -1242,8 +1254,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         return g_owners_inter
 
+    # --------------------------------------------------------------------------
+    # Initialize the monolithic matrix.
     def init_mat(self,
                  (d_nnz, o_nnz)):
+        """Method which initialize the monolithic matrix of the system.
+
+           Arguments:
+               (d_nnz, o_nnz) (tuple) : two lists containting the diagonal and
+                                            non diagonal block's number of non
+                                            zero elements, obtained by function
+                                            \"create_mask\"."""
 	log_file = self.logger.handlers[0].baseFilename
         logger = self.logger
 
@@ -1264,18 +1285,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self.log_msg(msg   ,
                      "info",
                      extra_msg)
+    # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    # Initialize diagonal matrices of the block matrix.
+    # Fill the diagonal matrices of the block matrix.
     def fill_mat(self):
-        """Method which initialize the diagonal parts of the monolithic matrix 
-           of the system.
-           
-           Arguments:
-               (d_nnz, o_nnz) (tuple) : two lists containting the diagonal and
-                                            non diagonal block's number of non
-                                            zero elements, passed by function
-                                            \"create_mask\"."""
+        """Method which fill the diagonal parts of the monolithic matrix of the
+           system."""
 
 	log_file = self.logger.handlers[0].baseFilename
         logger = self.logger
@@ -2342,6 +2358,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             g_d = g_d + self._oct_f_g[i]
         # Current center.
         c_c = octree.get_center(current_octant)[: dimension]
+        h2 = octree.get_area(current_octant)
+        h = numpy.sqrt(h2)
 
         centers.append(c_c)
         index = current_octant
@@ -2404,9 +2422,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             else:
                 if (also_outside_boundary):
                     to_consider = True
-                    border_center = neighbour_centers(c_c  ,
-                                                      codim,
-                                                      face_node)
+                    border_center = neighbour_centers(c_c      ,
+                                                      codim    ,
+                                                      face_node,
+                                                      h)
 
                     if (not is_background):
                         numpy_border_center = narray(border_center)
@@ -2503,25 +2522,25 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
     def evaluate_norms(self          , 
                        exact_solution,
-                       solution):
+                       solution      ,
+                       h_s):
         """Function which evals the infinite and L2 norms of the error.
 
            Arguments:
                 exact_solution (numpy.array) : exact solution.
                 solution (numpy.array) : computed solution.
+                h_s (numpy.array) : face's dimension for each octant
 
            Returns:
                 (norm_inf, norm_L2) (tuple of int): evaluated norms."""
 
-        h = self._h
-        octant_area = (h * h)
         numpy_difference = numpy.subtract(exact_solution,
                                           solution)
         norm_inf = numpy.linalg.norm(numpy_difference,
                                      # Type of norm we want to evaluate.
                                      numpy.inf)
-        norm_L2 = numpy.linalg.norm(numpy_difference,
-                                    2) * h
+        norm_L2 = numpy.linalg.norm(numpy_difference * h_s,
+                                    2)
 
         msg = "Evaluated norms"
         extra_msg = "with (norm_inf, norm_L2) = " + str((norm_inf, norm_L2))

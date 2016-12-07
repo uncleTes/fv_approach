@@ -400,7 +400,9 @@ def compute(comm_dictionary     ,
     t_coeffs_adj = trans_adj_dictionary[proc_grid]
     laplacian.init_trans_dict(trans_dictionary)
     laplacian.init_trans_adj_dict(trans_adj_dictionary)
-    (d_nnz, o_nnz) = laplacian.create_mask()
+    d_nnz, \
+    o_nnz, \
+    h_s = laplacian.create_mask()
     laplacian.init_sol()
 
     not_penalized_centers = laplacian.not_pen_centers
@@ -436,8 +438,10 @@ def compute(comm_dictionary     ,
     laplacian.update_values(intercomm_dictionary)
     #laplacian.mat.view()
     laplacian.solve()
-    (norm_inf, norm_L2) = laplacian.evaluate_norms(exact_solution.sol,
-                                                   laplacian.sol.getArray())
+    norm_inf, \
+    norm_L2 = laplacian.evaluate_norms(exact_solution.sol      ,
+                                       laplacian.sol.getArray(),
+                                       h_s)
     msg = utilities.join_strings("process "               ,
                                  "%d " % comm_w.Get_rank(),
                                  "(%e, %e)" % (norm_inf, norm_L2))
