@@ -1018,6 +1018,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         h = octree.get_area(inter        ,
                             is_ptr = True,
                             is_inter = True)
+        h_inv = (1.0 / h)
 
         d_nodes_x    , \
         d_nodes_y    , \
@@ -1032,6 +1033,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         den = (d_o_centers_x * d_nodes_y) - \
               (d_o_centers_y * d_nodes_x)
+        den_inv = (1.0 / den)
 
         coeff_in_grad_x = d_nodes_y
         coeff_in_grad_y = -1.0 * d_nodes_x
@@ -1047,6 +1049,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                     c_t_dict)
         grad_transf_inv = numpy.linalg.inv(grad_transf)
         grad_transf_det = numpy.linalg.det(grad_transf)
+        grad_transf_det2 = numpy.square(grad_transf_det)
+        grad_transf_det2_inv = (1.0 / grad_transf_det2)
         cofactors = (grad_transf_inv * grad_transf_det).T
         coeffs_trans = numpy.dot(grad_transf_inv, cofactors)
 
@@ -1064,13 +1068,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        coeff_node_1_grad_y,
                                        coeff_node_0_grad_y])
 
-        n_coeffs_grad_x = n_coeffs_grad_x * ((1/den)                * \
+        n_coeffs_grad_x = n_coeffs_grad_x * (den_inv                * \
                                              n_normal_inter[n_axis] * \
-                                             h                      * \
+                                             h_inv                  * \
+                                             grad_transf_det2_inv   * \
                                              coeff_trans_x)
-        n_coeffs_grad_y = n_coeffs_grad_y * ((1/den)                * \
+        n_coeffs_grad_y = n_coeffs_grad_y * (den_inv                * \
                                              n_normal_inter[n_axis] * \
-                                             h                      * \
+                                             h_inv                  * \
+                                             grad_transf_det2_inv   * \
                                              coeff_trans_y)
 
         n_coeffs = n_coeffs_grad_x + n_coeffs_grad_y
