@@ -802,6 +802,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                             is_penalized)
             if (is_penalized):
                 self._nln[octant] = -1
+                # TODO: should not be \"n_polygon + 1\" instead of \"n_polygon\"
+                #       for the fact that foreground grids enumeration start
+                #       from 1?
                 key = (n_polygon, # Foreground grid to which the node belongs to
                        g_octant , # Global index (not yet masked)
                        # TODO: think about the fact that maybe is not a good
@@ -1687,6 +1690,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Length list edg.
         l_l_edg = len(list_edg)
         p_inter = self._p_inter
+        # TODO: should not be \"int(list_edg[i][0].item(0)) == proc_grid\"
+        #       instead of \"int(list_edg[i][0].item(0)) == 0\"?
         if (p_inter):
             list_edg = [list_edg[i] for i in xrange(0, l_l_edg) if
                         int(list_edg[i][0].item(0)) == 0]
