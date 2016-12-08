@@ -466,6 +466,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # also more readable as returned value.
             # http://stackoverflow.com/questions/18674988/comparison-of-list-using-cmp-or
             #if (cmp(b_center, prev_b_center) == 0):
+            # TODO: are you sure that it is worth doing these checks? I think
+            #       that you are doing this just for the 4 corners (in 2D) and
+            #       for more octants in 3D, but I am not sure it is cheaper than
+            #       doing directly the computation for all the octants. Think
+            #       about it.
             if (b_center == prev_b_center):
                 t_b_center = prev_t_b_center
                 same_center = True
@@ -2069,6 +2074,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         for i, mpi_request in enumerate(mpi_requests):
             status = MPI.Status()
             mpi_request.Wait(status)
+
         if (not is_background):
             self.update_fg_grids(o_ranges,
                                  ids_octree_contained)
