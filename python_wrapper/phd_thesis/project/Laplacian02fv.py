@@ -733,10 +733,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 self._nln[octant] = -1
                 # Moved \"h\" from the \"key\" to the \"stencil\", preferring
                 # not to use float into dict keys.
-                key = (n_polygon, # Foreground grid to which the node belongs to
-                       g_octant,  # Global index (not yet masked)
-                       0)         # Useless field, use to pair with the \"key\"
-                                  # for foreground grids.
+                key = (n_polygon + 1, # Foreground grid to which the node be-
+                                      # longs to (\"+ 1\" because foreground
+                                      # grids starts from 1)
+                       g_octant     , # Global index (not yet masked)
+                       0)             # Useless field, use to pair with the
+                                      # \"key\" for foreground grids.
                 # If the octant is covered by the foreground grids, we need to
                 # store info of the stencil it belongs to to push on the rela-
                 # tive rows of the matrix, the right indices of the octants of
@@ -2115,6 +2117,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         list_edg = list(self._n_edg)
         # Length list edg.
         l_l_edg = len(list_edg)
+        #list_edg = [list_edg[i] for i in xrange(0, l_l_edg) if
+        #            int(list_edg[i][0].item(0)) == proc_grid]
         # Length list edg (new).
         l_l_edg = len(list_edg)
         # Length key.
