@@ -53,9 +53,12 @@ try:
     for i in xrange(0, n_grids):
         anchors.append(anchor)    
 
-    edges = utilities.get_list_from_string(config.get("PABLO", "Edges"), 
-                                           ","                         , 
-                                           False)
+    #edges = utilities.get_list_from_string(config.get("PABLO", "Edges"),
+    #                                       ","                         ,
+    #                                       False)
+    # Computational domain is (0.0, 0.0, 0.0) + 1.0 (square of unite edge,
+    # anchored in the origin.
+    edges = [1.0] * n_grids
     # \"t_points\" stands for \"transformed points\" because the mapping is done
     # between the computational domain (0, 0, 0) + edge and the physical one
     # given by "\GridPoints\".
