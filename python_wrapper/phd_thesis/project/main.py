@@ -14,7 +14,7 @@ import sys
 import petsc4py
 # https://pythonhosted.org/petsc4py/apiref/petsc4py-module.html
 petsc4py.init(sys.argv)
-from   petsc4py import PETSc
+from petsc4py import PETSc
 import time
 import utilities
 import pdb
