@@ -1279,7 +1279,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # the program will stop.
         self._b_mat.setOption(self._b_mat.Option.NEW_NONZERO_ALLOCATION_ERR,
                               True)
-        msg = "Initialized monolithic  matrix"
+        msg = "Initialized monolithic matrix"
         extra_msg = "with sizes \"" + str(self._b_mat.getSizes()) + \
                     "\" and type \"" + str(self._b_mat.getType()) + "\""
         self.log_msg(msg   ,
@@ -1600,7 +1600,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY)
         self.assembly_petsc_struct("rhs")
         
-        msg = "Initialized diagonal parts of the monolithic  matrix"
+        msg = "Filled diagonal parts of the monolithic matrix"
         extra_msg = "with sizes \"" + str(self._b_mat.getSizes()) + \
                     "\" and type \"" + str(self._b_mat.getType()) + "\""
         self.log_msg(msg   ,
