@@ -67,9 +67,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         super(Laplacian, self).__init__(kwargs)
         # If some arguments are not presents, function \"setdefault\" will set 
         # them to the default value.
-        # Particles interaction.
-        self._p_inter = kwargs.setdefault("particles interaction",
-                                          False)
         # \"[[x_anchor, x_anchor + edge, 
         #     y_anchor, y_anchor + edge]...]\" = penalization boundaries (aka
         # foreground boundaries).
@@ -2026,11 +2023,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         one_el[0] = len(self._edl)
         displ = 0
 
-        if (not self._p_inter) and (grid):
-            r_g_s = intercomm_dictionary.values()[0].Get_remote_size()
-            self._edg_c = numpy.resize(self._edg_c,
-                                       r_g_s)
-
         for key, intercomm in intercomm_dictionary.items():
             req = intercomm.Iallgather(one_el,
                                        [self._edg_c, 1, displ, MPI.INT64_T])
@@ -2123,12 +2115,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         list_edg = list(self._n_edg)
         # Length list edg.
         l_l_edg = len(list_edg)
-        # TODO: delete \"p_inter\" references: useless because by default now,
-        # we want particle interaction active.
-        p_inter = self._p_inter
-        if (p_inter):
-            list_edg = [list_edg[i] for i in xrange(0, l_l_edg) if
-                        int(list_edg[i][0].item(0)) == 0]
         # Length list edg (new).
         l_l_edg = len(list_edg)
         # Length key.

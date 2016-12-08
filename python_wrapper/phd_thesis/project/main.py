@@ -81,8 +81,6 @@ try:
         (not refinements)):
         raise ParsingFileException
 
-    # Particles interaction.
-    p_inter = config.getboolean("PROBLEM", "ParticlesInteraction")
     # Log infos to log file or not.
     to_log = config.getboolean("PROBLEM", "Log")
 except (ConfigParser.NoOptionError , 
@@ -202,7 +200,6 @@ def set_comm_dict(n_grids  ,
     comm_dictionary.update({"process grid" : proc_grid})
     comm_dictionary.update({"dimension" : dimension})
     comm_dictionary.update({"to log" : to_log})
-    comm_dictionary.update({"particles interaction" : p_inter})
     comm_dictionary.update({"log file" : log_file})
     comm_dictionary.update({"transformed points" : t_points})
 
@@ -231,18 +228,9 @@ def create_intercomms(n_grids      ,
                                        intercommunicators created.
            intercomm_dict (dict) : dictionary filled with the intercommunicators
                                    created."""
-    if not proc_grid:
-        n_intercomms = n_grids - 1
-        grids_to_connect = range(0, n_grids)
-        grids_to_connect.remove(proc_grid)
-    else:
-        if not p_inter:
-            n_intercomms = 1
-            grids_to_connect = [0]
-        else:
-            n_intercomms = n_grids - 1
-            grids_to_connect = range(0, n_grids)
-            grids_to_connect.remove(proc_grid)
+    n_intercomms = n_grids - 1
+    grids_to_connect = range(0, n_grids)
+    grids_to_connect.remove(proc_grid)
     # Communicator local's name. 
     comm_l_n = comm_l.Get_name()
     for grid in grids_to_connect:
