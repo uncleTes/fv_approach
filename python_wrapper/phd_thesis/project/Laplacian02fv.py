@@ -2394,32 +2394,34 @@ class Laplacian(BaseClass2D.BaseClass2D):
             face_node = i if (i <= 3) else (i - 4)
             
             (neighs, ghosts) = f_n(face_node, codim)
+            n_neighs = len(neighs)
             # Check if it is really a neighbour of edge or node. If not,
             # it means that we are near the boundary if we are on the
             # background, in an outside area if we are on the foreground, 
             # and so...
             if (neighs):
-                # Neighbour is into the same process, so is local.
-                if (not ghosts[0]):
-                    by_octant = False
-                    index = neighs[0]
-                    m_index = mask_octant(index + start_octant)
-                    py_ghost_oct = index
-                else:
-                    by_octant = True
-                    # In this case, the quas(/oc)tree is no more local into
-                    # the current process, so we have to find it globally.
-                    index = get_ghost_global_idx(neighs[0])
-                    # \".index\" give us the index of \"self._global_ghosts\" 
-                    # that contains the index of the global ghost quad(/oc)tree
-                    # previously found and stored in \"index\".
-                    py_ghost_oct = get_ghost_octant(neighs[0])
-                    m_index = mask_octant(index + g_d)
-                if (m_index != -1):
-                    cell_center = get_center(py_ghost_oct,
-                                             by_octant)[: dimension]
-                    centers.append(cell_center)
-                    indices.append(m_index)
+                for j in xrange(0, n_neighs):
+                    # Neighbour is into the same process, so is local.
+                    if (not ghosts[j]):
+                        by_octant = False
+                        index = neighs[j]
+                        m_index = mask_octant(index + start_octant)
+                        py_ghost_oct = index
+                    else:
+                        by_octant = True
+                        # In this case, the quas(/oc)tree is no more local into
+                        # the current process, so we have to find it globally.
+                        index = get_ghost_global_idx(neighs[j])
+                        # \".index\" give us the \"self._global_ghosts\" index
+                        # that contains the index of the global ghost quad(/oc)-
+                        # tree previously found and stored in \"index\".
+                        py_ghost_oct = get_ghost_octant(neighs[j])
+                        m_index = mask_octant(index + g_d)
+                    if (m_index != -1):
+                        cell_center = get_center(py_ghost_oct,
+                                                 by_octant)[: dimension]
+                        centers.append(cell_center)
+                        indices.append(m_index)
             # ...we need to evaluate boundary values (background) or not to 
             # consider the indices and centers found (foreground).
             else:
