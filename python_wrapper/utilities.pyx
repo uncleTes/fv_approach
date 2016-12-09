@@ -22,7 +22,9 @@ def get_list_from_string(string  ,
     try:
         assert isinstance(string,
                           basestring)
-        return [int(number) if integer else float(number) 
+        # \"Python\"\"trim\" method is called \"strip\":
+        # http://stackoverflow.com/questions/1185524/how-to-trim-whitespace-including-tabs
+        return [int(number.strip(' \t\n\r')) if integer else float(number) \
                 for number in string.split(splitter)]
     except AssertionError:
         print("Parameter " + str(string) + " is not  an instance of " +
@@ -39,11 +41,10 @@ def get_lists_from_string(string            ,
     try:
         assert isinstance(string,
                           basestring)
-        return [get_list_from_string(string_chunk     , 
-                                     splitter_for_list, 
-                                     integer) 
-                for string_chunk in string.split(splitter_for_lists)
-               ]    
+        return [get_list_from_string(string_chunk.strip(' \t\n\r'),
+                                     splitter_for_list            ,
+                                     integer)        \
+                for string_chunk in string.split(splitter_for_lists)]
     except AssertionError:
         print("Parameter " + str(string) + " is not  an instance of " +
               "\"basestring\"")
