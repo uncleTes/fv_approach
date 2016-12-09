@@ -267,7 +267,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def eval_b_c(self   ,
                  centers,
                  f_o_n  ,
-                 hs     ,
+                 h_s    ,
                  codim = None):
         """Method which evaluate boundary condition on one octree or more,
            depending by the number of the \"center\" passed by.
@@ -281,7 +281,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                             interested
                                                             into knowing the 
                                                             neighbour's center.
-               hs (list) : size of faces on the boundary for each octant.
+               h_s (list) : size of faces on the boundary for each octant.
                codim (list) : list of index to point out if is a neighbour of
                               face (\"1\") or node (\"2\").
                                                            
@@ -308,7 +308,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         c_neighs = self.neighbour_centers(centers       ,
                                           edges_or_nodes,
                                           f_o_n         ,
-                                          hs)
+                                          h_s)
         # \"c_neighs\" is only a tuple, not a list.
         if not isinstance(c_neighs, list):
             just_one_neighbour = True
@@ -504,11 +504,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # http://stackoverflow.com/questions/7257588/why-cant-i-use-a-list-as-a-dict-key-in-python
                     # https://wiki.python.org/moin/DictionaryKeys
                     key = (grid        , # Grid to which the index belongs to
-                           b_indices[i], # Masked global index of the octant
-                           n_axis)
+                           b_indices[i], # Masked global index of the boundary
+                                         # octant
+                           n_axis)       # \"0\" if face is parallel to y (so
+                                         # normal axis is parallel to x), other-
+                                         # wise \"1\".
                     l_stencil = 20 if (dimension == 2) else 21
                     stencil = [-1] * l_stencil
-                    stencil[0] = b_h[i]
+                    stencil[0] = b_h[i] # TODO: is this useful or not? I think
+                                        #       not.
                     # We store the center of the cells ghost outside the boun-
                     # dary of the borders of the foreground grids.
                     for j in xrange(dimension):
@@ -740,7 +744,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # not to use float into dict keys.
                 key = (n_polygon + 1, # Foreground grid to which the node be-
                                       # longs to (\"+ 1\" because foreground
-                                      # grids starts from 1)
+                                      # grids starts from 1, globally)
                        g_octant     , # Global index (not yet masked)
                        0)             # Useless field, use to pair with the
                                       # \"key\" for foreground grids.
@@ -794,7 +798,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 is_background)
                     n_neighbours = n_neighbours + n_neighs
                 else:
-                    n_neighbours += 1
+                    n_neighbours = n_neighbours + 1
 
                     if (not is_background):
                         # Adding elements for the octants of the background to
@@ -842,8 +846,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # A \"numpy\" version of \"o_nnz\" list.
         n_o_nnz = numpy.array(o_nnz)
         # Imposing maximum value of numbers contained in \"d_nnz\" and \"o_nnz\"
-        # because, if not done, the values coould exceed the \"sizes\" of the
-        # matrix, especially for little matrices.
+        # because, if not done, the values could exceed the \"sizes\" of the ma-
+        # trix, especially for little matrices.
         n_d_nnz[n_d_nnz > max_d_nnz] = max_d_nnz
         n_o_nnz[n_o_nnz > max_o_nnz] = max_o_nnz
         d_nnz = n_d_nnz.tolist()
@@ -2463,12 +2467,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
         dimension = self._dim
         # Current transformation matrix's dictionary.
         c_t_dict = self.get_trans(grid)
-        if grid:
+        if (grid):
             is_background = False
             numpy_row_indices = numpy.array(row_indices)
             numpy_row_indices = numpy_row_indices[numpy_row_indices >= 0]
         insert_mode = PETSc.InsertMode.ADD_VALUES
-        n_rows = 1 if is_background else numpy_row_indices.size
+        n_rows = 1 if (is_background) else numpy_row_indices.size
         to_rhs = []
         # Exact solutions.
         e_sols = []
@@ -2487,13 +2491,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 e_sols.append(e_sol)
 
         for i in range(0, n_rows):
-            row_index = row_indices if is_background else numpy_row_indices[i]
+            row_index = row_indices if (is_background) else numpy_row_indices[i]
             co_indices = col_indices
             co_values = col_values
-            if not is_background:
+            if (not is_background):
                 row_index = self._ngn[row_index]
             # If \"to_rhs\" is not empty.
-            if not not to_rhs:
+            if (not not to_rhs):
                 bil_coeffs = [col_values[j] for j in to_rhs]
                 for i in range(0, len(to_rhs)):
                     self._rhs.setValues(row_index                       ,
