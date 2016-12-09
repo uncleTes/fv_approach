@@ -2127,8 +2127,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
         list_edg = list(self._n_edg)
         # Length list edg.
         l_l_edg = len(list_edg)
-        #list_edg = [list_edg[i] for i in xrange(0, l_l_edg) if
-        #            int(list_edg[i][0].item(0)) == proc_grid]
+        # TODO: for the moment, interaction between grids of the foreground is
+        #       implemented only as creation of \"inter-communicators\". Do al-
+        #       so the remaining parts.
+        list_edg = [list_edg[i] for i in xrange(0, l_l_edg) if
+                    int(list_edg[i][0].item(0)) == proc_grid]
         # Length list edg (new).
         l_l_edg = len(list_edg)
         # Length key.
