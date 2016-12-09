@@ -491,7 +491,7 @@ def metric_coefficients(int dimension                                          ,
     # \"Numpy\" metric coefficients.
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] n_m_cs = numpy.zeros(shape = (dim, \
-                                                               dim) \
+                                                               dim), \
                                                       dtype = numpy.float64)
 
     add = numpy.add
