@@ -637,10 +637,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (not is_penalized):
                 if (is_n_penalized):
                     # Being the neighbour penalized, it means that it will
-                    # be substituted by 9 octant being part of the fore-
+                    # be substituted by 13 octant being part of the fore-
                     # ground grids, so being on the non diagonal part of the
                     # grid.
-                    o_count += 9
+                    o_count += 13
                 else:
                     if (ghosts[i]):
                         o_count += 1
@@ -808,15 +808,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # elements are contained into the background, and we are
                         # not checking it or if they are outside it (it should
                         # not have a lot of sense however). That's why we are
-                        # adding always +9 to the \"o_count\" variable, despite
+                        # adding always +13 to the \"o_count\" variable, despite
                         # the fact that they could be on the border of the back-
                         # ground domain, exactly, and in this case we should not
                         # add anything to \"o_count\" and \"d_count\", being an
-                        # exact boundary condition.
-                        o_count += 9
+                        # exact boundary condition. It is added +13 because now,
+                        # being in a finite volume approach, we can let the oc-
+                        # tants to have one level of difference between them, so
+                        # an octant can have two neighbours on one face.
+                        o_count += 13
 
             # For the moment, we have to store space in the \"PETSc\" matrix for
-            # the octants that will interpolate with the least square method (9
+            # the octants that will interpolate with the least square method (13
             # octants in 2D at maximum) for the vertices of each intersection.
             # And these vertices are equal to the number of neighbours of the
             # current octant (With a gap of one level, we can have as maximum
@@ -825,8 +828,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # (\"d_count\").
             # TODO: find a better algorithm to store just the right number of e-
             # lements for \"d_count\" and for \"o_count\".
-            d_count += (9 * n_neighbours)
-            o_count += (9 * n_neighbours)
+            d_count += (13 * n_neighbours)
+            o_count += (13 * n_neighbours)
             if (not is_penalized):
                 d_nnz.append(d_count)
                 o_nnz.append(o_count)
