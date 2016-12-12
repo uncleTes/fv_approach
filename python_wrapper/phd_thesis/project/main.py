@@ -172,6 +172,7 @@ def set_comm_dict(n_grids  ,
     comm_dictionary.update({"world communicator" : comm_w})
     comm_dictionary.update({"octants for grids" : octs_f_g})
     comm_dictionary.update({"total octants number" : tot_oct})
+    comm_dictionary.update({"total number of grids" : n_grids})
     background_boundaries = [anchors[0][0], anchors[0][0] + edges[0],
                              anchors[0][1], anchors[0][1] + edges[0]]
     if (dimension == 3):

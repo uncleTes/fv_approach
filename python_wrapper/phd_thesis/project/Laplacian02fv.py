@@ -111,6 +111,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 	    self._comm_w.Abort(1)
         # Total number of octants presents in the problem.
         self._tot_oct = kwargs["total octants number"]
+        self._n_grids = kwargs["total number of grids"]
         # Number of octants for each grid. It is a list.
         self._oct_f_g = kwargs["octants for grids"]
         # Length of the edge of an octree.
@@ -2086,8 +2087,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             self.update_fg_grids(o_ranges,
                                  ids_octree_contained)
         else:
-            self.update_bg_grids(o_ranges,
-                                 ids_octree_contained)
+            if (self._n_grids > 1):
+                self.update_bg_grids(o_ranges,
+                                     ids_octree_contained)
         
         self.assembly_petsc_struct("matrix",
                                    PETSc.Mat.AssemblyType.FINAL_ASSEMBLY)
