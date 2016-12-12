@@ -1213,15 +1213,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Local indices of the octants owners of the nodes of the
         # intersection.
         l_owners = [0] * n_nodes
+        u32_info = numpy.iinfo(numpy.uint32)
+        # \"max uint32_t\".
+        u32_max = u32_info.max
         for i in xrange(0, n_nodes):
-            # Returning \"max uint32_t\" if point outside of the domain.
-            #
-            # Temp owner.
+            # Temp owner. Returning \"max uint32_t\" if point outside of the
+            # domain.
             t_owner = octree.get_point_owner_idx(nodes[i])
-            # If the index of the owner if bigger than the total number of
-            # octants present in the problem, we have reached or a ghost
-            # octant or we are outside the domain.
-            if (t_owner > tot_oct):
+            # If the index of the owner if equal to \"u32_max\", then we have
+            # reached or a ghost octant or we are outside the domain.
+            if (t_owner == u32_max):
                 if (o_ghost is not None):
                     # If the intersection is ghost, then we have only one lo-
                     # cal octant owner.
@@ -1229,7 +1230,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 else:
                     # In this case, the owner will be one of the owners of the
                     # intersection (it will be different for each node in 2D,
-                    # and different in \"modulo 2\" in 3D, excpet for boundary
+                    # and different in \"modulo 2\" in 3D, except for boundary
                     # intersection where the local onwer will be always the sa-
                     # me).
                     l_owner = l_owners_inter[i % 2]
@@ -1391,8 +1392,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               # are giving to the second arg
             # Global indices of owners inner/outer normal of the intersection
             # (is a list, and the first element is the one with the inner nor-
-            # mal), followed by local indices of owners, and a list of boolean
-            # to know if and what owners are ghost.
+            # mal), followed by local indices of owners, and an integer to know
+            # what owner is ghost.
             #
             # Here, global means global in the current octree. To have global
             # for the totality of the octrees, we have to add \"g_d\".
@@ -1426,9 +1427,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_i_owners = 2
             # Looping on the owners of the intersection.
             for j in xrange(0, n_i_owners):
-                # Here, means that the owner is or ghost or outside the local
-                # domain of the octree, so we do not want to do operations on
-                # that one.
+                # Here, means that the owner is ghost.
                 if (j == o_ghost):
                     py_oct = get_ghost_octant(l_o_norms_inter[j])
                 else:
@@ -1440,7 +1439,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 owners_centers.append(numpy_center)
                 m_g_octant = m_g_o_norms_inter[j]
                 is_penalized = False
-                # If an intersection owner is penalized (it could be just for
+                # If an intersection owner is penalized (it should be just for
                 # background grid)...
                 if (m_g_octant == -1):
                     is_penalized = True
@@ -1470,7 +1469,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (r_indices):
                 # Local indices of the octants owners of the nodes of the
                 # intersection (needed for \"find_right_neighbours\"
-                # function). Here, local means global but in the current octant.
+                # function).
                 #
                 # The coordinates of the nodes are given by \"nodes_inter\".
                 l_o_nodes_inter, \
