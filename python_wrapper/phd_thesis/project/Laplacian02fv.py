@@ -114,8 +114,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._n_grids = kwargs["total number of grids"]
         # Number of octants for each grid. It is a list.
         self._oct_f_g = kwargs["octants for grids"]
-        # Length of the edge of an octree.
-        self._h = self._edge / numpy.sqrt(self._N_oct)
         # Getting the rank of the current process inside the world communicator
         # and inside the local one.
         self._rank_w = self._comm_w.Get_rank()
@@ -2595,10 +2593,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
     @property
     def sol(self):
         return self._sol
-
-    @property
-    def h(self):
-        return self._h
 
     @property
     def not_pen_centers(self):
