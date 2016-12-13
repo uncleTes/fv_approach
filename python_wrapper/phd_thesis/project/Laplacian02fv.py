@@ -159,13 +159,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
            for which face we are interested into.
            
            Arguments:
-               cs (tuple or list of tuple) : coordinates of the centers of 
+               cs (tuple or list of tuple) : coordinates of the centers of
                                              the current octree.
-               es_o_ns (int between 1 and 2 or list) : numbers indicating if the 
-                                                       neighbour is from edge or 
+               es_o_ns (int between 1 and 2 or list) : numbers indicating if the
+                                                       neighbour is from edge or
                                                        node.
-               vs (int between 0 and 3 or list) : faces for which we are 
-                                                  interested into knowing the 
+               vs (int between 0 and 3 or list) : faces or nodesfor which we are
+                                                  interested into knowing the
                                                   neighbour's center.
                hs (list) : size of faces on the boundary for each octant.
                                             
@@ -430,10 +430,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         for octant in xrange(0, n_oct):
             py_oct = get_octant(octant)
-            h2 = octree.get_area(py_oct       ,
-                                 is_ptr = True,
-                                 is_inter = False)
-            h = numpy.sqrt(h2)
+            # \"get_area\" is always of codimension 1, so in 2D with quadtrees,
+            # it returns the size of the edge.
+            h = octree.get_area(py_oct       ,
+                                is_ptr = True,
+                                is_inter = False)
             # Global index of the current local octant \"octant\".
             g_octant = o_ranges[0] + octant
             m_g_octant = mask_octant(g_octant)
@@ -718,10 +719,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             d_count, o_count = 0, 0
             g_octant = g_octants[octant]
             py_oct = py_octs[octant]
-            h2 = octree.get_area(py_oct       ,
-                                 is_ptr = True,
-                                 is_inter = False)
-            h = numpy.sqrt(h2)
+            h = octree.get_area(py_oct       ,
+                                is_ptr = True,
+                                is_inter = False)
             # Lambda function.
             g_b = lambda x : get_bound(py_oct,
                                        x)
@@ -1370,6 +1370,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                  also_outside_boundary = False)
         l_s = lambda x : least_squares(x[0],
                                        x[1])
+
         for i in xrange(0, ninters):
             # Rows and columns indices for the \"PETSC\" matrix.
             r_indices, \
@@ -1409,7 +1410,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # List containing 0 or 1 to indicate inner normal or outer normal.
             labels = []
             # Masked global indices of owners inner/outer normal of the
-            # intersection.
+            # intersection. REMEMBER: \"octree.get_global_idx(octant) + gd\" ==
+            #                         \"o_ranges[0] + octant\".
             m_g_o_norms_inter = map(mask_octant,
                                     [(g_o_norm_inter + g_d) for g_o_norm_inter \
                                      in g_o_norms_inter])
@@ -1557,20 +1559,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             mult = 1.0
                         # Penalized global index, not masked.
                         p_g_index = g_o_norms_inter[1 - labels[0]]
+                        # Not penalized global index, not masked.
+                        n_p_g_index = g_o_norms_inter[labels[0]]
                         value_to_store = n_coeffs[1 - labels[0]] * mult
 
-                        key = (n_polygon,
-                               p_g_index,
+                        key = (n_polygon + 1,\
+                               p_g_index    ,\
                                0)
 
                         stencil = self._edl.get(key)
                         displ = 4 if (dimension == 2) else 5
                         step = 2
-                        # TODO: understand why it is sometimes equal to \"None\"
-                        #       because should not be as.
+                        # Sometimes \"stencil\" is equal to \"None\" because
+                        # there are values of \"p_g_index\" which correspond to
+                        # ghost octant not included in the local octree, and in
+                        # the local \"self._edl\".
                         if (stencil):
                             for k in xrange(displ, len(stencil), step):
-                                if (stencil[k] == p_g_index):
+                                if (stencil[k] == n_p_g_index):
                                     stencil[k + 1] = value_to_store
                     # We are on a boundary intersection; here normal is always
                     # directed outside, so the owner is the one with the outer
@@ -1590,12 +1596,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 p_rhs_v * value_to_store,
                                                 PETSc.InsertMode.INSERT_VALUES)
                         else:
-                            key = (grid      ,
-                                   m_g_octant,
+                            key = (grid    ,
+                                   m_octant,
                                    n_axis)
                             stencil = self._edl.get(key)
-                            # TODO: understand why it is sometimes equal to
-                            #       \"None\". Should not be.
+                            # The \"if\" clause is necessary because interface
+                            # could be on the boundary of the background, where
+                            # the exterior neighbour is not saved previously in
+                            # \"self._edl\" because it is outside the transfor-
+                            # med background.
                             if (stencil):
                                 stencil[dimension + 1] = value_to_store
 
@@ -1603,8 +1612,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 self._b_mat.setValues(r_indices, # Row
                                       c_indices, # Columns
                                       values)    # Values to be inserted
-    
-        # We have inserted argument \"assebly\" equal to 
+        # We have inserted argument \"assembly\" equal to
         # \"PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY\" because the final assembly
         # will be done after inserting the prolongation and restriction blocks.
         self.assembly_petsc_struct("matrix",
@@ -2365,8 +2373,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             g_d = g_d + self._oct_f_g[i]
         # Current center.
         c_c = octree.get_center(current_octant)[: dimension]
-        h2 = octree.get_area(current_octant)
-        h = numpy.sqrt(h2)
+        h = octree.get_area(current_octant)
 
         centers.append(c_c)
         index = current_octant
