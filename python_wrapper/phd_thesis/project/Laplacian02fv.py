@@ -390,6 +390,66 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         return new_ranges
     # --------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    def set_bg_b_c(self          ,
+                   inter         ,
+                   m_octant      ,
+                   owners_centers,
+                   n_normal_inter,
+                   labels        ,
+                   multiplier):
+        """Method which set boundary condition for an octant owned by the back-
+           ground grid.
+
+           Arguments:
+                inter (uintptr_t) : pointer to intersection.
+                m_octant (int) : masked global index of the octant for which set
+                                 the boundary condition.
+                owners_centers (list of list) : centers of the owners of the in-
+                                                tersection.
+                n_normal_inter (numpy array) : normal to the intersection.
+                labels (list) : list of 0s or 1s to know if the owners are with
+                                the normal inside (0)  or outside (1).
+                multiplier (float): coefficient to multiply with the boundary
+                                    condition evaluated in this function."""
+
+        octree = self._octree
+        n_codim = 1
+        dimension = self._dim
+        insert_mode = PETSc.InsertMode.ADD_VALUES
+        n_axis = numpy.nonzero(n_normal_inter)[0][0]
+
+        if (n_axis):
+            if (n_normal_inter[n_axis] == 1):
+                n_face = 3
+            else:
+                n_face = 2
+        else:
+            if (n_normal_inter[n_axis] == 1):
+                n_face = 1
+            else:
+                n_face = 0
+
+        h = octree.get_area(inter        ,
+                            is_ptr = True,
+                            is_inter = True)
+
+        n_center = owners_centers[1 - labels[0]][: dimension]
+
+        b_value, \
+        c_neigh = self.eval_b_c(n_center,
+                                n_face  ,
+                                h       ,
+                                n_codim)
+        # The multiplication for \"(-1 * mult)\" is due to
+        # the fact that we have to move the coefficients to
+        # the \"rhs\", so we have to change its sign.
+        b_value = b_value * -1.0
+        self._rhs.setValues(m_octant            ,
+                            b_value * multiplier,
+                            insert_mode)
+    # --------------------------------------------------------------------------
     
     # --------------------------------------------------------------------------
     # Set boundary conditions.
@@ -1557,32 +1617,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         mult = 1.0
                         value_to_store = n_coeffs[1 - labels[0]] * mult
                         if (is_background):
-                            if (n_axis):
-                                if (n_normal_inter[n_axis] == 1):
-                                    n_face = 3
-                                else:
-                                    n_face = 2
-                            else:
-                                if (n_normal_inter[n_axis] == 1):
-                                    n_face = 1
-                                else:
-                                    n_face = 0
-                            n_codim = 1
-                            h = octree.get_area(inter        ,
-                                                is_ptr = True,
-                                                is_inter = True)
-                            n_center = owners_centers[1 - labels[0]][: dimension]
-                            (b_value, c_neigh) = self.eval_b_c(n_center,
-                                                               n_face  ,
-                                                               h       ,
-                                                               n_codim)
-                            # The multiplication for \"(-1 * mult)\" is due to
-                            # the fact that we have to move the coefficients to
-                            # the \"rhs\", so we have to change its sign.
-                            value_to_store = value_to_store * -1
-                            self._rhs.setValues(m_octant                ,
-                                                b_value * value_to_store,
-                                                PETSc.InsertMode.ADD_VALUES)
+                            self.set_bg_b_c(inter         ,
+                                            m_octant      ,
+                                            owners_centers,
+                                            n_normal_inter,
+                                            labels        ,
+                                            value_to_store)
                         else:
                             key = (grid    ,
                                    m_octant,
