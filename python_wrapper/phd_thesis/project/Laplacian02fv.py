@@ -1359,7 +1359,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         n_oct = self._n_oct
         nfaces = octree.get_n_faces()
         ninters = octree.get_num_intersections()
-        face_node = octree.get_face_node()
         dimension = self._dim
         sizes = self.find_sizes()
 
@@ -1367,8 +1366,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         # Current transformation matrix's dictionary.
         c_t_dict = self.get_trans(grid)
-        # Current transformation adjoint matrix's dictionary.
-        c_t_a_dict = self.get_trans_adj(grid) 
         
         # Code hoisting.
         mask_octant = self.mask_octant
@@ -1380,10 +1377,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
         metric_coefficients = utilities.metric_coefficients
-        square = numpy.square
         check_neighbours = self.check_neighbours
         get_bound = octree.get_bound
-        narray = numpy.array
         check_oct_corners = self.check_oct_corners
         get_owners_inter = self.get_owners_inter
         get_owners_normals_inter = self.get_owners_normals_inter
@@ -1391,6 +1386,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         least_squares = utilities.least_squares
         get_l_owners_nodes_inter = self.get_l_owners_nodes_inter
         find_right_neighbours = self.find_right_neighbours
+        set_bg_b_c = self.set_bg_b_c
         # Lambda functions.
         g_n = lambda x : get_nodes(x               ,
                                    dimension       ,
@@ -1507,11 +1503,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # function).
                 #
                 # The coordinates of the nodes are given by \"nodes_inter\".
+                #
+                # The coordinates of the nodes but in a \"numpy\" array are into
+                # \"n_nodes_inter\".
                 l_o_nodes_inter, \
-                nodes_inter = get_l_owners_nodes_inter(inter          ,
-                                                       l_o_norms_inter,
-                                                       o_ghost        ,
-                                                       also_nodes = True)
+                nodes_inter    , \
+                n_nodes_inter  = get_l_owners_nodes_inter(inter            ,
+                                                          l_o_norms_inter  ,
+                                                          o_ghost          ,
+                                                          also_nodes = True,
+                                                          # Return also \"num-
+                                                          # py\" data.
+                                                          r_a_n_d = True)
                 # Neighbour centers neighbours indices: it is a list of
                 # tuple, and in each tuple are contained the lists of
                 # centers and indices of each local owner of the nodes.
@@ -1524,7 +1527,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Least square coefficients.
                 l_s_coeffs = map(l_s,
                                  zip([pair[0] for pair in n_cs_n_is],
-                                     [narray(node) for node in nodes_inter]))
+                                     [n_node for n_node in n_nodes_inter]))
 
                 n_coeffs     , \
                 coeffs_node_1, \
@@ -1622,12 +1625,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         mult = 1.0
                         value_to_store = n_coeffs[1 - labels[0]] * mult
                         if (is_background):
-                            self.set_bg_b_c(inter         ,
-                                            m_octant      ,
-                                            owners_centers,
-                                            n_normal_inter,
-                                            labels        ,
-                                            value_to_store)
+                            set_bg_b_c(inter         ,
+                                       m_octant      ,
+                                       owners_centers,
+                                       n_normal_inter,
+                                       labels        ,
+                                       value_to_store)
                         else:
                             key = (grid    ,
                                    m_octant,
