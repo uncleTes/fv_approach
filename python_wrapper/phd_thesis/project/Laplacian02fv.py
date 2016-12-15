@@ -1631,7 +1631,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     values = (n_t_array * mult).tolist()
                 self._b_mat.setValues(r_indices, # Row
                                       c_indices, # Columns
-                                      values)    # Values to be inserted
+                                      values   , # Values to be inserted
+                                      PETSc.InsertMode.ADD_VALUES)
         # We have inserted argument \"assembly\" equal to
         # \"PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY\" because the final assembly
         # will be done after inserting the prolongation and restriction blocks.
