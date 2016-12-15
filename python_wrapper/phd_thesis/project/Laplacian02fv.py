@@ -1101,7 +1101,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                              h_inv                  * \
                                              grad_transf_det2_inv   * \
                                              coeff_trans_y)
-
         n_coeffs = n_coeffs_grad_x + n_coeffs_grad_y
 
         coeffs_node_1 = l_s_coeffs[1] * n_coeffs[2]
@@ -1944,7 +1943,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # How many iterations are done.
         it_number = ksp.getIterationNumber()
         #print(ksp.getConvergedReason())
-        #self._b_mat.view()
 
         msg = "Evaluated solution"
         extra_msg = "Using \"" + str(it_number) + "\" iterations."
