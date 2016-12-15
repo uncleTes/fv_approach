@@ -523,6 +523,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # coefficients of the bilinear operator in the \"extension\"
                     # matrix.
                     b_values[i] = 0.0
+        else:
+            for i, center in enumerate(c_neighs):
+                b_values[i] = 0.0
 
         insert_mode = PETSc.InsertMode.ADD_VALUES
         self._rhs.setValues(b_indices,
@@ -1586,15 +1589,32 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         mult = 1.0
                         value_to_store = n_coeffs[1 - labels[0]] * mult
                         if (is_background):
+                            if (n_axis):
+                                if (n_normal_inter[n_axis] == 1):
+                                    n_face = 3
+                                else:
+                                    n_face = 2
+                            else:
+                                if (n_normal_inter[n_axis] == 1):
+                                    n_face = 1
+                                else:
+                                    n_face = 0
+                            n_codim = 1
+                            h = octree.get_area(inter        ,
+                                                is_ptr = True,
+                                                is_inter = True)
+                            n_center = owners_centers[1 - labels[0]][: dimension]
+                            (b_value, c_neigh) = self.eval_b_c(n_center,
+                                                               n_face  ,
+                                                               h       ,
+                                                               n_codim)
                             # The multiplication for \"(-1 * mult)\" is due to
                             # the fact that we have to move the coefficients to
                             # the \"rhs\", so we have to change its sign.
                             value_to_store = value_to_store * -1
-                            # Previous \"rhs\" value.
-                            p_rhs_v = self._rhs[m_octant]
                             self._rhs.setValues(m_octant                ,
-                                                p_rhs_v * value_to_store,
-                                                PETSc.InsertMode.INSERT_VALUES)
+                                                b_value * value_to_store,
+                                                PETSc.InsertMode.ADD_VALUES)
                         else:
                             key = (grid    ,
                                    m_octant,
