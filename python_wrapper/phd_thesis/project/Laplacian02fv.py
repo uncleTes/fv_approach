@@ -1052,21 +1052,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 o_ghost]
 
     def get_interface_coefficients(self          ,
-                                   inter         , # pointer to the intersection
-                                   dimension     , # 2D/3D
-                                   nodes_inter   , # Coordinates of the nodes
-                                                   # of the intersection
-                                   owners_centers, # Centers of the owners of
-                                                   # the intersection
-                                   l_s_coeffs    , # Least square coefficients.
-                                   is_bound_inter, # is a boundary intersection
-                                   n_normal_inter, # numpy normal vector to the
-                                                   # intersection
-                                   n_axis):        # directional axis of the
-                                                   # Normal (0 for x, 1 for y)
+                                   inter         ,  # pointer to the intersection
+                                   dimension     ,  # 2D/3D
+                                   nodes_inter   ,  # Coordinates of the nodes
+                                                    # of the intersection
+                                   owners_centers,  # Centers of the owners of
+                                                    # the intersection
+                                   l_s_coeffs    ,  # Least square coefficients.
+                                   is_bound_inter,  # is a boundary intersection
+                                   n_normal_inter): # numpy normal vector to the
+                                                    # intersection
         octree = self._octree
         grid = self._proc_g
         c_t_dict = self.get_trans(grid)
+        n_axis = numpy.nonzero(n_normal_inter)[0][0]
         # evaluating length of the intersection, depending on its direc-
         # tion.
         h = octree.get_area(inter        ,
@@ -1535,8 +1534,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                   owners_centers,
                                                                   l_s_coeffs    ,
                                                                   is_bound_inter,
-                                                                  n_normal_inter,
-                                                                  n_axis)
+                                                                  n_normal_inter)
 
                 if (is_ghost_inter and (len(r_indices) == 2)):
                     # Using \"extend.([number])\" to avoid \"TypeError: 'int'
