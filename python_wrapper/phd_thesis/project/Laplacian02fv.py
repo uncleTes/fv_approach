@@ -1218,17 +1218,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     def get_l_owners_nodes_inter(self          ,
                                  inter         ,
-                                 l_owners_inter,
-                                 o_ghost       , # Owner ghost; if it is \"No-
-                                                 # ne\", there is no owner ghost
-                                                 # but, if it is \"0\" or \"1\",
-                                                 # it means that is respectively
-                                                 # the owner with the inner nor-
-                                                 # mal or the one with the outer
-                                                 # one.
-                                 also_nodes = False): # Return also the nodes of
-                                                      # the intersection, not
-                                                      # just their owners
+                                 l_owners_inter    ,
+                                 o_ghost           , # Owner ghost; if it is
+                                                     # \"None\", there is no ow-
+                                                     # ner ghost but, if it is
+                                                     # \"0\" or \"1\", it means
+                                                     # that is respectively the
+                                                     # owner with the inner nor-
+                                                     # mal or the one with the
+                                                     # outer one.
+                                 also_nodes = False, # Return also the nodes of
+                                                     # the intersection, not
+                                                     # just their owners
+                                 r_a_n_d = False):
         octree = self._octree
         tot_oct = self._tot_oct
         dimension = self._dim
@@ -1267,6 +1269,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
             l_owners[i] = l_owner
 
         if (also_nodes):
+            if (r_a_n_d):
+                return (l_owners,
+                        nodes   ,
+                        numpy.asarray(nodes))
+
             return (l_owners, nodes)
 
         return l_owners
