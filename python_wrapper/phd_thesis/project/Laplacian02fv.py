@@ -393,8 +393,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
     
     # --------------------------------------------------------------------------
     # Set boundary conditions.
-    def set_b_c(self):
-        """Method which set boundary conditions for the different grids."""
+    def check_boundaries(self):
+        """Method which check boundaries and, for the foreground ones, store the
+           values needed later for the restriction/prolongation thing."""
     
 	log_file = self.logger.handlers[0].baseFilename
         logger = self.logger
@@ -402,41 +403,46 @@ class Laplacian(BaseClass2D.BaseClass2D):
         n_oct = self._n_oct
         octree = self._octree
         nfaces = octree.get_n_faces()
-        face_node = octree.get_face_node()
         is_background = False if (grid) else True
         o_ranges = self.get_ranges()
         dimension = self._dim
-        t_b_centers = []
         # Current transformation matrix's dictionary.
         c_t_dict = self.get_trans(grid)
-        # Current transformation adjoint matrix's dictionary.
-        c_t_adj_dict = self.get_trans_adj(grid) 
-        # Background transformation matrix adjoint's dictionary.
-        b_t_adj_dict = self.get_trans_adj(0)
         # Transformed background.
         t_background = self._t_background
-
-        b_indices, b_values = ([] for i in range(0, 2))# Boundary indices/values
-        b_centers, b_f_o_n = ([] for i in range(0, 2)) # Boundary centers/faces
-        b_codim = [] # Boundary codimensions
-        b_h = [] # Boundary length of intersection
+        # Centers of octants on the boundary.
+        #
+        # Numbers between 0 and 3 (included) which represent the indices of the
+        # faces or nodes on the boundary.
+        #
+        # Masked indices of the octants on the boundary.
+        # Numbers between 1 and 2 (included) indicating if the \"b_f_o_n\" indi-
+        # ces referred to an edge (1) or a node (2) on the boundary. It is a
+        # list of codimensions.
+        #
+        # List containing the edge size of the octants on the boundary.
+        b_centers, \
+        b_f_o_n,   \
+        b_indices, \
+        b_codim,   \
+        b_h = ([] for i in range(0, 5))
 
         # Code hoisting.
         mask_octant = self.mask_octant
         get_octant = octree.get_octant
         get_center = octree.get_center
         get_bound = octree.get_bound
+        get_area = octree.get_area
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygon = utilities.is_point_inside_polygon                            
-        narray = numpy.array
 
         for octant in xrange(0, n_oct):
             py_oct = get_octant(octant)
             # \"get_area\" is always of codimension 1, so in 2D with quadtrees,
             # it returns the size of the edge.
-            h = octree.get_area(py_oct       ,
-                                is_ptr = True,
-                                is_inter = False)
+            h = get_area(py_oct       ,
+                         is_ptr = True,
+                         is_inter = False)
             # Global index of the current local octant \"octant\".
             g_octant = o_ranges[0] + octant
             m_g_octant = mask_octant(g_octant)
@@ -455,51 +461,25 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         b_centers.append(center)
                         b_codim.append(1)
                         b_h.append(h)
-
-        (b_values, c_neighs) = self.eval_b_c(b_centers,
+        c_neighs, \
+        n_c_neighs  = self.neighbour_centers(b_centers,
+                                             b_codim  ,
                                              b_f_o_n  ,
                                              b_h      ,
-                                             b_codim  )
-
-        prev_b_center = None
-        prev_t_b_center = None
-        for i, b_center in enumerate(b_centers):
-            same_center = False
-            # They are equal.
-            # \"cmp()\" removed from python 3.x...better using \"==\", is
-            # also more readable as returned value.
-            # http://stackoverflow.com/questions/18674988/comparison-of-list-using-cmp-or
-            #if (cmp(b_center, prev_b_center) == 0):
-            # TODO: are you sure that it is worth doing these checks? I think
-            #       that you are doing this just for the 4 corners (in 2D) and
-            #       for more octants in 3D, but I am not sure it is cheaper than
-            #       doing directly the computation for all the octants. Think
-            #       about it.
-            if (b_center == prev_b_center):
-                t_b_center = prev_t_b_center
-                same_center = True
-            if (not same_center):
-                prev_b_center = b_center
-                numpy_b_center = narray(b_center)
-                t_b_center =  apply_persp_trans(dimension     ,
-                                                numpy_b_center,
-                                                c_t_dict)[: dimension]
-                prev_t_b_center = t_b_center
-
-            t_b_centers.append(t_b_center)
-
+                                             # Return also \"numpy\" data.
+                                             r_a_n_d = True)
+        l_c_neighs = len(c_neighs)
         # Grids not of the background: equal to number >= 1.
         if (grid):
-            for i, center in enumerate(c_neighs):
+            for i in xrange(l_c_neighs):
                 check = False
                 # Check if the \"ghost\" points outside the foreground grids are
                 # inside the background one.
-                numpy_center = narray(center)
-                t_center, \
-                n_t_center =  apply_persp_trans(dimension   ,
-                                                numpy_center,
-                                                c_t_dict    ,
-                                                True)[: dimension]
+                numpy_center = n_c_neighs[i]
+                t_center = apply_persp_trans(dimension   ,
+                                             numpy_center,
+                                             c_t_dict    ,
+                                             r_a_n_d = False)[: dimension]
                 check = is_point_inside_polygon(t_center    ,
                                                 t_background)
                 if (check):
@@ -520,25 +500,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # We store the center of the cells ghost outside the boun-
                     # dary of the borders of the foreground grids.
                     for j in xrange(dimension):
-                        stencil[1 + j] = center[j]
+                        stencil[1 + j] = numpy_center[j]
                     self._edl.update({key : stencil})
-                    # The new corresponding value inside \"b_values\" would be
-                    # \"0.0\", because the boundary value is given by the
-                    # coefficients of the bilinear operator in the \"extension\"
-                    # matrix.
-                    b_values[i] = 0.0
-        else:
-            for i, center in enumerate(c_neighs):
-                b_values[i] = 0.0
 
-        insert_mode = PETSc.InsertMode.ADD_VALUES
-        self._rhs.setValues(b_indices,
-                            b_values ,
-                            insert_mode)
-
-        self.assembly_petsc_struct("rhs")
-        
-        msg = "Set boundary conditions"
+        msg = "Checked boundaries"
         extra_msg = "of grid \"" + str(self._proc_g) + "\""
         self.log_msg(msg   ,
                      "info",
