@@ -149,10 +149,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # Returns the center of the face neighbour.
     # TODO: modify this function to be used in 3D case.
     def neighbour_centers(self   ,
-                          cs     , # Centers
-                          es_o_ns, # Edges or nodes
-                          vs     , # Values
-                          hs):
+                          cs     ,          # Centers
+                          es_o_ns,          # Edges or nodes
+                          vs     ,          # Values
+                          hs     ,          # Edge sizes
+                          r_a_n_d = False): # Return also numpy data
         """Function which returns the centers of neighbours, depending on 
            for which face we are interested into.
            
@@ -257,6 +258,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 
         self.log_msg(msg   ,
                      "info")
+
+        if (r_a_n_d):
+            return (eval_centers, numpy.asarray(eval_centers))
 
         return eval_centers
     # --------------------------------------------------------------------------
