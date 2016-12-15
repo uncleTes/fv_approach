@@ -1091,12 +1091,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        coeff_node_0_grad_y])
 
         n_coeffs_grad_x = n_coeffs_grad_x * (den_inv                * \
-                                             n_normal_inter[n_axis] * \
                                              h_inv                  * \
                                              grad_transf_det2_inv   * \
                                              coeff_trans_x)
         n_coeffs_grad_y = n_coeffs_grad_y * (den_inv                * \
-                                             n_normal_inter[n_axis] * \
                                              h_inv                  * \
                                              grad_transf_det2_inv   * \
                                              coeff_trans_y)
