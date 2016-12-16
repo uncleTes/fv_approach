@@ -1360,7 +1360,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         nfaces = octree.get_n_faces()
         ninters = octree.get_num_intersections()
         dimension = self._dim
-        sizes = self.find_sizes()
 
         o_ranges = self.get_ranges()
 
@@ -1374,10 +1373,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_center = octree.get_center
         get_nodes = octree.get_nodes
         get_intersection = octree.get_intersection
-        apply_persp_trans = utilities.apply_persp_trans
-        is_point_inside_polygons = utilities.is_point_inside_polygons
-        metric_coefficients = utilities.metric_coefficients
-        check_neighbours = self.check_neighbours
         get_bound = octree.get_bound
         check_oct_corners = self.check_oct_corners
         get_owners_inter = self.get_owners_inter
@@ -1401,7 +1396,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        x[1])
 
         for i in xrange(0, ninters):
-            # Rows and columns indices for the \"PETSC\" matrix.
+            # Rows and columns indices for the \"PETSc\" matrix.
             r_indices, \
             c_indices = ([] for i in range(0, 2))
             # Centers of the owners of the intersection.
@@ -1438,9 +1433,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                is_ghost_inter)
             # List containing 0 or 1 to indicate inner normal or outer normal.
             labels = []
-            # Masked global indices of owners inner/outer normal of the
-            # intersection. REMEMBER: \"octree.get_global_idx(octant) + gd\" ==
-            #                         \"o_ranges[0] + octant\".
+            # Masked global indices of owners inner/outer normal of the inter-
+            # section. REMEMBER: \"octree.get_global_idx(octant) + gd\" ==
+            #                    \"o_ranges[0] + octant\".
             m_g_o_norms_inter = map(mask_octant,
                                     [(g_o_norm_inter + g_d) for g_o_norm_inter \
                                      in g_o_norms_inter])
@@ -1655,10 +1650,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self.assembly_petsc_struct("matrix",
                                    PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY)
         self.assembly_petsc_struct("rhs")
+
+        mat_sizes = self._b_mat.getSizes()
+        mat_type = self._b_mat.getType()
         
         msg = "Filled diagonal parts of the monolithic matrix"
-        extra_msg = "with sizes \"" + str(self._b_mat.getSizes()) + \
-                    "\" and type \"" + str(self._b_mat.getType()) + "\""
+        extra_msg = "with sizes \"" + str(mat_sizes) + "\" and type \"" + \
+                    str(mat_type) + "\""
         self.log_msg(msg   ,
                      "info",
                      extra_msg)
