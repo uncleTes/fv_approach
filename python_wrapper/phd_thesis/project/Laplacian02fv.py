@@ -1546,8 +1546,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         c_indices.extend(n_cs_n_is[0][1])
                 else:
                     c_indices.extend(r_indices)
-                    c_indices.extend(n_cs_n_is[1][1])
-                    c_indices.extend(n_cs_n_is[0][1])
+                    if (not is_bound_inter):
+                        c_indices.extend(n_cs_n_is[1][1])
+                        c_indices.extend(n_cs_n_is[0][1])
                 # Both the owners of the intersection are not penalized.
                 if (len(r_indices) == 2):
                     # Values to insert in \"r_indices\"; each sub list contains
@@ -1579,10 +1580,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # Values to insert in \"r_indices\".
                     values = []
                     n_t_array = numpy.array([n_coeffs[labels[0]]])
-                    n_t_array = numpy.append(n_t_array,
-                                             coeffs_node_1)
-                    n_t_array = numpy.append(n_t_array,
-                                             coeffs_node_0)
+                    if (not is_bound_inter):
+                        n_t_array = numpy.append(n_t_array,
+                                                 coeffs_node_1)
+                        n_t_array = numpy.append(n_t_array,
+                                                 coeffs_node_0)
                     # Here we can be only on the background, where some octants
                     # are penalized.
                     if (not is_bound_inter):
