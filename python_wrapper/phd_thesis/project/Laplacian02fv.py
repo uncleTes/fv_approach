@@ -1247,7 +1247,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         for i in xrange(0, n_nodes):
             # Temp owner. Returning \"max uint32_t\" if point outside of the
             # domain.
-            t_owner = octree.get_point_owner_idx(nodes[i])
+            t_owner = octree.get_point_owner_idx((nodes[i][0],
+                                                  nodes[i][1],
+                                                  nodes[i][2]))
             # If the index of the owner if equal to \"u32_max\", then we have
             # reached or a ghost octant or we are outside the domain.
             if (t_owner == u32_max):
@@ -1263,7 +1265,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # me).
                     l_owner = l_owners_inter[i % 2]
             else:
-                #l_owner = octree.get_global_idx(l_owner)
                 l_owner = t_owner
             l_owners[i] = l_owner
 
@@ -2425,7 +2426,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         neighbour_centers = self.neighbour_centers
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygon = utilities.is_point_inside_polygon
-        narray = numpy.array
         # Lambda function.
         f_n = lambda x, y : find_neighbours(current_octant,
                                             x             ,
@@ -2472,13 +2472,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
             else:
                 if (also_outside_boundary):
                     to_consider = True
-                    border_center = neighbour_centers(c_c      ,
-                                                      codim    ,
-                                                      face_node,
-                                                      h)
+                    border_center, \
+                    numpy_border_center = neighbour_centers(c_c      ,
+                                                            codim    ,
+                                                            face_node,
+                                                            h        ,
+                                                            r_a_n_d = True)
 
                     if (not is_background):
-                        numpy_border_center = narray(border_center)
                         t_center =  apply_persp_trans(dimension          ,
                                                       numpy_border_center,
                                                       c_t_dict)[: dimension]
