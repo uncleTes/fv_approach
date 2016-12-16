@@ -2531,7 +2531,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         for i, index in enumerate(col_indices):
             # If the neighbour is outside the background boundary, the exact
             # solution is evaluated.
-            if index == "outside_bg":
+            if (index == "outside_bg"):
                 to_rhs.append(i)
                 e_sol = ExactSolution2D.ExactSolution2D.solution(centers[i][0]     ,
                                                                  centers[i][1]     , 
