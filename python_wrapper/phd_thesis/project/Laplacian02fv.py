@@ -1102,8 +1102,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                     c_t_dict)
         grad_transf_inv = numpy.linalg.inv(grad_transf)
         grad_transf_det = numpy.linalg.det(grad_transf)
-        grad_transf_det2 = numpy.square(grad_transf_det)
-        grad_transf_det2_inv = (1.0 / grad_transf_det2)
+        grad_transf_det_inv = (1.0 / grad_transf_det)
         cofactors = (grad_transf_inv * grad_transf_det).T
         coeffs_trans = numpy.dot(grad_transf_inv, cofactors)
 
@@ -1121,13 +1120,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        coeff_node_1_grad_y,
                                        coeff_node_0_grad_y])
 
-        n_coeffs_grad_x = n_coeffs_grad_x * (den_inv                * \
-                                             h_inv                  * \
-                                             grad_transf_det2_inv   * \
+        n_coeffs_grad_x = n_coeffs_grad_x * (den_inv               * \
+                                             h_inv                 * \
+                                             grad_transf_det_inv   * \
                                              coeff_trans_x)
-        n_coeffs_grad_y = n_coeffs_grad_y * (den_inv                * \
-                                             h_inv                  * \
-                                             grad_transf_det2_inv   * \
+        n_coeffs_grad_y = n_coeffs_grad_y * (den_inv               * \
+                                             h_inv                 * \
+                                             grad_transf_det_inv   * \
                                              coeff_trans_y)
         n_coeffs = n_coeffs_grad_x + n_coeffs_grad_y
 
