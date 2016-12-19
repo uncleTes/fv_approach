@@ -425,7 +425,7 @@ def compute(comm_dictionary     ,
     laplacian.init_rhs()
     laplacian.init_mat((d_nnz, o_nnz))
     laplacian.check_boundaries()
-    laplacian.fill_mat()
+    laplacian.fill_mat_and_rhs()
     laplacian.add_rhs(exact_solution.s_der)
     laplacian.update_values(intercomm_dictionary)
     #laplacian.mat.view()

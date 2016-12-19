@@ -1336,7 +1336,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     # --------------------------------------------------------------------------
     # Fill the diagonal matrices of the block matrix.
-    def fill_mat(self):
+    def fill_mat_and_rhs(self):
         """Method which fill the diagonal parts of the monolithic matrix of the
            system."""
 
@@ -1443,9 +1443,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Normal to the intersection, and its numpy version.
             normal_inter, \
             n_normal_inter = octree.get_normal(inter,
-                                              True) # We want also
-                                                    # a \"numpy\"
-                                                    # version
+                                               True) # We want also
+                                                     # a \"numpy\"
+                                                     # version
             # Normal's axis, indicating the non-zero component of the
             # normal.
             n_axis = numpy.nonzero(n_normal_inter)[0][0]
