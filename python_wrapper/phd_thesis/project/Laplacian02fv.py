@@ -1133,31 +1133,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         coeffs_node_1 = l_s_coeffs[1] * n_coeffs[2]
         coeffs_node_0 = l_s_coeffs[0] * n_coeffs[3]
 
-
-        ## Normal is parallel to y-axis.
-        #if (n_axis):
-        #    temp = d_o_centers_x
-        #    d_o_centers_x = d_o_centers_y
-        #    d_o_centers_y = temp
-        #    d_nodes_y = d_nodes_x
-
-        #coeff_in = 1.0 / d_o_centers_x
-        #coeff_out = -1.0 * coeff_in
-        #coeff_node_1 = (-1.0 * d_o_centers_y) / \
-        #               (d_o_centers_x * d_nodes_y)
-        #coeff_node_0 = -1.0 * coeff_node_1
-        ## \"Numpy\" coefficients.
-        #n_coeffs = numpy.array([coeff_in    ,
-        #                        coeff_out   ,
-        #                        coeff_node_1,
-        #                        coeff_node_0])
-        ## Multiplying \"numpy\" coefficients for the normal to the in-
-        ## tersection and for the length of the intersection.
-        #n_coeffs = n_coeffs * n_normal_inter[n_axis] * h
-
-        #coeffs_node_1 = l_s_coeffs[1] * n_coeffs[2]
-        #coeffs_node_0 = l_s_coeffs[0] * n_coeffs[3]
-
         return (n_coeffs     ,
                 coeffs_node_1,
                 coeffs_node_0)
