@@ -2145,8 +2145,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         comm_l = self._comm
         dimension = self._dim
         proc_grid = self._proc_g
-        # Background transformation matrix adjoint's dictionary.
-        b_t_adj_dict = self.get_trans_adj(0)
         # Background transformation matrix dictionary.
         b_t_dict = self.get_trans(0)
         # Current transformation matrix adjoint's dictionary.
@@ -2366,6 +2364,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        background grid. On this choice depends
                                        how the indices of the neighbours will
                                        be evaluated.
+                also_outside_boundary (bool): add or not also extern baoundary
+                                              neighbours.
 
            Returns:
                 (centers, indices) (tuple of lists) : tuple containing the lists
