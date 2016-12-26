@@ -1145,22 +1145,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 is_bound_inter,
                                 n_axis):
         h = inter_size
-        # Distance between xs of nodes of the intersection (greater
-        # coordinates are in the second (remember, we are now in 2D)
-        # value of \"normal_nodes\").
-        d_nodes_x = numpy.absolute(nodes_inter[1][0] - \
-                                   nodes_inter[0][0])
-        # Distance between ys of nodes of the intersection (greater
-        # coordinates are in the second (remember, we are now in 2D)
-        # value of \"normal_nodes\").
-        d_nodes_y = numpy.absolute(nodes_inter[1][1] - \
-                                   nodes_inter[0][1])
+        d_nodes_x = 0.0
+        d_nodes_y = 0.0
+        d_o_centers_x = 0.0
+        d_o_centers_y = 0.0
+        if (n_axis):
+            d_nodes_x = h
+        else:
+            d_nodes_y = h
         # Center of the intersection.
         c_inter = ((nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
                    (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0)
-
-        d_o_centers_x = 0.0
-        d_o_centers_y = 0.0
         if (is_bound_inter):
             # Normal parallel to y-axis.
             if (n_axis):
