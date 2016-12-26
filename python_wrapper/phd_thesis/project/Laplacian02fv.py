@@ -1456,6 +1456,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                   c_t_dict     ,
                                                   t_foregrounds)
                 # ...else...
+                # TODO: substitute the \"if (not...)\" clause with an \"else\"
+                #       to avoid the check of the condition.
                 if (not is_penalized):
                     r_indices.append(m_g_octant)
                     if (is_bound_inter):
@@ -1488,6 +1490,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Neighbour centers neighbours indices: it is a list of
                 # tuple, and in each tuple are contained the lists of
                 # centers and indices of each local owner of the nodes.
+                # TODO: use \"multiprocessing\" shared memory to map function on
+                #       local threads.
                 n_cs_n_is = map(f_r_n,
                                 l_o_nodes_inter)
                 # TODO: try to apply in place of your \"least_squares\" method,
@@ -1495,6 +1499,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #       cases of the error \"_raise_linalgerror_singular\", and
                 #       also because, of course, it should be better performing.
                 # Least square coefficients.
+                # TODO: use \"multiprocessing\" shared memory to map function on
+                #       local threads.
                 l_s_coeffs = map(l_s,
                                  zip([pair[0] for pair in n_cs_n_is],
                                      [n_node for n_node in n_nodes_inter]))
