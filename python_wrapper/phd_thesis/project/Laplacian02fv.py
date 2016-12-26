@@ -1560,14 +1560,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # Values to insert in \"r_indices\".
                     values = []
                     n_t_array = numpy.array([n_coeffs[labels[0]]])
+                    # Here we can be only on the background, where some octants
+                    # are penalized.
                     if (not is_bound_inter):
                         n_t_array = numpy.append(n_t_array,
                                                  coeffs_node_1)
                         n_t_array = numpy.append(n_t_array,
                                                  coeffs_node_0)
-                    # Here we can be only on the background, where some octants
-                    # are penalized.
-                    if (not is_bound_inter):
                         mult = -1.0
                         # Owner with the outer normal is not penalized, so we
                         # have to add the coefficients in the corresponding row,
@@ -2230,6 +2229,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             for i in xrange(displ, len(stencils[idx]), step):
                 row_index = int(stencils[idx][i])
                 value_to_multiply = stencils[idx][i + 1]
+                if (row_index == -1):
+                    break
 
                 new_coeffs = [coeff * value_to_multiply for coeff in \
                               coeffs]
@@ -2280,7 +2281,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Outside centers.
         o_centers = numpy.array([list_edg[i][1][0][1 : (dimension + 1)] for i in
                                  range(0, l_l_edg)]).reshape(l_l_edg, dimension)
-        values_to_multiply = numpy.array([list_edg[i][1][0][dimension + 2] \
+        values_to_multiply = numpy.array([list_edg[i][1][0][dimension + 1] \
                                           for i in xrange(0, l_l_edg)]).reshape(l_l_edg, 1)
         # Number of outside centers.
         n_o_centers = o_centers.shape[0]
