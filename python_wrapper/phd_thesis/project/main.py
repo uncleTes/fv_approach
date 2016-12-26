@@ -337,7 +337,25 @@ def set_octree(comm_l,
 
     for iteration in xrange(0, refinement_levels):
         pablo.adapt_global_refine()
-   
+
+    n_octs = pablo.get_num_octants()
+
+    circle_center = (0.5, 0.5)
+    circle_radius = 0.3
+    circle_radius2 = circle_radius * circle_radius
+
+    for octant in xrange(0, n_octs):
+        center  = pablo.get_center(octant)[: dimension]
+        d_x = numpy.absolute(center[0] - circle_center[0])
+        d_x2 = d_x * d_x
+        d_y = numpy.absolute(center[1] - circle_center[1])
+        d_y2 = d_y * d_y
+
+        if ((d_x2 + d_y2) < circle_radius2):
+            pablo.set_marker(octant, 1)
+
+    pablo.adapt()
+
     pablo.load_balance()
     pablo.update_connectivity()
     # Computing new intersections.
