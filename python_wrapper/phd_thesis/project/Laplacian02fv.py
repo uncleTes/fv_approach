@@ -2408,6 +2408,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         dimension = self._dim
         nfaces = octree.get_n_faces()
         nnodes = octree.get_n_nodes()
+        faces_nodes = octree.get_face_node()
         c_t_dict = self.get_trans(grid)
         t_background = self._t_background
 	log_file = self.logger.handlers[0].baseFilename
@@ -2442,6 +2443,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             y             ,
                                             neighs        ,
                                             ghosts)
+
+        nodes_dict = {}
         for i in xrange(0, nfaces + nnodes):
             # Codimension.
             codim = 1 if (i <= 3) else 2
@@ -2477,11 +2480,26 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                  by_octant)[: dimension]
                         centers.append(cell_center)
                         indices.append(m_index)
+                if ((n_neighs == 1) and (codim == 1) and
+                    (octree.get_level(current_octant) != octree.get_level(py_ghost_oct, by_octant))):
+                    f_nodes = faces_nodes[i][0 : 2]
+                    for j in xrange(0, 2):
+                        (nneighs, nghosts) = f_n(f_nodes[j], 2)
+                        if (not nneighs):
+                            level = octree.get_level(py_ghost_oct,
+                                                     by_octant)
+                            if f_nodes[j] in nodes_dict.keys():
+                                if (level < nodes_dict[f_nodes[j]][1]):
+                                    nodes_dict[f_nodes[j]] = [i, level, cell_center, m_index]
+                            else:
+                                nodes_dict[f_nodes[j]] = [i, level, cell_center, m_index]
             # ...we need to evaluate boundary values (background) or not to 
             # consider the indices and centers found (foreground).
             else:
                 if (also_outside_boundary):
                     to_consider = True
+                    if ((codim == 2) and (face_node in nodes_dict.keys())):
+                        to_consider = False
                     border_center, \
                     numpy_border_center = neighbour_centers(c_c      ,
                                                             codim    ,
@@ -2500,6 +2518,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     if (to_consider):
                         centers.append(border_center)
                         indices.append("outside_bg")
+        for key in nodes_dict.keys():
+            centers.append(nodes_dict[key][2])
+            indices.append(nodes_dict[key][3])
 
         numpy_centers = numpy.array(centers)
 
