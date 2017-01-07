@@ -1361,7 +1361,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         f_r_n = lambda x : find_right_neighbours(x            ,
                                                  o_ranges[0]  ,
                                                  is_background,
-                                                 also_outside_boundary = False)
+                                                 also_outside_boundary = True)
         l_s = lambda x : least_squares(x[0],
                                        x[1])
 
@@ -1500,6 +1500,38 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  zip([pair[0] for pair in n_cs_n_is],
                                      [n_node for n_node in n_nodes_inter]))
 
+                to_rhss = []
+                for i_coeff in xrange(0, 2):
+                    to_rhs = []
+                    # Exact solutions.
+                    e_sols = []
+                    n_l_s_coeffs = len(l_s_coeffs[i_coeff])
+                    for l_s_coeff in xrange(0, n_l_s_coeffs):
+                        if (n_cs_n_is[i_coeff][1][l_s_coeff] == "outside_bg"):
+                            n_cs_n_is[i_coeff][1][l_s_coeff] = -1
+                            to_rhs.append(l_s_coeff)
+                            e_sol = ExactSolution2D.ExactSolution2D.solution(n_cs_n_is[i_coeff][0][l_s_coeff][0],
+                                                                             n_cs_n_is[i_coeff][0][l_s_coeff][1],
+                                                                             n_cs_n_is[i_coeff][0][l_s_coeff][2] if \
+                                                                             (dimension == 3)          \
+                                                                             else None             ,
+                                                                             mapping = c_t_dict)
+                            e_sols.append(e_sol)
+                    to_rhss.append(to_rhs)
+                    # If \"to_rhs\" is not empty.
+                    if (not not to_rhs):
+                        for i_rhs in range(0, len(to_rhs)):
+                            for r_index in range(0, len(r_indices)):
+                                self._rhs.setValues(r_indices[r_index]                      ,
+                                                    (-1 * l_s_coeffs[i_coeff][to_rhs[i_rhs]] * e_sols[i_rhs]),
+                                                    PETSc.InsertMode.ADD_VALUES)
+
+                #for i_rhs in xrange(0, len(to_rhss)):
+                #    for i_coeff in to_rhss[i_rhs]:
+                #        numpy.delete(l_s_coeffs[i_rhs], i_coeff)
+                #        numpy.delete(n_cs_n_is[i_rhs][0], i_coeff)
+                #        del n_cs_n_is[i_rhs][1][i_coeff]
+                #        print(n_cs_n_is[i_rhs]
                 n_coeffs     , \
                 coeffs_node_1, \
                 coeffs_node_0  =  self.get_interface_coefficients(inter         ,
