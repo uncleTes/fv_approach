@@ -344,15 +344,15 @@ def set_octree(comm_l,
     circle_radius = 0.3
     circle_radius2 = circle_radius * circle_radius
 
-    for octant in xrange(0, n_octs):
-        center  = pablo.get_center(octant)[: dimension]
-        d_x = numpy.absolute(center[0] - circle_center[0])
-        d_x2 = d_x * d_x
-        d_y = numpy.absolute(center[1] - circle_center[1])
-        d_y2 = d_y * d_y
+    #for octant in xrange(0, n_octs):
+    #    center  = pablo.get_center(octant)[: dimension]
+    #    d_x = numpy.absolute(center[0] - circle_center[0])
+    #    d_x2 = d_x * d_x
+    #    d_y = numpy.absolute(center[1] - circle_center[1])
+    #    d_y2 = d_y * d_y
 
-        if ((d_x2 + d_y2) < circle_radius2):
-            pablo.set_marker(octant, 1)
+    #    if ((d_x2 + d_y2) < circle_radius2):
+    #        pablo.set_marker(octant, 1)
 
     pablo.adapt()
 
