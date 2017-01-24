@@ -1502,6 +1502,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      [n_node for n_node in n_nodes_inter]))
 
                 to_rhss = []
+                e_solss = []
                 for i_coeff in xrange(0, 2):
                     to_rhs = []
                     # Exact solutions.
@@ -1519,6 +1520,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                              mapping = c_t_dict)
                             e_sols.append(e_sol)
                     to_rhss.append(to_rhs)
+                    e_solss.append(e_sols)
                     # If \"to_rhs\" is not empty.
                     if (not not to_rhs):
                         for i_rhs in range(0, len(to_rhs)):
@@ -1552,7 +1554,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             ", l_s_coeffs = " + str(l_s_coeffs)               +
                             ", n_coeffs = " + str(n_coeffs)                   +
                             ", coeffs_node_1 = " + str(coeffs_node_1)         +
-                            ", coeffs_node_0 = " + str(coeffs_node_0) + "\n\n")
+                            ", coeffs_node_0 = " + str(coeffs_node_0)         +
+                            ", to_rhss = " + str(to_rhss)                     +
+                            ", r_indices = " + str(r_indices)                 +
+                            ", e_solss = " + str(e_solss) + "\n\n")
                 f1.write(printing)
 
                 if (is_ghost_inter and (len(r_indices) == 2)):
