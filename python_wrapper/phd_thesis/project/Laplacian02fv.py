@@ -2505,13 +2505,25 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     for j in xrange(0, 2):
                         (nneighs, nghosts) = f_n(f_nodes[j], 2)
                         if (not nneighs):
-                            level = octree.get_level(py_ghost_oct,
-                                                     by_octant)
-                            if f_nodes[j] in nodes_dict.keys():
-                                if (level < nodes_dict[f_nodes[j]][1]):
+                            border_center, \
+                            numpy_border_center = neighbour_centers(c_c       ,
+                                                                    2         ,
+                                                                    f_nodes[j],
+                                                                    h         ,
+                                                                    r_a_n_d = True)
+                            t_center =  apply_persp_trans(dimension          ,
+                                                          numpy_border_center,
+                                                          c_t_dict)[: dimension]
+                            check = is_point_inside_polygon(t_center    ,
+                                                            t_background)
+                            if (check):
+                                level = octree.get_level(py_ghost_oct,
+                                                         by_octant)
+                                if f_nodes[j] in nodes_dict.keys():
+                                    if (level < nodes_dict[f_nodes[j]][1]):
+                                        nodes_dict[f_nodes[j]] = [i, level, cell_center, m_index]
+                                else:
                                     nodes_dict[f_nodes[j]] = [i, level, cell_center, m_index]
-                            else:
-                                nodes_dict[f_nodes[j]] = [i, level, cell_center, m_index]
             # ...we need to evaluate boundary values (background) or not to 
             # consider the indices and centers found (foreground).
             else:
