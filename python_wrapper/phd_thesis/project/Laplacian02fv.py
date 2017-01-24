@@ -1313,7 +1313,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         logger = self.logger
         f_bound = self._f_bound
         grid = self._proc_g
-        f1 = open("./to_print.txt", "w+")
+        file_name = "./to_print_proc_" + str(self._comm_w.Get_rank()) + ".txt"
+        f1 = open(file_name, "w+")
 
         # Ghosts' deplacement.
         g_d = 0
