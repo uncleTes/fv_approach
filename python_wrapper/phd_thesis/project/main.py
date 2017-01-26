@@ -353,6 +353,16 @@ def set_octree(comm_l,
 
     #    if ((d_x2 + d_y2) < circle_radius2):
     #        pablo.set_marker(octant, 1)
+    #if (n_grids == 1):
+    #    pablo.set_marker(0, 1)
+    #else:
+    #    if (comm_w.Get_rank() == 0):
+    #        for octant in xrange(0, n_octs):
+    #            pablo.set_marker(octant, 1)
+    for octant in xrange(0, n_octs):
+        center  = pablo.get_center(octant)[: dimension]
+        if ((center[0] < 0.5) and (center[1] < 0.5)):
+                pablo.set_marker(octant, 1)
 
     pablo.adapt()
 
