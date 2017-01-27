@@ -334,15 +334,19 @@ def set_octree(comm_l,
                                                  comm_l)         # Comm
 
     pablo.set_balance(0, True)
-
     for iteration in xrange(0, refinement_levels):
         pablo.adapt_global_refine()
 
+    pablo.load_balance()
+    pablo.compute_intersections()
+
+    print(pablo.get_num_intersections())
+
     n_octs = pablo.get_num_octants()
 
-    circle_center = (0.5, 0.5)
-    circle_radius = 0.3
-    circle_radius2 = circle_radius * circle_radius
+    #circle_center = (0.5, 0.5)
+    #circle_radius = 0.3
+    #circle_radius2 = circle_radius * circle_radius
 
     #for octant in xrange(0, n_octs):
     #    center  = pablo.get_center(octant)[: dimension]
@@ -365,12 +369,12 @@ def set_octree(comm_l,
                 pablo.set_marker(octant, 1)
 
     pablo.adapt()
-
     pablo.load_balance()
     pablo.update_connectivity()
     # Computing new intersections.
     pablo.compute_intersections()
     #pablo.update_ghosts_connectivity()
+    print(pablo.get_num_intersections())
 
     n_octs = pablo.get_num_octants()
     n_nodes = pablo.get_num_nodes()
@@ -538,7 +542,6 @@ def main():
                           procs_l_lists,
                           logger       ,
                           intercomm_dictionary)
-
     pablo, centers = set_octree(comm_l,
                                 proc_grid)
 
