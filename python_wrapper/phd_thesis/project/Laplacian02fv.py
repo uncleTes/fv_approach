@@ -455,7 +455,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # Set boundary conditions.
     def check_boundaries(self):
         """Method which check boundaries and, for the foreground ones, store the
-           values needed later for the restriction/prolongation thing."""
+           values needed later for the restriction/prolongation communication."""
     
 	log_file = self.logger.handlers[0].baseFilename
         logger = self.logger
@@ -529,9 +529,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                              # Return also \"numpy\" data.
                                              r_a_n_d = True)
         l_c_neighs = len(c_neighs)
-        # Grids not of the background: equal to number >= 1.
+        # Grids not of the background: numbers >= 1.
         if (grid):
             for i in xrange(l_c_neighs):
+                # TODO: I think that this assignment can be deleted.
                 check = False
                 # Check if the \"ghost\" points outside the foreground grids are
                 # inside the background one.
@@ -543,7 +544,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 check = is_point_inside_polygon(t_center    ,
                                                 t_background)
                 if (check):
-                    n_axis = 0 if (b_f_o_n[i] < 2) else 1
+                    if (0 <= b_f_o_n[i] < 2):
+                        n_axis = 0
+                    elif (2 <= b_f_o_n[i] < 4):
+                        n_axis = 1
+                    else:
+                        n_axis = 2
                     # Can't use list as dictionary's keys.
                     # http://stackoverflow.com/questions/7257588/why-cant-i-use-a-list-as-a-dict-key-in-python
                     # https://wiki.python.org/moin/DictionaryKeys
@@ -647,13 +653,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 py_ghost_oct = get_ghost_octant(neighs[i])
                 n_center = get_center(py_ghost_oct,
                                       True)[: dimension]
+            # TODO: if we have just one grid, this \"if\" branch is useless.
+            #       Add a check to enter here just in case of two or more grids.
             if (is_background):
                 t_foregrounds = self._t_foregrounds
                 # Current transformation matrix's dictionary.
                 c_t_dict = self.get_trans(0)
                 idx_or_oct = neighs[i] if (not ghosts[i]) else \
                              py_ghost_oct
-                is_ptr = False if (not ghosts[0]) else \
+                is_ptr = False if (not ghosts[i]) else \
                          True
 
                 oct_corners, \
@@ -672,6 +680,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # be substituted by 13 octant being part of the fore-
                     # ground grids, so being on the non diagonal part of the
                     # grid.
+                    # TODO: This is the worst case, not always presents. We
+                    #       should find a better way to evaluate the right num-
+                    #       ber of neighbours.
                     o_count += 13
                 else:
                     if (ghosts[i]):
@@ -719,7 +730,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         n_oct = self._n_oct
         octree = self._octree
         nfaces = octree.get_n_faces()
-        face_node = octree.get_face_node()
         dimension = self._dim
         is_background = True if (not grid) else False
         # Lists containing number of non zero elements for diagonal and non
@@ -729,6 +739,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         new_oct_count = 0
         # \"range\" gives us a list, \"xrange\" an iterator.
         octants = xrange(0, n_oct)
+        # TODO: use a parallel trick:
+        # http://stackoverflow.com/questions/5236364/how-to-parallelize-list-comprehension-calculations-in-python
         g_octants = [octree.get_global_idx(octant) for octant in octants]
         py_octs = [octree.get_octant(octant) for octant in octants]
         centers = [octree.get_center(octant)[: dimension] for octant in octants]         
@@ -759,6 +771,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Check to know if an octant is penalized.
             is_penalized = False
             # Background grid.
+            # TODO: if we have just one grid, this \"if\" branch is useless.
+            #       Add a check to enter here just in case of two or more grids.
             if (is_background):
                 oct_corners, \
                 numpy_corners = get_nodes(octant   ,
@@ -809,7 +823,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # \"stencil\"'s index.
             s_i = 4 if (dimension == 2) else 5
             # Number of neighbours (Being the possibility of a jump between oc-
-            # tants, we can have a minimum of 4 and a maximum of 8 neighbours.
+            # tants, we can have a minimum of 4 and a maximum of 8 neighbours on
+            # the faces.
             n_neighbours = 0
             # Faces' loop.
             for face in xrange(0, nfaces):
@@ -829,6 +844,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 is_background)
                     n_neighbours = n_neighbours + n_neighs
                 else:
+                    # Adding an imaginary neighbour...why it is explained later,
+                    # encountering the following two lines of code:
+                    # \"d_count += (13 * n_neighbours)\"
+                    # \"o_count += (13 * n_neighbours)\"
                     n_neighbours = n_neighbours + 1
 
                     if (not is_background):
@@ -1408,6 +1427,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Masked global indices of owners inner/outer normal of the inter-
             # section. REMEMBER: \"octree.get_global_idx(octant) + gd\" ==
             #                    \"o_ranges[0] + octant\".
+            # TODO: use a parallel trick.
             m_g_o_norms_inter = map(mask_octant,
                                     [(g_o_norm_inter + g_d) for g_o_norm_inter \
                                      in g_o_norms_inter])
@@ -1465,7 +1485,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (is_bound_inter and (len(r_indices) == 2)):
                 # Being a boundary intersection, owner is the same.
                 del r_indices[-1]
-            # If the owners of the intersection are not both covered.
+            # If the owners of the intersection are not both penalized.
             if (r_indices):
                 # Local indices of the octants owners of the nodes of the
                 # intersection (needed for \"find_right_neighbours\"
@@ -1832,8 +1852,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 numpy_array):
         self._rhs = self.add_array(self._rhs        ,
                                    numpy_array      ,
-                                   True             ,
-                                   "right hand side")
+                                   "right hand side",
+                                   True)
         msg = "Added array to \"rhs\""
         self.log_msg(msg,
                      "info")
@@ -1893,7 +1913,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 	   Returns:
 		a PETSc array."""
 	
-        if not petsc_size:
+        if (not petsc_size):
             n_oct = self._n_oct
             tot_oct = self._tot_oct
             sizes = (n_oct, tot_oct)
@@ -1949,11 +1969,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
     
     # --------------------------------------------------------------------------
     # Initializes \"sol\".
-    def init_sol(self):
+    def init_sol(self,
+                 numpy_array = None):
         """Method which initializes the solution."""
 
         self._sol = self.init_array("solution",
-                                    True)
+                                    True      ,
+                                    numpy_array)
         
         msg = "Initialized \"solution\""
         self.log_msg(msg,
