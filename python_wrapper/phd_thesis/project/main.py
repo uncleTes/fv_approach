@@ -166,6 +166,8 @@ def set_comm_dict(n_grids  ,
     # Total number of octants present in the problem.
     tot_oct = numpy.sum(octs_f_g)
 
+    refinement = refinements[proc_grid]
+
     comm_dictionary = {}
     comm_dictionary.update({"edge" : ed})
     comm_dictionary.update({"communicator" : comm_l})
@@ -206,6 +208,7 @@ def set_comm_dict(n_grids  ,
     comm_dictionary.update({"to log" : to_log})
     comm_dictionary.update({"log file" : log_file})
     comm_dictionary.update({"transformed points" : t_points})
+    comm_dictionary.update({"refinement" : refinement})
 
     return comm_dictionary
 # ------------------------------------------------------------------------------

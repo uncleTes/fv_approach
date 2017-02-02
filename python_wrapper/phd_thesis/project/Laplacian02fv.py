@@ -119,6 +119,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._rank_w = self._comm_w.Get_rank()
         self._rank = self._comm.Get_rank()
         t_points = kwargs.setdefault("transformed points", None)
+        self._ref = kwargs["refinement"]
         if (not t_points):
             msg = "\"MPI Abort\" called during initialization "
             extra_msg = " Transformed points with mapping \"True\" are " + \

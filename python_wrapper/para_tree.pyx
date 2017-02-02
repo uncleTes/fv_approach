@@ -182,6 +182,8 @@ cdef extern from "ParaTree.hpp" namespace "bitpit":
 
         uint8_t getLevel(Octant* octant)
 
+        uint8_t getLevel(Intersection* inter)
+
         void computeIntersections()
 
 cdef class Py_Para_Tree:
@@ -495,13 +497,17 @@ cdef class Py_Para_Tree:
 
             self.thisptr.loadBalance(weight)
     
-    def get_level(self            ,
-                  uintptr_t octant,
-                  ptr_octant = False):
-        if (ptr_octant):
-            return self.thisptr.getLevel(<Octant*><void*>octant)
+    def get_level(self               ,
+                  uintptr_t idx      ,
+                  bool is_ptr = False,
+                  bool is_inter = False):
+        if (is_ptr):
+            if (is_inter):
+                return self.thisptr.getLevel(<Intersection*><void*>idx)
 
-        return self.thisptr.getLevel(<uint32_t>octant)
+            return self.thisptr.getLevel(<Octant*><void*>idx)
+
+        return self.thisptr.getLevel(<uint32_t>idx)
 
     def find_neighbours(self                 , 
                         uint32_t idx         ,
