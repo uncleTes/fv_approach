@@ -1267,29 +1267,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         return l_owners
 
-    def get_owners_inter(self          ,
-                         inter         ,
-                         starting_index,
-                         is_background ,
-                         is_ghost_inter):
-        octree = self._octree
-        # Indices of the owners of the intersection.
-        owners_inter = octree.get_owners(inter)
-        # Global indices of the owners.
-        g_owners_inter = []
-        g_owner = starting_index + owners_inter[0]
-        g_owners_inter.append(g_owner)
-
-        if (is_ghost_inter):
-            g_owner = octree.get_ghost_global_idx(owners_inter[1])
-            if (not is_background):
-                g_owner += starting_index
-        else:
-            g_owner = starting_index + owners_inter[1]
-        g_owners_inter.append(g_owner)
-
-        return g_owners_inter
-
     # --------------------------------------------------------------------------
     # Initialize the monolithic matrix.
     def init_mat(self,
@@ -1367,7 +1344,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_intersection = octree.get_intersection
         get_bound = octree.get_bound
         check_oct_corners = self.check_oct_corners
-        get_owners_inter = self.get_owners_inter
         get_owners_normals_inter = self.get_owners_normals_inter
         get_is_ghost = octree.get_is_ghost
         least_squares = utilities.least_squares
