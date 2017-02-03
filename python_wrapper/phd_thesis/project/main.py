@@ -339,11 +339,12 @@ def set_octree(comm_l,
     pablo.set_balance(0, True)
     for iteration in xrange(0, refinement_levels):
         pablo.adapt_global_refine()
-
+    # TODO: Remember to download new \"Bitpit\" to get the patch for the problem
+    #       with the two calls of \"load_balance()\" with few octants. The pro-
+    #       blem was the wrong computation of the intersections.
+    #
     pablo.load_balance()
     pablo.compute_intersections()
-
-    print(pablo.get_num_intersections())
 
     n_octs = pablo.get_num_octants()
 
@@ -376,8 +377,6 @@ def set_octree(comm_l,
     pablo.update_connectivity()
     # Computing new intersections.
     pablo.compute_intersections()
-    #pablo.update_ghosts_connectivity()
-    print(pablo.get_num_intersections())
 
     n_octs = pablo.get_num_octants()
     n_nodes = pablo.get_num_nodes()
