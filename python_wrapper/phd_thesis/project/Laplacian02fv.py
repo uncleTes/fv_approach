@@ -458,8 +458,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         """Method which check boundaries and, for the foreground ones, store the
            values needed later for the restriction/prolongation communication."""
     
-	log_file = self.logger.handlers[0].baseFilename
-        logger = self.logger
         grid = self._proc_g
         n_oct = self._n_oct
         octree = self._octree
@@ -613,8 +611,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                          key          ,
                          is_penalized ,
                          is_background):
-        logger = self.logger
-        log_file = logger.handlers[0].baseFilename
         dimension = self._dim
         octree = self._octree
 
@@ -725,8 +721,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         block's and non diagonal block's number
                                         of non zero elements."""
 
-        logger = self.logger
-        log_file = logger.handlers[0].baseFilename
         grid = self._proc_g
         n_oct = self._n_oct
         octree = self._octree
@@ -1278,8 +1272,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             non diagonal block's number of non
                                             zero elements, obtained by function
                                             \"create_mask\"."""
-	log_file = self.logger.handlers[0].baseFilename
-        logger = self.logger
 
         comm_w = self._comm_w
 
@@ -1306,8 +1298,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         """Method which fill the diagonal parts of the monolithic matrix of the
            system."""
 
-	log_file = self.logger.handlers[0].baseFilename
-        logger = self.logger
         f_bound = self._f_bound
         grid = self._proc_g
         file_name = "./to_print_proc_" + str(self._comm_w.Get_rank()) + ".txt"
@@ -2083,7 +2073,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 intercomm_dictionary (python dict) : contains the
                                                      intercommunicators."""
 
-        log_file = self.logger.handlers[0].baseFilename
         grid = self._proc_g
         n_oct = self._n_oct
         comm_w = self._comm_w
@@ -2183,8 +2172,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 ids_octree_contained (list) : list of the indices of the octants
                                               contained in the current process."""
 
-	log_file = self.logger.handlers[0].baseFilename
-        logger = self.logger 
         octree = self._octree
         comm_l = self._comm
         dimension = self._dim
@@ -2303,8 +2290,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 ids_octree_contained (list) : list of the indices of the octants
                                               contained in the current process."""
 
-	log_file = self.logger.handlers[0].baseFilename
-        logger = self.logger 
         octree = self._octree
         comm_l = self._comm
         time_rest_prol = 0
@@ -2429,8 +2414,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         faces_nodes = octree.get_face_node()
         c_t_dict = self.get_trans(grid)
         t_background = self._t_background
-	log_file = self.logger.handlers[0].baseFilename
-        logger = self.logger
         # Ghosts' deplacement.
         g_d = 0
         for i in xrange(0, grid):
