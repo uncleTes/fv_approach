@@ -1358,8 +1358,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    also_numpy_nodes = True)
         f_r_n = lambda x : find_right_neighbours(x            ,
                                                  o_ranges[0]  ,
-                                                 is_background,
-                                                 also_outside_boundary = True)
+                                                 is_background)
         l_s = lambda x : least_squares(x[0],
                                        x[1])
 
@@ -2411,8 +2410,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        background grid. On this choice depends
                                        how the indices of the neighbours will
                                        be evaluated.
-                also_outside_boundary (bool): add or not also extern baoundary
-                                              neighbours.
+                also_outside_boundary (bool): add or not also extern boundary
+                                              neighbours at the neighbours list.
 
            Returns:
                 (centers, indices) (tuple of lists) : tuple containing the lists
@@ -2440,10 +2439,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         c_c = octree.get_center(current_octant)[: dimension]
         h = octree.get_area(current_octant)
 
-        centers.append(c_c)
+        #centers.append(c_c)
         index = current_octant
         m_index = self.mask_octant(index + start_octant)
-        indices.append(m_index)
+        #indices.append(m_index)
 
         neighs, ghosts = ([] for i in range(0, 2))
 
@@ -2464,18 +2463,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             ghosts)
 
         nodes_dict = {}
-        for i in xrange(0, nfaces + nnodes):
+        #for i in xrange(0, nfaces + nnodes):
+        for i in xrange(0, nfaces):
             # Codimension.
-            codim = 1 if (i <= 3) else 2
+            #codim = 1 if (i <= 3) else 2
+            codim = 1
             # Index of current face or node.
-            face_node = i if (i <= 3) else (i - 4)
+            #face_node = i if (i <= 3) else (i - 4)
+            face_node = i
             
             (neighs, ghosts) = f_n(face_node, codim)
             n_neighs = len(neighs)
             # Check if it is really a neighbour of edge or node. If not,
-            # it means that we are near the boundary if we are on the
-            # background, in an outside area if we are on the foreground, 
-            # and so...
+            # it means that we are near the boundary if we are on the back-
+            # ground, or on an outside area if we are on the foreground, so...
             if (neighs):
                 for j in xrange(0, n_neighs):
                     # Neighbour is into the same process, so is local.
@@ -2499,38 +2500,38 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                  by_octant)[: dimension]
                         centers.append(cell_center)
                         indices.append(m_index)
-                if ((n_neighs == 1) and (codim == 1) and
-                    (octree.get_level(current_octant) != octree.get_level(py_ghost_oct, by_octant))):
-                    f_nodes = faces_nodes[i][0 : 2]
-                    for j in xrange(0, 2):
-                        (nneighs, nghosts) = f_n(f_nodes[j], 2)
-                        if (not nneighs):
-                            border_center, \
-                            numpy_border_center = neighbour_centers(c_c       ,
-                                                                    2         ,
-                                                                    f_nodes[j],
-                                                                    h         ,
-                                                                    r_a_n_d = True)
-                            t_center =  apply_persp_trans(dimension          ,
-                                                          numpy_border_center,
-                                                          c_t_dict)[: dimension]
-                            check = is_point_inside_polygon(t_center    ,
-                                                            t_background)
-                            if (check):
-                                level = octree.get_level(py_ghost_oct,
-                                                         by_octant)
-                                if f_nodes[j] in nodes_dict.keys():
-                                    if (level < nodes_dict[f_nodes[j]][1]):
-                                        nodes_dict[f_nodes[j]] = [i, level, cell_center, m_index]
-                                else:
-                                    nodes_dict[f_nodes[j]] = [i, level, cell_center, m_index]
+                #if ((n_neighs == 1) and (codim == 1) and
+                #    (octree.get_level(current_octant) != octree.get_level(py_ghost_oct, by_octant))):
+                #    f_nodes = faces_nodes[i][0 : 2]
+                #    for j in xrange(0, 2):
+                #        (nneighs, nghosts) = f_n(f_nodes[j], 2)
+                #        if (not nneighs):
+                #            border_center, \
+                #            numpy_border_center = neighbour_centers(c_c       ,
+                #                                                    2         ,
+                #                                                    f_nodes[j],
+                #                                                    h         ,
+                #                                                    r_a_n_d = True)
+                #            t_center =  apply_persp_trans(dimension          ,
+                #                                          numpy_border_center,
+                #                                          c_t_dict)[: dimension]
+                #            check = is_point_inside_polygon(t_center    ,
+                #                                            t_background)
+                #            if (check):
+                #                level = octree.get_level(py_ghost_oct,
+                #                                         by_octant)
+                #                if f_nodes[j] in nodes_dict.keys():
+                #                    if (level < nodes_dict[f_nodes[j]][1]):
+                #                        nodes_dict[f_nodes[j]] = [i, level, cell_center, m_index]
+                #                else:
+                #                    nodes_dict[f_nodes[j]] = [i, level, cell_center, m_index]
             # ...we need to evaluate boundary values (background) or not to 
             # consider the indices and centers found (foreground).
             else:
                 if (also_outside_boundary):
                     to_consider = True
-                    if ((codim == 2) and (face_node in nodes_dict.keys())):
-                        to_consider = False
+                    #if ((codim == 2) and (face_node in nodes_dict.keys())):
+                    #    to_consider = False
                     border_center, \
                     numpy_border_center = neighbour_centers(c_c      ,
                                                             codim    ,
@@ -2549,9 +2550,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     if (to_consider):
                         centers.append(border_center)
                         indices.append("outside_bg")
-        for key in nodes_dict.keys():
-            centers.append(nodes_dict[key][2])
-            indices.append(nodes_dict[key][3])
+        #for key in nodes_dict.keys():
+        #    centers.append(nodes_dict[key][2])
+        #    indices.append(nodes_dict[key][3])
 
         numpy_centers = numpy.array(centers)
 
