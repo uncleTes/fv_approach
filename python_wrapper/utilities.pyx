@@ -221,7 +221,6 @@ def is_point_inside_polygons(point   ,
         if (inside):
             return (inside, i)
     return (inside, None)
-        
 
 # Determine if a point is inside a given polygon or not.
 # https://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html ---> Better link
@@ -298,6 +297,60 @@ def is_point_inside_polygon(point  ,
             break
 
     return inside
+
+# http://www.ripmat.it/mate/d/dc/dcee.html
+# http://stackoverflow.com/questions/11907947/how-to-check-if-a-point-lies-on-a-line-between-2-other-points
+def is_point_on_line(point      ,
+                     line_points,
+                     int dimension = 2):
+
+    absolute = numpy.absolute
+
+    cdef size_t i
+    cdef n_points = 2
+    cdef double d_x
+    cdef double d_y
+    cdef double d_yc = point[1] - line_points[0][1]
+    cdef double d_xc = point[0] - line_points[0][0]
+    cdef double d_x1 = line_points[1][0] - line_points[0][0]
+    cdef double d_y1 = line_points[1][1] - line_points[0][1]
+    cdef double threshold = 1.0e-15
+    cdef double diff
+    cdef bool on_line = False
+
+    for i in xrange(0, n_points):
+        d_x = absolute(point[0] - line_points[i][0])
+        d_y = absolute(point[1] - line_points[i][1])
+
+        if ((d_x <= threshold) and (d_y <= threshold)):
+            on_line = True
+
+            return on_line
+
+    diff = absolute((d_yc * d_x1) - (d_y1 * d_xc))
+
+    on_line = (diff <= threshold)
+
+    return on_line
+
+def is_point_on_lines(point,
+                      line_points,
+                      int dimension = 2):
+
+    cdef size_t i
+    cdef size_t j
+    cdef size_t n_lines = 4
+    cdef bool on_lines = False
+
+    for i in xrange(0, n_lines):
+        j = (i + 1) if (i < 3) else 0
+        on_lines = is_point_on_line(point                           ,
+                                    (line_points[i], line_points[j]),
+                                    dimension)
+        if (on_lines):
+            return on_lines
+
+    return on_lines
 
 # https://it.wikipedia.org/wiki/Metodo_dei_minimi_quadrati
 def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
