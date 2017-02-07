@@ -1948,6 +1948,42 @@ class Laplacian(BaseClass2D.BaseClass2D):
                      "info")
     # --------------------------------------------------------------------------
 
+    def evaluate_residual_norms(self     ,
+                                exact_sol,
+                                exact_rhs,
+                                h_s      ,
+                                petsc_size = True):
+        if (not petsc_size):
+            n_oct = self._n_oct
+            tot_oct = self._tot_oct
+            sizes = (n_oct, tot_oct)
+        else:
+            sizes = self.find_sizes()
+        # Temporary PETSc exact solution.
+        t_e_sol = PETSc.Vec().createWithArray(exact_sol   ,
+                                              size = sizes,
+                                              comm = self._comm_w)
+        # Temporary PETSc exact rhs.
+        t_e_rhs = PETSc.Vec().createWithArray(exact_rhs   ,
+                                              size = sizes,
+                                              comm = self._comm_w)
+        # Temporary PETSc array.
+        t_array = self.init_array("residual prova",
+                                  True            ,
+                                  None)
+        self._b_mat.mult(t_e_sol, t_array)
+        t_array.axpy(-1.0, t_e_rhs)
+        norm_inf = numpy.linalg.norm(t_e_rhs.getArray(),
+                                     # Type of norm we want to evaluate.
+                                     numpy.inf)
+        norm_L2 = numpy.linalg.norm(t_e_rhs.getArray() * h_s,
+                                    2)
+
+        msg = "Evaluated residuals"
+        extra_msg = "with (norm_inf, norm_L2) = " + str((norm_inf, norm_L2))
+
+        return (norm_inf, norm_L2)
+
     # --------------------------------------------------------------------------
     # Solving...
     def solve(self):

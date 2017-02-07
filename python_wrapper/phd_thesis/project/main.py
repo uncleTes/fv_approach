@@ -449,11 +449,20 @@ def compute(comm_dictionary     ,
     norm_L2 = laplacian.evaluate_norms(exact_solution.sol      ,
                                        laplacian.sol.getArray(),
                                        h_s)
-    msg = utilities.join_strings("process "               ,
-                                 "%d " % comm_w.Get_rank(),
+    msg = utilities.join_strings("Errors (inf, L2): process ",
+                                 "%d " % comm_w.Get_rank()   ,
                                  "(%e, %e)" % (norm_inf, norm_L2))
                                  #str((norm_inf, norm_L2)))
     print(msg) 
+    norm_inf, \
+    norm_L2 = laplacian.evaluate_residual_norms(exact_solution.sol  ,
+                                                exact_solution.s_der,
+                                                h_s)
+    msg = utilities.join_strings("Residuals (inf, L2): process ",
+                                 "%d " % comm_w.Get_rank()      ,
+                                 "(%e, %e)" % (norm_inf, norm_L2))
+                                 #str((norm_inf, norm_L2)))
+    print(msg)
     interpolate_sol = laplacian.reset_partially_solution()
     p_centers = [utilities.apply_persp_trans(dimension,
                                              center   , 
