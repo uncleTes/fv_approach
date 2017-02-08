@@ -1839,7 +1839,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                   array_to_add     ,
                   a_name = ""      ,
                   petsc_size = True):
-        if not petsc_size:
+        if (not petsc_size):
             n_oct = self._n_oct
             tot_oct = self._tot_oct
             sizes = (n_oct, tot_oct)
