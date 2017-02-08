@@ -1948,6 +1948,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                      "info")
     # --------------------------------------------------------------------------
 
+    # --------------------------------------------------------------------------
     def evaluate_residual_norms(self     ,
                                 exact_sol,
                                 exact_rhs,
@@ -1968,21 +1969,26 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               size = sizes,
                                               comm = self._comm_w)
         # Temporary PETSc array.
-        t_array = self.init_array("residual prova",
-                                  True            ,
-                                  None)
-        self._b_mat.mult(t_e_sol, t_array)
-        t_array.axpy(-1.0, t_e_rhs)
-        norm_inf = numpy.linalg.norm(t_e_rhs.getArray(),
+        self._residual = self.init_array("residual",
+                                         True      ,
+                                         None)
+        # \"self._residual\" = \"self._b_mat\" * \"t_e_sol\"
+        self._b_mat.mult(t_e_sol,
+                         self._residual)
+        # \"self._residual\" = \"self._residual\" - \"t_e_rhs\"
+        self._residual.axpy(-1.0,
+                            t_e_rhs)
+        norm_inf = numpy.linalg.norm(self._residual.getArray(),
                                      # Type of norm we want to evaluate.
                                      numpy.inf)
-        norm_L2 = numpy.linalg.norm(t_e_rhs.getArray() * h_s,
+        norm_L2 = numpy.linalg.norm(self._residual.getArray() * h_s,
                                     2)
 
         msg = "Evaluated residuals"
         extra_msg = "with (norm_inf, norm_L2) = " + str((norm_inf, norm_L2))
 
         return (norm_inf, norm_L2)
+    # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
     # Solving...
@@ -2708,6 +2714,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
     @property
     def rhs(self):
         return self._rhs
+
+    @property
+    def residual(self):
+        return self._residual
 
     @property
     def sol(self):
