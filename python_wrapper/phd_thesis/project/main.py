@@ -474,8 +474,9 @@ def compute(comm_dictionary     ,
                          n_p_centers[:, 2] if (dimension == 3) else None,
                          numpy.array(None)                              ,
                          use_mapping = False)
-    data_to_save = numpy.array([exact_solution.sol,
-                                interpolate_sol.getArray()])
+    data_to_save = numpy.array([exact_solution.sol        ,
+                                interpolate_sol.getArray(),
+                                laplacian.residual.getArray()])
 
     return (data_to_save, t_coeffs)
 # ------------------------------------------------------------------------------
@@ -640,6 +641,11 @@ def main():
                  1        , 
                  "Float64", 
                  "Cell"   , 
+                 "ascii")
+    vtk.add_data("residual"  ,
+                 1           ,
+                 "Float64"   ,
+                 "Cell"      ,
                  "ascii")
     # Call parallelization and writing onto file.
     vtk.print_vtk()

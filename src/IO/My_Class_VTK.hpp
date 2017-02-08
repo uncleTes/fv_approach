@@ -178,6 +178,13 @@ public:
                     str << endl;
                 }
             }
+            else if (name == "residual") {
+                for (index = nElements * 2; index < nElements * 3; ++index) {
+                    genericIO::flushASCII(str, indent);
+                    genericIO::flushASCII(str, data[index]);
+                    str << endl;
+                }
+            }
         }
         else {
             if (name == "Points") {
