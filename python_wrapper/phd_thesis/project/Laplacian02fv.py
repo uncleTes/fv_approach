@@ -1826,10 +1826,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     def add_rhs(self,
                 numpy_array):
-        self._rhs = self.add_array(self._rhs        ,
-                                   numpy_array      ,
-                                   "right hand side",
-                                   True)
+        self.add_array(self._rhs        ,
+                       numpy_array      ,
+                       "right hand side",
+                       True)
         msg = "Added array to \"rhs\""
         self.log_msg(msg,
                      "info")
@@ -1863,7 +1863,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         msg = "Added array to \"" + str(a_name) + "\""
         self.log_msg(msg,
                      "info")
-        return vec
    
     # --------------------------------------------------------------------------
     # Initializes a \"PTESc\" array, being made of zeros or values passed by.
