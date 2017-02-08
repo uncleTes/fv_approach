@@ -1393,7 +1393,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Masked global indices of owners inner/outer normal of the inter-
             # section. REMEMBER: \"octree.get_global_idx(octant) + gd\" ==
             #                    \"o_ranges[0] + octant\".
-            # TODO: use a parallel trick.
+            # TODO: use \"multiprocessing\" shared memory to map function on
+            #       local threads.
             m_g_o_norms_inter = map(mask_octant,
                                     [(g_o_norm_inter + g_d) for g_o_norm_inter \
                                      in g_o_norms_inter])
@@ -1430,6 +1431,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                     oct_corners,\
                     numpy_corners = g_n(py_oct)
+                    # TODO: save globally a vector with the corresponding num-
+                    #       ber of the grid covering the penalized octant,
+                    #       without redoing the check calling the function
+                    #       \"check_oct_corners\".
                     # \"is_penalized_useless\" will not be used because we al-
                     # ready know that the octant is penalized (we entered the
                     # \"if\" clause). But we need \"n_polygon\" to be used in
@@ -1466,6 +1471,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 n_nodes_inter  = get_l_owners_nodes_inter(inter            ,
                                                           l_o_norms_inter  ,
                                                           o_ghost          ,
+                                                          # Return also coor-
+                                                          # dinates of the no-
+                                                          # des, and not just
+                                                          # local indices of the
+                                                          # owners.
                                                           also_nodes = True,
                                                           # Return also \"num-
                                                           # py\" data.
