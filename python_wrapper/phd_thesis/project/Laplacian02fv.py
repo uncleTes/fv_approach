@@ -1300,8 +1300,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         f_bound = self._f_bound
         grid = self._proc_g
-        file_name = "./to_print_proc_" + str(self._comm_w.Get_rank()) + ".txt"
-        f1 = open(file_name, "w+")
 
         # Ghosts' deplacement.
         g_d = 0
@@ -1512,21 +1510,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                   l_s_coeffs    ,
                                                                   is_bound_inter,
                                                                   n_normal_inter)
-                printing = ("intersection = " + str(i)                        +
-                            ", g_o_norms_inter = " + str(g_o_norms_inter)     +
-                            ", m_g_o_norms_inter = " + str(m_g_o_norms_inter) +
-                            ", normal_inter = " + str(normal_inter)           +
-                            ", l_o_nodes_inter = " + str(l_o_nodes_inter)     +
-                            ", nodes_inter = " + str(nodes_inter)             +
-                            ", n_cs_n_is = " + str(n_cs_n_is)                 +
-                            ", l_s_coeffs = " + str(l_s_coeffs)               +
-                            ", n_coeffs = " + str(n_coeffs)                   +
-                            ", coeffs_node_1 = " + str(coeffs_node_1)         +
-                            ", coeffs_node_0 = " + str(coeffs_node_0)         +
-                            ", to_rhss = " + str(to_rhss)                     +
-                            ", r_indices = " + str(r_indices)                 +
-                            ", e_solss = " + str(e_solss) + "\n\n")
-                f1.write(printing)
 
                 if (is_ghost_inter and (len(r_indices) == 2)):
                     # Using \"extend.([number])\" to avoid \"TypeError: 'int'
@@ -1655,7 +1638,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self.log_msg(msg   ,
                      "info",
                      extra_msg)
-        f1.close()
     # --------------------------------------------------------------------------
 
     def check_oct_corners(self         ,
