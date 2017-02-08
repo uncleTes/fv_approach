@@ -1340,6 +1340,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_l_owners_nodes_inter = self.get_l_owners_nodes_inter
         find_right_neighbours = self.find_right_neighbours
         set_bg_b_c = self.set_bg_b_c
+        update_rhs = self.update_rhs
         # Lambda functions.
         g_n = lambda x : get_nodes(x               ,
                                    dimension       ,
@@ -1498,40 +1499,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  zip([pair[0] for pair in n_cs_n_is],
                                      [n_node for n_node in n_nodes_inter]))
 
-                to_rhss = []
-                e_solss = []
-                for i_coeff in xrange(0, 2):
-                    to_rhs = []
-                    # Exact solutions.
-                    e_sols = []
-                    n_l_s_coeffs = len(l_s_coeffs[i_coeff])
-                    for l_s_coeff in xrange(0, n_l_s_coeffs):
-                        if (n_cs_n_is[i_coeff][1][l_s_coeff] == "outside_bg"):
-                            n_cs_n_is[i_coeff][1][l_s_coeff] = -1
-                            to_rhs.append(l_s_coeff)
-                            e_sol = ExactSolution2D.ExactSolution2D.solution(n_cs_n_is[i_coeff][0][l_s_coeff][0],
-                                                                             n_cs_n_is[i_coeff][0][l_s_coeff][1],
-                                                                             n_cs_n_is[i_coeff][0][l_s_coeff][2] if \
-                                                                             (dimension == 3)          \
-                                                                             else None             ,
-                                                                             mapping = c_t_dict)
-                            e_sols.append(e_sol)
-                    to_rhss.append(to_rhs)
-                    e_solss.append(e_sols)
-                    # If \"to_rhs\" is not empty.
-                    if (not not to_rhs):
-                        for i_rhs in range(0, len(to_rhs)):
-                            for r_index in range(0, len(r_indices)):
-                                self._rhs.setValues(r_indices[r_index]                      ,
-                                                    (-1 * l_s_coeffs[i_coeff][to_rhs[i_rhs]] * e_sols[i_rhs]),
-                                                    PETSc.InsertMode.ADD_VALUES)
+                update_rhs(l_s_coeffs,
+                           n_cs_n_is ,
+                           r_indices)
 
-                #for i_rhs in xrange(0, len(to_rhss)):
-                #    for i_coeff in to_rhss[i_rhs]:
-                #        numpy.delete(l_s_coeffs[i_rhs], i_coeff)
-                #        numpy.delete(n_cs_n_is[i_rhs][0], i_coeff)
-                #        del n_cs_n_is[i_rhs][1][i_coeff]
-                #        print(n_cs_n_is[i_rhs]
                 n_coeffs     , \
                 coeffs_node_1, \
                 coeffs_node_0  =  self.get_interface_coefficients(inter         ,
@@ -2591,6 +2562,59 @@ class Laplacian(BaseClass2D.BaseClass2D):
         numpy_centers = numpy.array(centers)
 
         return (numpy_centers, indices)
+    # --------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    def update_rhs(self      ,
+                   l_s_coeffs,
+                   n_cs_n_is ,
+                   r_indices):
+        # Number of owners (of the intersection).
+        n_owners = len(r_indices)
+        # Number of owners of the nodes (of the intersection).
+        n_o_nodes = 2
+        dimension = self._dim
+        grid = self._proc_g
+        c_t_dict = self.get_trans(grid)
+        values_rhs = []
+
+        insert_mode = PETSc.InsertMode.ADD_VALUES
+
+        solution = ExactSolution2D.ExactSolution2D.solution
+
+        for i in xrange(0, n_o_nodes):
+            # Number of least square coefficients.
+            n_l_s_coeffs = len(l_s_coeffs[i])
+
+            for j in xrange(0, n_l_s_coeffs):
+                # Neighbour index.
+                n_index = n_cs_n_is[i][1][j]
+
+                if (n_index == "outside_bg"):
+                    # In this way, PETSc will not insert anything in the cor-
+                    # responding indices equal to \"-1\". And of course will not
+                    # cause problems not being no more indices signed as \"out-
+                    # side_bg\".
+                    n_cs_n_is[i][1][j] = -1
+                    e_sol = solution(n_cs_n_is[i][0][j][0],
+                                     n_cs_n_is[i][0][j][1],
+                                     n_cs_n_is[i][0][j][2] if (dimension == 3) \
+                                     else None            ,
+                                     mapping = c_t_dict)
+                    e_sol = -1.0 * e_sol * l_s_coeffs[i][j]
+                    values_rhs.append(e_sol)
+
+        if (not not values_rhs):
+            n_values = len(values_rhs)
+            indices_rhs = [r_indices[0]] * n_values
+
+            if (n_owners == 2):
+                indices_rhs.extend([r_indices[1]] * n_values)
+                values_rhs.extend(values_rhs)
+
+            self._rhs.setValues(indices_rhs,
+                                values_rhs ,
+                                insert_mode)
     # --------------------------------------------------------------------------
     
     # --------------------------------------------------------------------------
