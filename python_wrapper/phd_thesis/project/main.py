@@ -455,8 +455,7 @@ def compute(comm_dictionary     ,
                                  #str((norm_inf, norm_L2)))
     print(msg) 
     norm_inf, \
-    norm_L2 = laplacian.evaluate_residual_norms(exact_solution.sol  ,
-                                                exact_solution.s_der,
+    norm_L2 = laplacian.evaluate_residual_norms(exact_solution.sol,
                                                 h_s)
     msg = utilities.join_strings("Residuals (inf, L2): process ",
                                  "%d " % comm_w.Get_rank()      ,

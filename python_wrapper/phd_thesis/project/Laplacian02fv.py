@@ -1913,7 +1913,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
     def evaluate_residual_norms(self     ,
                                 exact_sol,
-                                exact_rhs,
                                 h_s      ,
                                 petsc_size = True):
         if (not petsc_size):
@@ -1923,23 +1922,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
         else:
             sizes = self.find_sizes()
         # Temporary PETSc exact solution.
-        t_e_sol = PETSc.Vec().createWithArray(exact_sol   ,
-                                              size = sizes,
-                                              comm = self._comm_w)
-        # Temporary PETSc exact rhs.
-        t_e_rhs = PETSc.Vec().createWithArray(exact_rhs   ,
-                                              size = sizes,
-                                              comm = self._comm_w)
+        t_e_sol = self.init_array("exact solution",
+                                  petsc_size      ,
+                                  array = exact_sol)
         # Temporary PETSc array.
         self._residual = self.init_array("residual",
-                                         True      ,
-                                         None)
+                                         petsc_size,
+                                         array = None)
         # \"self._residual\" = \"self._b_mat\" * \"t_e_sol\"
         self._b_mat.mult(t_e_sol,
                          self._residual)
-        # \"self._residual\" = \"self._residual\" - \"t_e_rhs\"
+        # \"self._residual\" = \"self._residual\" - \"self._rhs\"
         self._residual.axpy(-1.0,
-                            t_e_rhs)
+                            self._rhs)
         norm_inf = numpy.linalg.norm(self._residual.getArray(),
                                      # Type of norm we want to evaluate.
                                      numpy.inf)
