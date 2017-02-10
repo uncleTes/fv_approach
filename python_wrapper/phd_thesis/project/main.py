@@ -350,8 +350,18 @@ def set_octree(comm_l,
 
     for octant in xrange(0, n_octs):
         center  = pablo.get_center(octant)[: dimension]
-        if ((center[0] < 0.5) and (center[1] < 0.5)):
-                pablo.set_marker(octant, 1)
+        # Refinement condition on \"x\".
+        ref_cond_x = (center[0] < 0.5)
+        #ref_cond_x = (numpy.abs(center[0] - 0.5) <= 0.1)
+        # Refinement condition on \"y\".
+        ref_cond_y = (center[1] < 0.5)
+        #ref_cond_y = (numpy.abs(center[1] - 0.5) <= 0.1)
+        # Refinement condition on \"y\".
+        # TODO: for 3D cases, implement this condition.
+        ref_cond_z = True if (dimension == 2) else \
+                     True
+        if (ref_cond_x and ref_cond_y and ref_cond_z):
+            pablo.set_marker(octant, 1)
 
     pablo.adapt()
     pablo.load_balance()
