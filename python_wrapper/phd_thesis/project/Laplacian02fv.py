@@ -2447,6 +2447,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         nodes_dict = {}
         for i in xrange(0, nfaces):
+            # Codimension = 1, looping just on the faces.
             codim = 1
             # Index of current face or node.
             face_node = i
@@ -2484,6 +2485,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             else:
                 if (also_outside_boundary):
                     to_consider = True
+
                     border_center, \
                     numpy_border_center = neighbour_centers(c_c      ,
                                                             codim    ,
