@@ -481,9 +481,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         #
         # List containing the edge size of the octants on the boundary.
         b_centers, \
-        b_f_o_n,   \
+        b_f_o_n  , \
         b_indices, \
-        b_codim,   \
+        b_codim  , \
         b_h = ([] for i in range(0, 5))
 
         # Code hoisting.
@@ -507,7 +507,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             m_g_octant = mask_octant(g_octant)
             # Check if the octant is not penalized.
             if (m_g_octant != -1):
-                center  = get_center(octant)[: dimension]
+                center = get_center(octant)[: dimension]
 
                 # Lambda function.
                 g_b = lambda x : get_bound(py_oct, x)
@@ -1197,9 +1197,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 d_o_centers_x,
                 d_o_centers_y)
 
-
-    def get_l_owners_nodes_inter(self          ,
-                                 inter         ,
+    # TODO: change the name of this function, I really do not like it!
+    def get_l_owners_nodes_inter(self              ,
+                                 inter             ,
                                  l_owners_inter    ,
                                  o_ghost           , # Owner ghost; if it is
                                                      # \"None\", there is no ow-
@@ -1373,7 +1373,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               # are giving to the second arg
             # Global indices of owners inner/outer normal of the intersection
             # (is a list, and the first element is the one with the inner nor-
-            # mal), followed by local indices of owners, and an integer to know
+            # mal), followed by local indices of owners (needed by functions
+            # \"get_octant\" and \"get_ghost_octant\"), and an integer to know
             # what owner is ghost.
             #
             # Here, global means global in the current octree. To have global
@@ -1452,10 +1453,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         labels.append(1)
                     else:
                         labels.append(j)
+            # TODO: is the second condition of the following \"if\" necessary?
             if (is_bound_inter and (len(r_indices) == 2)):
                 # Being a boundary intersection, owner is the same.
                 del r_indices[-1]
-            # If the owners of the intersection are not both penalized.
+            # If the owners of the intersection are not both penalized (row in-
+            # dices are not empty).
             if (r_indices):
                 # Local indices of the octants owners of the nodes of the
                 # intersection (needed for \"find_right_neighbours\"
@@ -1479,9 +1482,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                           # Return also \"num-
                                                           # py\" data.
                                                           r_a_n_d = True)
-                # Neighbour centers neighbours indices: it is a list of
-                # tuple, and in each tuple are contained the lists of
-                # centers and indices of each local owner of the nodes.
+                # Neighbour centers neighbours indices: it is a list of tuple,
+                # and in each tuple are contained the lists of centers and in-
+                # dices of each local owner of the nodes.
                 # TODO: use \"multiprocessing\" shared memory to map function on
                 #       local threads.
                 n_cs_n_is = map(f_r_n,
