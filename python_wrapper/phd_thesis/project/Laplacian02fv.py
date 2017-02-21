@@ -1338,7 +1338,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_l_owners_nodes_inter = self.get_l_owners_nodes_inter
         find_right_neighbours = self.find_right_neighbours
         set_bg_b_c = self.set_bg_b_c
-        update_rhs = self.update_rhs
+        fill_rhs = self.fill_rhs
         # Lambda functions.
         g_n = lambda x : get_nodes(x               ,
                                    dimension       ,
@@ -1500,9 +1500,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  zip([pair[0] for pair in n_cs_n_is],
                                      [n_node for n_node in n_nodes_inter]))
 
-                update_rhs(l_s_coeffs,
-                           n_cs_n_is ,
-                           r_indices)
+                fill_rhs(l_s_coeffs,
+                         n_cs_n_is ,
+                         r_indices)
 
                 n_coeffs     , \
                 coeffs_node_1, \
@@ -2511,10 +2511,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    def update_rhs(self      ,
-                   l_s_coeffs,
-                   n_cs_n_is ,
-                   r_indices):
+    def fill_rhs(self      ,
+                 l_s_coeffs,
+                 n_cs_n_is ,
+                 r_indices):
         # Number of owners (of the intersection).
         n_owners = len(r_indices)
         # Number of owners of the nodes (of the intersection).
