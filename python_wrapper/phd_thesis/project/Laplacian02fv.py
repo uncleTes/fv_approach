@@ -2589,6 +2589,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      mapping = c_t_dict)
                     e_sol = -1.0 * e_sol * l_s_coeffs[i][j]
                     values_rhs.append(e_sol)
+        # TODO: check this double negation...useless or not??
 
         if (not not values_rhs):
             n_values = len(values_rhs)
