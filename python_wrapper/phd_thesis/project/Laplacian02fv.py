@@ -1339,6 +1339,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         find_right_neighbours = self.find_right_neighbours
         set_bg_b_c = self.set_bg_b_c
         fill_rhs = self.fill_rhs
+        fill_mat = self.fill_mat
         # Lambda functions.
         g_n = lambda x : get_nodes(x               ,
                                    dimension       ,
@@ -1398,15 +1399,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             m_g_o_norms_inter = map(mask_octant,
                                     [(g_o_norm_inter + g_d) for g_o_norm_inter \
                                      in g_o_norms_inter])
-            # Normal to the intersection, and its numpy version.
-            normal_inter, \
-            n_normal_inter = octree.get_normal(inter,
-                                               True) # We want also
-                                                     # a \"numpy\"
-                                                     # version
-            # Normal's axis, indicating the non-zero component of the
-            # normal.
-            n_axis = numpy.nonzero(n_normal_inter)[0][0]
             # Number of intersection's owners (both in 2D and 3D, it will be
             # always equal to 2).
             n_i_owners = 2
@@ -1504,127 +1496,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                          n_cs_n_is ,
                          r_indices)
 
-                n_coeffs     , \
-                coeffs_node_1, \
-                coeffs_node_0  =  self.get_interface_coefficients(inter         ,
-                                                                  dimension     ,
-                                                                  nodes_inter   ,
-                                                                  owners_centers,
-                                                                  l_s_coeffs    ,
-                                                                  is_bound_inter,
-                                                                  n_normal_inter)
+                fill_mat(inter            ,
+                         nodes_inter      ,
+                         owners_centers   ,
+                         l_s_coeffs       ,
+                         n_cs_n_is        ,
+                         r_indices        ,
+                         c_indices        ,
+                         o_ghost          ,
+                         labels           ,
+                         g_o_norms_inter  ,
+                         m_g_o_norms_inter)
 
-                if (is_ghost_inter and (len(r_indices) == 2)):
-                    # Using \"extend.([number])\" to avoid \"TypeError: 'int'
-                    # object is not iterable\" error.
-                    c_indices.extend([r_indices[1 - o_ghost]])
-                    # The owner of the inner normal will add values also for the
-                    # nodes of the intersection.
-                    if (o_ghost == 1):
-                        c_indices.extend(n_cs_n_is[1][1])
-                        c_indices.extend(n_cs_n_is[0][1])
-                else:
-                    c_indices.extend(r_indices)
-                    if (not is_bound_inter):
-                        c_indices.extend(n_cs_n_is[1][1])
-                        c_indices.extend(n_cs_n_is[0][1])
-                # Both the owners of the intersection are not penalized.
-                if (len(r_indices) == 2):
-                    # Values to insert in \"r_indices\"; each sub list contains
-                    # values for each owner of the intersection.
-                    values = [[], []]
-                    # \"Numpy\" temporary array.
-                    n_t_array = numpy.array([n_coeffs[0],
-                                             n_coeffs[1]])
-                    # If is a ghost intersection, we store just one coefficient
-                    # for each time we will pass on the current intersection
-                    # (being ghost, there will be two processes owning it).
-                    if (is_ghost_inter):
-                        n_t_array = numpy.array(n_coeffs[1 - o_ghost])
-                    # So, if there is no ghost intersection or if the ghost is
-                    # the owner of the outer normal.
-                    if (o_ghost != 0): 
-                        n_t_array = numpy.append(n_t_array,
-                                                 coeffs_node_1)
-                        n_t_array = numpy.append(n_t_array,
-                                                 coeffs_node_0)
-                    # \"values[0]\" is for the owner with the inner normal,
-                    # while \"values[1]\" is for the owner with the outer one:
-                    # Add to the octant with the outer normal, subtract to the
-                    # one with the inner normal.
-                    values[1] = n_t_array.tolist()
-                    values[0] = (n_t_array * -1).tolist()
-                # Just one owner is not penalized, or we are on the boundary.
-                else:
-                    # Values to insert in \"r_indices\".
-                    values = []
-                    n_t_array = numpy.array([n_coeffs[labels[0]]])
-                    # Here we can be only on the background, where some octants
-                    # are penalized.
-                    if (not is_bound_inter):
-                        n_t_array = numpy.append(n_t_array,
-                                                 coeffs_node_1)
-                        n_t_array = numpy.append(n_t_array,
-                                                 coeffs_node_0)
-                        mult = -1.0
-                        # Owner with the outer normal is not penalized, so we
-                        # have to add the coefficients in the corresponding row,
-                        # instead of subtract them.
-                        if (labels[0]):
-                            mult = 1.0
-                        # Penalized global index, not masked.
-                        p_g_index = g_o_norms_inter[1 - labels[0]]
-                        # Not penalized global index, not masked.
-                        n_p_g_index = g_o_norms_inter[labels[0]]
-                        value_to_store = n_coeffs[1 - labels[0]] * mult
-
-                        key = (n_polygon + 1,\
-                               p_g_index    ,\
-                               0)
-
-                        stencil = self._edl.get(key)
-                        displ = 4 if (dimension == 2) else 5
-                        step = 2
-                        # Sometimes \"stencil\" is equal to \"None\" because
-                        # there are values of \"p_g_index\" which correspond to
-                        # ghost octant not included in the local octree, and in
-                        # the local \"self._edl\".
-                        if (stencil):
-                            for k in xrange(displ, len(stencil), step):
-                                if (stencil[k] == n_p_g_index):
-                                    stencil[k + 1] = value_to_store
-                    # We are on a boundary intersection; here normal is always
-                    # directed outside, so the owner is the one with the outer
-                    # normal.
-                    else:
-                        m_octant = m_g_o_norms_inter[labels[0]]
-                        mult = 1.0
-                        value_to_store = n_coeffs[1 - labels[0]] * mult
-                        if (is_background):
-                            set_bg_b_c(inter         ,
-                                       m_octant      ,
-                                       owners_centers,
-                                       n_normal_inter,
-                                       labels        ,
-                                       value_to_store)
-                        else:
-                            key = (grid    ,
-                                   m_octant,
-                                   n_axis)
-                            stencil = self._edl.get(key)
-                            # The \"if\" clause is necessary because interface
-                            # could be on the boundary of the background, where
-                            # the exterior neighbour is not saved previously in
-                            # \"self._edl\" because it is outside the transfor-
-                            # med background.
-                            if (stencil):
-                                stencil[dimension + 1] = value_to_store
-
-                    values = (n_t_array * mult).tolist()
-                self._b_mat.setValues(r_indices, # Row
-                                      c_indices, # Columns
-                                      values   , # Values to be inserted
-                                      PETSc.InsertMode.ADD_VALUES)
         # We have inserted argument \"assembly\" equal to
         # \"PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY\" because the final assembly
         # will be done after inserting the prolongation and restriction blocks.
@@ -2508,6 +2391,163 @@ class Laplacian(BaseClass2D.BaseClass2D):
         numpy_centers = numpy.array(centers)
 
         return (numpy_centers, indices)
+    # --------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    def fill_mat(self             ,
+                 inter            ,
+                 nodes_inter      ,
+                 owners_centers   ,
+                 l_s_coeffs       ,
+                 n_cs_n_is        ,
+                 r_indices        ,
+                 c_indices        ,
+                 o_ghost          ,
+                 labels           ,
+                 g_o_norms_inter  ,
+                 m_g_o_norms_inter):
+
+        grid = self._proc_g
+        octree = self._octree
+        dimension = self._dim
+        is_background = False if (grid) else True
+
+        insert_mode = PETSc.InsertMode.ADD_VALUES
+
+        is_ghost_inter = octree.get_is_ghost(inter,
+                                             True)
+        is_bound_inter = octree.get_bound(inter,
+                                          0    ,
+                                          True)
+        # Normal to the intersection, and its numpy version.
+        normal_inter, \
+        n_normal_inter = octree.get_normal(inter,
+                                           True) # We want also a \"numpy\"
+                                                 # version
+        # Normal's axis, indicating the non-zero component of the normal.
+        n_axis = numpy.nonzero(n_normal_inter)[0][0]
+
+        n_coeffs     , \
+        coeffs_node_1, \
+        coeffs_node_0  =  self.get_interface_coefficients(inter         ,
+                                                          dimension     ,
+                                                          nodes_inter   ,
+                                                          owners_centers,
+                                                          l_s_coeffs    ,
+                                                          is_bound_inter,
+                                                          n_normal_inter)
+
+        if (is_ghost_inter and (len(r_indices) == 2)):
+            # Using \"extend.([number])\" to avoid \"TypeError: 'int'
+            # object is not iterable\" error.
+            c_indices.extend([r_indices[1 - o_ghost]])
+            # The owner of the inner normal will add values also for the
+            # nodes of the intersection.
+            if (o_ghost == 1):
+                c_indices.extend(n_cs_n_is[1][1])
+                c_indices.extend(n_cs_n_is[0][1])
+        else:
+            c_indices.extend(r_indices)
+            if (not is_bound_inter):
+                c_indices.extend(n_cs_n_is[1][1])
+                c_indices.extend(n_cs_n_is[0][1])
+        # Both the owners of the intersection are not penalized.
+        if (len(r_indices) == 2):
+            # Values to insert in \"r_indices\"; each sub list contains
+            # values for each owner of the intersection.
+            values = [[], []]
+            # \"Numpy\" temporary array.
+            n_t_array = numpy.array([n_coeffs[0],
+                                     n_coeffs[1]])
+            # If is a ghost intersection, we store just one coefficient
+            # for each time we will pass on the current intersection
+            # (being ghost, there will be two processes owning it).
+            if (is_ghost_inter):
+                n_t_array = numpy.array(n_coeffs[1 - o_ghost])
+            # So, if there is no ghost intersection or if the ghost is
+            # the owner of the outer normal.
+            if (o_ghost != 0):
+                n_t_array = numpy.append(n_t_array,
+                                         coeffs_node_1)
+                n_t_array = numpy.append(n_t_array,
+                                         coeffs_node_0)
+            # \"values[0]\" is for the owner with the inner normal,
+            # while \"values[1]\" is for the owner with the outer one:
+            # Add to the octant with the outer normal, subtract to the
+            # one with the inner normal.
+            values[1] = n_t_array.tolist()
+            values[0] = (n_t_array * -1).tolist()
+        # Just one owner is not penalized, or we are on the boundary.
+        else:
+            # Values to insert in \"r_indices\".
+            values = []
+            n_t_array = numpy.array([n_coeffs[labels[0]]])
+            # Here we can be only on the background, where some octants
+            # are penalized.
+            if (not is_bound_inter):
+                n_t_array = numpy.append(n_t_array,
+                                         coeffs_node_1)
+                n_t_array = numpy.append(n_t_array,
+                                         coeffs_node_0)
+                mult = -1.0
+                # Owner with the outer normal is not penalized, so we
+                # have to add the coefficients in the corresponding row,
+                # instead of subtract them.
+                if (labels[0]):
+                    mult = 1.0
+                # Penalized global index, not masked.
+                p_g_index = g_o_norms_inter[1 - labels[0]]
+                # Not penalized global index, not masked.
+                n_p_g_index = g_o_norms_inter[labels[0]]
+                value_to_store = n_coeffs[1 - labels[0]] * mult
+
+                key = (n_polygon + 1,\
+                       p_g_index    ,\
+                       0)
+
+                stencil = self._edl.get(key)
+                displ = 4 if (dimension == 2) else 5
+                step = 2
+                # Sometimes \"stencil\" is equal to \"None\" because
+                # there are values of \"p_g_index\" which correspond to
+                # ghost octant not included in the local octree, and in
+                # the local \"self._edl\".
+                if (stencil):
+                    for k in xrange(displ, len(stencil), step):
+                        if (stencil[k] == n_p_g_index):
+                            stencil[k + 1] = value_to_store
+            # We are on a boundary intersection; here normal is always
+            # directed outside, so the owner is the one with the outer
+            # normal.
+            else:
+                m_octant = m_g_o_norms_inter[labels[0]]
+                mult = 1.0
+                value_to_store = n_coeffs[1 - labels[0]] * mult
+                if (is_background):
+                    self.set_bg_b_c(inter         ,
+                                    m_octant      ,
+                                    owners_centers,
+                                    n_normal_inter,
+                                    labels        ,
+                                    value_to_store)
+                else:
+                    key = (grid    ,
+                           m_octant,
+                           n_axis)
+                    stencil = self._edl.get(key)
+                    # The \"if\" clause is necessary because interface
+                    # could be on the boundary of the background, where
+                    # the exterior neighbour is not saved previously in
+                    # \"self._edl\" because it is outside the transfor-
+                    # med background.
+                    if (stencil):
+                        stencil[dimension + 1] = value_to_store
+
+            values = (n_t_array * mult).tolist()
+        self._b_mat.setValues(r_indices, # Row
+                              c_indices, # Columns
+                              values   , # Values to be inserted
+                              insert_mode)
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
