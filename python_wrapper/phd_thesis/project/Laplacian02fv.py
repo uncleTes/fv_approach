@@ -613,6 +613,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                          is_background):
         dimension = self._dim
         octree = self._octree
+        n_grids = self._n_grids
 
         # Code hoisting.
         get_nodes = octree.get_nodes
@@ -650,9 +651,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 py_ghost_oct = get_ghost_octant(neighs[i])
                 n_center = get_center(py_ghost_oct,
                                       True)[: dimension]
-            # TODO: if we have just one grid, this \"if\" branch is useless.
-            #       Add a check to enter here just in case of two or more grids.
-            if (is_background):
+
+            if ((n_grids > 1) and (is_background)):
                 t_foregrounds = self._t_foregrounds
                 # Current transformation matrix's dictionary.
                 c_t_dict = self.get_trans(0)
@@ -723,6 +723,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         grid = self._proc_g
         n_oct = self._n_oct
+        n_grids = self._n_grids
         octree = self._octree
         nfaces = octree.get_n_faces()
         dimension = self._dim
@@ -766,9 +767,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Check to know if an octant is penalized.
             is_penalized = False
             # Background grid.
-            # TODO: if we have just one grid, this \"if\" branch is useless.
-            #       Add a check to enter here just in case of two or more grids.
-            if (is_background):
+            if ((n_grids > 1) and (is_background)):
                 oct_corners, \
                 numpy_corners = get_nodes(octant   ,
                                           dimension,
@@ -1959,6 +1958,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                      intercommunicators."""
 
         grid = self._proc_g
+        n_grids = self._n_grids
         n_oct = self._n_oct
         comm_w = self._comm_w
         comm_l = self._comm
@@ -1967,71 +1967,72 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_background = True
         if grid:
             is_background = False
-        o_ranges = self.get_ranges()
-        # Upper bound octree's id contained.
-        up_id_octree = o_ranges[0] + n_oct
-        # Octree's ids contained.
-        ids_octree_contained = (o_ranges[0], up_id_octree)
-        self._n_edl = numpy.array(self._edl.items(),
-                                  dtype = self._d_type_s)
-        mpi_requests = []
-        one_el = numpy.empty(1,
-                             dtype = numpy.int64)
-        one_el[0] = len(self._edl)
-        displ = 0
+        if (n_grids > 1):
+            o_ranges = self.get_ranges()
+            # Upper bound octree's id contained.
+            up_id_octree = o_ranges[0] + n_oct
+            # Octree's ids contained.
+            ids_octree_contained = (o_ranges[0], up_id_octree)
+            self._n_edl = numpy.array(self._edl.items(),
+                                      dtype = self._d_type_s)
+            mpi_requests = []
+            one_el = numpy.empty(1,
+                                 dtype = numpy.int64)
+            one_el[0] = len(self._edl)
+            displ = 0
 
-        for key, intercomm in intercomm_dictionary.items():
-            req = intercomm.Iallgather(one_el,
-                                       [self._edg_c, 1, displ, MPI.INT64_T])
-            mpi_requests.append(req)
+            for key, intercomm in intercomm_dictionary.items():
+                req = intercomm.Iallgather(one_el,
+                                           [self._edg_c, 1, displ, MPI.INT64_T])
+                mpi_requests.append(req)
 
-            r_g_s = intercomm.Get_remote_size()
-            displ += r_g_s
+                r_g_s = intercomm.Get_remote_size()
+                displ += r_g_s
 
-        for i, mpi_request in enumerate(mpi_requests):
-            status = MPI.Status()
-            mpi_request.Wait(status)
+            for i, mpi_request in enumerate(mpi_requests):
+                status = MPI.Status()
+                mpi_request.Wait(status)
 
-        t_length = 0
-        for index, size_edl in enumerate(self._edg_c):
-            t_length += size_edl
+            t_length = 0
+            for index, size_edl in enumerate(self._edg_c):
+                t_length += size_edl
 
-        self._n_edg = numpy.zeros(t_length,
-                                  dtype = self._d_type_r)
+            self._n_edg = numpy.zeros(t_length,
+                                      dtype = self._d_type_r)
 
-        displs = [0] * len(self._edg_c)
-        offset = 0
-        for i in range(1, len(self._edg_c)):
-            offset += self._edg_c[i-1]
-            displs[i] = offset
+            displs = [0] * len(self._edg_c)
+            offset = 0
+            for i in range(1, len(self._edg_c)):
+                offset += self._edg_c[i-1]
+                displs[i] = offset
 
-        # \"self._n_edg\" position.
-        n_edg_p = 0
-        mpi_requests = []
-        for key, intercomm in intercomm_dictionary.items():
-            # Remote group size.
-            r_g_s = intercomm.Get_remote_size()
-            i = n_edg_p
-            j = i + r_g_s
-            req = intercomm.Iallgatherv([self._n_edl, self._mpi_d_t_s],
-                                        [self._n_edg       ,
-                                         self._edg_c[i : j],
-                                         displs[i : j]     ,
-                                         self._mpi_d_t_r])
-            n_edg_p += r_g_s
-            mpi_requests.append(req)
+            # \"self._n_edg\" position.
+            n_edg_p = 0
+            mpi_requests = []
+            for key, intercomm in intercomm_dictionary.items():
+                # Remote group size.
+                r_g_s = intercomm.Get_remote_size()
+                i = n_edg_p
+                j = i + r_g_s
+                req = intercomm.Iallgatherv([self._n_edl, self._mpi_d_t_s],
+                                            [self._n_edg       ,
+                                             self._edg_c[i : j],
+                                             displs[i : j]     ,
+                                             self._mpi_d_t_r])
+                n_edg_p += r_g_s
+                mpi_requests.append(req)
 
-        for i, mpi_request in enumerate(mpi_requests):
-            status = MPI.Status()
-            mpi_request.Wait(status)
+            for i, mpi_request in enumerate(mpi_requests):
+                status = MPI.Status()
+                mpi_request.Wait(status)
 
-        if (not is_background):
-            self.update_fg_grids(o_ranges,
-                                 ids_octree_contained)
-        else:
-            if (self._n_grids > 1):
-                self.update_bg_grids(o_ranges,
+            if (not is_background):
+                self.update_fg_grids(o_ranges,
                                      ids_octree_contained)
+            else:
+                if (self._n_grids > 1):
+                    self.update_bg_grids(o_ranges,
+                                         ids_octree_contained)
 
         self.assembly_petsc_struct("matrix",
                                    PETSc.Mat.AssemblyType.FINAL_ASSEMBLY)
