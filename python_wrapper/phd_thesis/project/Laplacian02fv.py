@@ -1241,11 +1241,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # cal octant owner.
                     l_owner = l_owners_inter[1 - o_ghost]
                 else:
-                    # In this case, the owner will be one of the owners of the
-                    # intersection (it will be different for each node in 2D,
-                    # and different in \"modulo 2\" in 3D, except for boundary
-                    # intersection where the local onwer will be always the sa-
-                    # me).
+                    # In this case, boundary intersection, the local onwer will
+                    # be always the same.
                     l_owner = l_owners_inter[i % 2]
             else:
                 l_owner = t_owner
