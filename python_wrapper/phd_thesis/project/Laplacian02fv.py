@@ -674,13 +674,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (not is_penalized):
                 if (is_n_penalized):
                     # Being the neighbour penalized, it means that it will
-                    # be substituted by 13 octant being part of the fore-
-                    # ground grids, so being on the non diagonal part of the
-                    # grid.
+                    # be substituted by 9 octant being part of the foreground
+                    # grids, so being on the non diagonal part of the grid.
                     # TODO: This is the worst case, not always presents. We
                     #       should find a better way to evaluate the right num-
                     #       ber of neighbours.
-                    o_count += 13
+                    o_count += 9
                 else:
                     if (ghosts[i]):
                         o_count += 1
@@ -852,15 +851,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # elements are contained into the background, and we are
                         # not checking it or if they are outside it (it should
                         # not have a lot of sense however). That's why we are
-                        # adding always +13 to the \"o_count\" variable, despite
+                        # adding always +9 to the \"o_count\" variable, despite
                         # the fact that they could be on the border of the back-
                         # ground domain, exactly, and in this case we should not
                         # add anything to \"o_count\" and \"d_count\", being an
-                        # exact boundary condition. It is added +13 because now,
+                        # exact boundary condition. It is added +9 because now,
                         # being in a finite volume approach, we can let the oc-
                         # tants to have one level of difference between them, so
                         # an octant can have two neighbours on one face.
-                        o_count += 13
+                        o_count += 9
 
             # For the moment, we have to store space in the \"PETSc\" matrix for
             # the octants that will interpolate with the least square method (13
@@ -872,8 +871,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # (\"d_count\").
             # TODO: find a better algorithm to store just the right number of e-
             # lements for \"d_count\" and for \"o_count\".
-            d_count += (13 * n_neighbours)
-            o_count += (13 * n_neighbours)
+            d_count += (9 * n_neighbours)
+            o_count += (9 * n_neighbours)
             if (not is_penalized):
                 d_nnz.append(d_count)
                 o_nnz.append(o_count)
@@ -2308,8 +2307,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
         c_c = octree.get_center(current_octant)[: dimension]
         h = octree.get_area(current_octant)
 
+        #centers.append(c_c)
+
         index = current_octant
         m_index = self.mask_octant(index + start_octant)
+
+        #indices.append(m_index)
 
         neighs, ghosts = ([] for i in range(0, 2))
 
