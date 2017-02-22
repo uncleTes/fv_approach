@@ -795,14 +795,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # octant;
                 # third, fourth and fifth \"stencil\"'s elements: center of the
                 # penalized octant;
-                # others \"stencil\"'s elements: global indices and centers of
-                # the neighbours not penalized (being in a case of a possible
-                # jump of 1 level between elements, we have to store two possi-
-                # ble neighbours for each face of the current octant), and coef-
-                # ficient to multiply \"least squares\" approximation.
-                stencil = [-1] * 20 if (dimension == 2) else [-1] * 21
+                # others \"stencil\"'s elements: global indices and coefficient
+                # to multiply \"least squares\" approximation (being in a case
+                # of a possible jump of 1 level between elements, we have to
+                # store two possible neighbours for each face of the current oc-
+                # tant).
+                l_stencil = 20 if (dimension == 2) else 21
+                stencil = [-1] * l_stencil
                 stencil[0] = h # TODO: is this useful or not? I think not.
-                stencil[1] = g_octant
+                stencil[1] = g_octant # TODO: is this useful? I think not, be-
+                                      #       cause it is already into \"key\".
                 for i in xrange(dimension):
                     stencil[2 + i] = center[i]
                 # http://www.laurentluce.com/posts/python-dictionary-implementation/
