@@ -1442,8 +1442,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         labels.append(1)
                     else:
                         labels.append(j)
-            # TODO: is the second condition of the following \"if\" necessary?
-            if (is_bound_inter and (len(r_indices) == 2)):
+            if (is_bound_inter):
                 # Being a boundary intersection, owner is the same.
                 del r_indices[-1]
             # If the owners of the intersection are not both penalized (row in-
