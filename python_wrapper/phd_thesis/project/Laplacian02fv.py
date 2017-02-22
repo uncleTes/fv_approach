@@ -873,8 +873,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # (\"d_count\").
             # TODO: find a better algorithm to store just the right number of e-
             # lements for \"d_count\" and for \"o_count\".
-            d_count += (9 * n_neighbours)
-            o_count += (9 * n_neighbours)
+            if (not is_background):
+                d_count += (9 * n_neighbours)
+                o_count += (9 * n_neighbours)
             if (not is_penalized):
                 d_nnz.append(d_count)
                 o_nnz.append(o_count)
