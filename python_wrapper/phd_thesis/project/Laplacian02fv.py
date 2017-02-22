@@ -1478,10 +1478,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #       local threads.
                 n_cs_n_is = map(f_r_n,
                                 l_o_nodes_inter)
-                # TODO: try to apply in place of your \"least_squares\" method,
-                #       the one into \"numpy\", to avoid (or try to) possible
-                #       cases of the error \"_raise_linalgerror_singular\", and
-                #       also because, of course, it should be better performing.
                 # Least square coefficients.
                 # TODO: use \"multiprocessing\" shared memory to map function on
                 #       local threads.
