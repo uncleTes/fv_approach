@@ -873,9 +873,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # (\"d_count\").
             # TODO: find a better algorithm to store just the right number of e-
             # lements for \"d_count\" and for \"o_count\".
-            if (not is_background):
-                d_count += (9 * n_neighbours)
-                o_count += (9 * n_neighbours)
+            d_count += (9 * n_neighbours)
+            o_count += (9 * n_neighbours)
             if (not is_penalized):
                 d_nnz.append(d_count)
                 o_nnz.append(o_count)
@@ -1436,7 +1435,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # If an intersection owner is penalized (it should be just for
                 # background grid)...
                 if (m_g_octant == -1):
-
                     oct_corners,\
                     numpy_corners = g_n(py_oct)
                     # TODO: save globally a vector with the corresponding num-
