@@ -2291,6 +2291,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                       of centers and indices of
                                                       the neighbours."""
 
+        if (current_octant == "boundary"):
+            # A \"numpy\" empty array (size == 0) of shape (2, 0).
+            n_e_array = numpy.array([[], []])
+            return (n_e_array, n_e_array)
+
         octree = self._octree
         py_oct = octree.get_octant(current_octant)
         centers = []
