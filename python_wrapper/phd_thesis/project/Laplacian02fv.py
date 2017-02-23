@@ -841,8 +841,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 else:
                     # Adding an imaginary neighbour...why it is explained later,
                     # encountering the following two lines of code:
-                    # \"d_count += (13 * n_neighbours)\"
-                    # \"o_count += (13 * n_neighbours)\"
+                    # \"d_count += (9 * n_neighbours)\"
+                    # \"o_count += (9 * n_neighbours)\"
                     n_neighbours = n_neighbours + 1
 
                     if (not is_background):
@@ -2361,7 +2361,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             neighs        ,
                                             ghosts)
 
-        nodes_dict = {}
         for i in xrange(0, nfaces):
             # Codimension = 1, looping just on the faces.
             codim = 1
