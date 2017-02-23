@@ -339,9 +339,9 @@ def is_point_on_lines(point,
 
     cdef size_t i
     cdef size_t j
-    cdef size_t n_lines = 4
+    cdef size_t n_lines = 4 if (dimension == 2) else 12
     cdef bool on_lines = False
-
+    # TODO: Modify for 3D case.
     for i in xrange(0, n_lines):
         j = (i + 1) if (i < 3) else 0
         on_lines = is_point_on_line(point                           ,
@@ -367,6 +367,14 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
                        ndim = 2] A = \
          numpy.zeros(shape = (n_points, n_cols), \
                      dtype = numpy.float64)
+    # A \"numpy\" empty array (size == 0) of shape (0,).
+    cdef numpy.ndarray[dtype = numpy.float64_t,
+                       ndim = 1] n_e_array = \
+         numpy.array([], \
+                     dtype = numpy.float64)
+
+    if (points.size == 0):
+        return n_e_array
 
     for i in range(n_points):
         for j in range(dim):
