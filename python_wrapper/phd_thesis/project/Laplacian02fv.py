@@ -1433,11 +1433,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           also_numpy_center = True)[: dimension]
                 owners_centers.append(numpy_center)
                 m_g_octant = m_g_o_norms_inter[j]
-                is_penalized = False
                 # If an intersection owner is penalized (it should be just for
                 # background grid)...
                 if (m_g_octant == -1):
-                    is_penalized = True
 
                     oct_corners,\
                     numpy_corners = g_n(py_oct)
@@ -1454,9 +1452,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                   c_t_dict     ,
                                                   t_foregrounds)
                 # ...else...
-                # TODO: substitute the \"if (not...)\" clause with an \"else\"
-                #       to avoid the check of the condition.
-                if (not is_penalized):
+                else:
                     r_indices.append(m_g_octant)
                     if (is_bound_inter):
                         # Normal always directed outside the domain.
@@ -1505,21 +1501,34 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  zip([pair[0] for pair in n_cs_n_is],
                                      [n_node for n_node in n_nodes_inter]))
 
-                fill_rhs(l_s_coeffs,
-                         n_cs_n_is ,
-                         r_indices)
+                n_coeffs     , \
+                coeffs_node_1, \
+                coeffs_node_0  =  self.get_interface_coefficients(inter         ,
+                                                                  dimension     ,
+                                                                  nodes_inter   ,
+                                                                  owners_centers,
+                                                                  l_s_coeffs)
+
+                coeffs_nodes = (coeffs_node_0,
+                                coeffs_node_1)
+
+                fill_rhs(l_s_coeffs  ,
+                         coeffs_nodes,
+                         n_cs_n_is   ,
+                         r_indices   ,
+                         n_nodes_inter)
 
                 fill_mat(inter            ,
-                         nodes_inter      ,
                          owners_centers   ,
-                         l_s_coeffs       ,
                          n_cs_n_is        ,
                          r_indices        ,
                          c_indices        ,
                          o_ghost          ,
                          labels           ,
                          g_o_norms_inter  ,
-                         m_g_o_norms_inter)
+                         m_g_o_norms_inter,
+                         coeffs_nodes     ,
+                         n_coeffs)
 
         # We have inserted argument \"assembly\" equal to
         # \"PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY\" because the final assembly
