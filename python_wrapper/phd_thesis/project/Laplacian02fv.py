@@ -2563,15 +2563,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    def fill_rhs(self      ,
-                 l_s_coeffs,
-                 n_cs_n_is ,
-                 r_indices):
+    def fill_rhs(self        ,
+                 l_s_coeffs  ,
+                 coeffs_nodes,
+                 n_cs_n_is   ,
+                 r_indices   ,
+                 n_nodes_inter):
         # Number of owners (of the intersection).
         n_owners = len(r_indices)
-        # Number of owners of the nodes (of the intersection).
-        n_o_nodes = 2
         dimension = self._dim
+        # Number of owners of the nodes (of the intersection).
+        n_o_nodes = 2 if (dimension == 2) else 4
         grid = self._proc_g
         c_t_dict = self.get_trans(grid)
         values_rhs = []
@@ -2582,27 +2584,38 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         for i in xrange(0, n_o_nodes):
             # Number of least square coefficients.
-            n_l_s_coeffs = len(l_s_coeffs[i])
+            n_l_s_coeffs = l_s_coeffs[i].size
+            # The node \"i\" of the interface is on the boundary.
+            if (n_l_s_coeffs == 0):
+                e_sol = solution(n_nodes_inter[i][0],
+                                 n_nodes_inter[i][1],
+                                 n_nodes_inter[i][2] if (dimension == 3) \
+                                 else None            ,
+                                 mapping = c_t_dict)
+                e_sol_coeff = coeffs_nodes[i]
+                e_sol = -1.0 * e_sol * e_sol_coeff
+                values_rhs.append(e_sol)
+            else:
+                for j in xrange(0, n_l_s_coeffs):
+                    # Neighbour index.
+                    n_index = n_cs_n_is[i][1][j]
 
-            for j in xrange(0, n_l_s_coeffs):
-                # Neighbour index.
-                n_index = n_cs_n_is[i][1][j]
+                    if (n_index == "outside_bg"):
+                        # In this way, PETSc will not insert anything in the cor-
+                        # responding indices equal to \"-1\". And of course will
+                        # not cause problems not being no more indices signed as
+                        # \"outside_bg\".
+                        n_cs_n_is[i][1][j] = -1
+                        e_sol = solution(n_cs_n_is[i][0][j][0],
+                                         n_cs_n_is[i][0][j][1],
+                                         n_cs_n_is[i][0][j][2] if (dimension == 3) \
+                                         else None            ,
+                                         mapping = c_t_dict)
+                        e_sol_coeff = coeffs_nodes[i][j]
+                        e_sol = -1.0 * e_sol * e_sol_coeff
+                        values_rhs.append(e_sol)
 
-                if (n_index == "outside_bg"):
-                    # In this way, PETSc will not insert anything in the cor-
-                    # responding indices equal to \"-1\". And of course will not
-                    # cause problems not being no more indices signed as \"out-
-                    # side_bg\".
-                    n_cs_n_is[i][1][j] = -1
-                    e_sol = solution(n_cs_n_is[i][0][j][0],
-                                     n_cs_n_is[i][0][j][1],
-                                     n_cs_n_is[i][0][j][2] if (dimension == 3) \
-                                     else None            ,
-                                     mapping = c_t_dict)
-                    e_sol = -1.0 * e_sol * l_s_coeffs[i][j]
-                    values_rhs.append(e_sol)
-        # TODO: check this double negation...useless or not??
-        if (not not values_rhs):
+        if (values_rhs):
             n_values = len(values_rhs)
             indices_rhs = [r_indices[0]] * n_values
 
