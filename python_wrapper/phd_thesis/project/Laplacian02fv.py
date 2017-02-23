@@ -1868,7 +1868,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         # Setting tolerances.
 	# 1.0e-06 with level 9,9 is still ok for convergence
-        tol = 1.e-10
+        tol = 1.e-15
         ksp.setTolerances(rtol = tol            ,
                           atol = tol            ,
                           divtol = PETSc.DEFAULT, # Let's PETSc use DEAFULT
