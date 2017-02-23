@@ -1073,13 +1073,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                     # of the intersection
                                    owners_centers,  # Centers of the owners of
                                                     # the intersection
-                                   l_s_coeffs    ,  # Least square coefficients.
-                                   is_bound_inter,  # is a boundary intersection
-                                   n_normal_inter): # numpy normal vector to the
-                                                    # intersection
+                                   l_s_coeffs):     # Least square coefficients.
         octree = self._octree
         grid = self._proc_g
         c_t_dict = self.get_trans(grid)
+        is_bound_inter = octree.get_bound(inter,
+                                          0    ,
+                                          True)
+        # Normal to the intersection, and its numpy version.
+        normal_inter, \
+        n_normal_inter = octree.get_normal(inter,
+                                           True) # We want also a \"numpy\"
+                                                 # version
         n_axis = numpy.nonzero(n_normal_inter)[0][0]
         # evaluating length of the intersection, depending on its direc-
         # tion.
@@ -1145,8 +1150,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                              coeff_trans_y)
         n_coeffs = n_coeffs_grad_x + n_coeffs_grad_y
 
-        coeffs_node_1 = l_s_coeffs[1] * n_coeffs[2]
-        coeffs_node_0 = l_s_coeffs[0] * n_coeffs[3]
+        mult_node_1 = 1.0
+        mult_node_0 = mult_node_1
+        if (l_s_coeffs[1].size):
+            mult_node_1 = l_s_coeffs[1]
+        if (l_s_coeffs[0].size):
+            mult_node_0 = l_s_coeffs[0]
+
+        coeffs_node_1 = mult_node_1 * n_coeffs[2]
+        coeffs_node_0 = mult_node_0 * n_coeffs[3]
 
         return (n_coeffs     ,
                 coeffs_node_1,
