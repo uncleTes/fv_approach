@@ -2408,20 +2408,22 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
     def fill_mat(self             ,
                  inter            ,
-                 nodes_inter      ,
                  owners_centers   ,
-                 l_s_coeffs       ,
                  n_cs_n_is        ,
                  r_indices        ,
                  c_indices        ,
                  o_ghost          ,
                  labels           ,
                  g_o_norms_inter  ,
-                 m_g_o_norms_inter):
+                 m_g_o_norms_inter,
+                 coeffs_nodes     ,
+                 n_coeffs):
 
         grid = self._proc_g
         octree = self._octree
         dimension = self._dim
+        coeffs_node_0 = coeffs_nodes[0]
+        coeffs_node_1 = coeffs_nodes[1]
         is_background = False if (grid) else True
 
         insert_mode = PETSc.InsertMode.ADD_VALUES
@@ -2439,16 +2441,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Normal's axis, indicating the non-zero component of the normal.
         n_axis = numpy.nonzero(n_normal_inter)[0][0]
 
-        n_coeffs     , \
-        coeffs_node_1, \
-        coeffs_node_0  =  self.get_interface_coefficients(inter         ,
-                                                          dimension     ,
-                                                          nodes_inter   ,
-                                                          owners_centers,
-                                                          l_s_coeffs    ,
-                                                          is_bound_inter,
-                                                          n_normal_inter)
-
         if (is_ghost_inter and (len(r_indices) == 2)):
             # Using \"extend.([number])\" to avoid \"TypeError: 'int'
             # object is not iterable\" error.
@@ -2456,13 +2448,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # The owner of the inner normal will add values also for the
             # nodes of the intersection.
             if (o_ghost == 1):
-                c_indices.extend(n_cs_n_is[1][1])
-                c_indices.extend(n_cs_n_is[0][1])
+                # We are addding the indices of the interpolation done for the
+                # nodes of the intersection, only if the nodes are not on the
+                # background boundary.
+                if (n_cs_n_is[1][0].size):
+                    c_indices.extend(n_cs_n_is[1][1])
+                if (n_cs_n_is[0][0].size):
+                    c_indices.extend(n_cs_n_is[0][1])
         else:
             c_indices.extend(r_indices)
             if (not is_bound_inter):
-                c_indices.extend(n_cs_n_is[1][1])
-                c_indices.extend(n_cs_n_is[0][1])
+                # See explanation of the comment just above.
+                if (n_cs_n_is[1][0].size):
+                    c_indices.extend(n_cs_n_is[1][1])
+                if (n_cs_n_is[0][0].size):
+                    c_indices.extend(n_cs_n_is[0][1])
         # Both the owners of the intersection are not penalized.
         if (len(r_indices) == 2):
             # Values to insert in \"r_indices\"; each sub list contains
@@ -2479,10 +2479,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # So, if there is no ghost intersection or if the ghost is
             # the owner of the outer normal.
             if (o_ghost != 0):
-                n_t_array = numpy.append(n_t_array,
-                                         coeffs_node_1)
-                n_t_array = numpy.append(n_t_array,
-                                         coeffs_node_0)
+                if (n_cs_n_is[1][0].size):
+                    n_t_array = numpy.append(n_t_array,
+                                             coeffs_node_1)
+                if (n_cs_n_is[0][0].size):
+                    n_t_array = numpy.append(n_t_array,
+                                             coeffs_node_0)
             # \"values[0]\" is for the owner with the inner normal,
             # while \"values[1]\" is for the owner with the outer one:
             # Add to the octant with the outer normal, subtract to the
@@ -2497,10 +2499,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Here we can be only on the background, where some octants
             # are penalized.
             if (not is_bound_inter):
-                n_t_array = numpy.append(n_t_array,
-                                         coeffs_node_1)
-                n_t_array = numpy.append(n_t_array,
-                                         coeffs_node_0)
+                if (n_cs_n_is[1][0].size):
+                    n_t_array = numpy.append(n_t_array,
+                                             coeffs_node_1)
+                if (n_cs_n_is[0][0].size):
+                    n_t_array = numpy.append(n_t_array,
+                                             coeffs_node_0)
                 mult = -1.0
                 # Owner with the outer normal is not penalized, so we
                 # have to add the coefficients in the corresponding row,
