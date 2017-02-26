@@ -449,7 +449,8 @@ def compute(comm_dictionary     ,
                            n_p_centers[:, 2] if (dimension == 3) else None)
     laplacian.init_rhs()
     laplacian.init_mat((d_nnz, o_nnz))
-    laplacian.check_boundaries()
+    if (n_grids > 1):
+        laplacian.check_foreground_boundaries()
     laplacian.fill_mat_and_rhs()
     laplacian.add_rhs(exact_solution.s_der)
     laplacian.update_values(intercomm_dictionary)

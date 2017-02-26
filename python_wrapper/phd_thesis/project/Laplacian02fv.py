@@ -453,8 +453,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    # Set boundary conditions.
-    def check_boundaries(self):
+    # Checking boundary conditions for foreground grids.
+    def check_foreground_boundaries(self):
         """Method which check boundaries and, for the foreground ones, store the
            values needed later for the restriction/prolongation communication."""
 
