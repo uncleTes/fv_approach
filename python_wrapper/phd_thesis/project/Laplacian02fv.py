@@ -494,7 +494,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_area = octree.get_area
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygon = utilities.is_point_inside_polygon
-
+        # TODO: try to parallelize this for avoiding data dependencies.
         for octant in xrange(0, n_oct):
             py_oct = get_octant(octant)
             # \"get_area\" is always of codimension 1, so in 2D with quadtrees,
@@ -751,7 +751,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_bound = octree.get_bound
         check_neighbours = self.check_neighbours
         check_oct_corners = self.check_oct_corners
-
+        # TODO: try to parallelize this for avoiding data dependencies.
         for octant in octants:
             d_count, o_count = 0, 0
             g_octant = g_octants[octant]
