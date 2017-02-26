@@ -1511,6 +1511,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 coeffs_node_1)
 
                 fill_rhs(l_s_coeffs  ,
+                         labels      ,
+                         o_ghost     ,
                          coeffs_nodes,
                          n_cs_n_is   ,
                          r_indices   ,
@@ -2614,6 +2616,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
     def fill_rhs(self        ,
                  l_s_coeffs  ,
+                 labels      ,
+                 o_ghost     ,
                  coeffs_nodes,
                  n_cs_n_is   ,
                  r_indices   ,
@@ -2630,6 +2634,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
         insert_mode = PETSc.InsertMode.ADD_VALUES
 
         solution = ExactSolution2D.ExactSolution2D.solution
+        # If the first octant owner of the intersection has the inner normal,
+        # then the values should be subtracted, so added to the rhs. Viceversa
+        # if the owner has the outgoing normal.
+        mult = 1.0
+        if (labels[0]):
+            mult = -1.0
 
         for i in xrange(0, n_o_nodes):
             # Number of least square coefficients.
@@ -2642,8 +2652,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  else None            ,
                                  mapping = c_t_dict)
                 e_sol_coeff = coeffs_nodes[i]
-                e_sol = -1.0 * e_sol * e_sol_coeff
-                values_rhs.append(e_sol)
+                e_sol = mult * e_sol * e_sol_coeff
+                # The owner of the inner normal will add values of the nodes of
+                # the intersection (on the background border) to the rhs. Same
+                # behaviour if there is no ghost intersection (\"o_ghost\" =
+                # \"None\").
+                if (o_ghost != 0):
+                    values_rhs.append(e_sol)
             else:
                 for j in xrange(0, n_l_s_coeffs):
                     # Neighbour index.
@@ -2661,16 +2676,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                          else None            ,
                                          mapping = c_t_dict)
                         e_sol_coeff = coeffs_nodes[i][j]
-                        e_sol = -1.0 * e_sol * e_sol_coeff
-                        values_rhs.append(e_sol)
+                        e_sol = mult * e_sol * e_sol_coeff
+                        # The owner of the inner normal will add values of the
+                        # interpolated nodes "outside_bg" to the rhs. Same
+                        # behaviour if there is no ghost intersection
+                        # (\"o_ghost\" = \"None\").
+
+                        if (o_ghost != 0):
+                            values_rhs.append(e_sol)
 
         if (values_rhs):
             n_values = len(values_rhs)
             indices_rhs = [r_indices[0]] * n_values
 
             if (n_owners == 2):
+                # TODO: change \"lists\" with \"numpy\" arrays.
                 indices_rhs.extend([r_indices[1]] * n_values)
-                values_rhs.extend(values_rhs)
+                tmp_values_rhs = [ -1.0 * value for value in values_rhs]
+                values_rhs.extend(tmp_values_rhs)
 
             self._rhs.setValues(indices_rhs,
                                 values_rhs ,
