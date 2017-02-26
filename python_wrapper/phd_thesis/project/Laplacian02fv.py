@@ -1370,9 +1370,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        x[1])
 
         for i in xrange(0, ninters):
-            # Rows and columns indices for the \"PETSc\" matrix.
-            r_indices, \
-            c_indices = ([] for i in range(0, 2))
+            # Rows indices for the \"PETSc\" matrix.
+            r_indices = []
             # Centers of the owners of the intersection.
             owners_centers = []
             # Centers and indices of the neighbours of the octants owners of
@@ -1419,6 +1418,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Number of intersection's owners (both in 2D and 3D, it will be
             # always equal to 2).
             n_i_owners = 2
+            n_polygon = None
             # Looping on the owners of the intersection.
             for j in xrange(0, n_i_owners):
                 # Here, means that the owner is ghost.
