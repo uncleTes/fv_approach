@@ -1520,12 +1520,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                          owners_centers   ,
                          n_cs_n_is        ,
                          r_indices        ,
-                         c_indices        ,
                          o_ghost          ,
                          labels           ,
                          g_o_norms_inter  ,
                          m_g_o_norms_inter,
                          coeffs_nodes     ,
+                         n_polygon        ,
                          n_coeffs)
 
         # We have inserted argument \"assembly\" equal to
@@ -2429,12 +2429,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                  owners_centers   ,
                  n_cs_n_is        ,
                  r_indices        ,
-                 c_indices        ,
                  o_ghost          ,
                  labels           ,
                  g_o_norms_inter  ,
                  m_g_o_norms_inter,
                  coeffs_nodes     ,
+                 n_polygon        ,
                  n_coeffs):
 
         grid = self._proc_g
@@ -2445,6 +2445,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_background = False if (grid) else True
 
         insert_mode = PETSc.InsertMode.ADD_VALUES
+
+        # Columns indices for the \"PETSc\" matrix.
+        c_indices = []
 
         is_ghost_inter = octree.get_is_ghost(inter,
                                              True)
@@ -2458,7 +2461,29 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                  # version
         # Normal's axis, indicating the non-zero component of the normal.
         n_axis = numpy.nonzero(n_normal_inter)[0][0]
+        # ---------------------------------------------------------------------
+        ## We are addding the indices of the interpolation done for the nodes of
+        ## the intersection, only if they are not on the background boundary.
+        #node_1_interpolated = n_cs_n_is[1][0].size
+        #node_0_interpolated = n_cs_n_is[0][0].size
+        #add_node_indices = True
+        #if (is_ghost_inter):
+        #    # Using \"extend.([number])\" to avoid \"TypeError: 'int' object
+        #    # is not iterable\" error.
+        #    c_indices.extend([r_indices[1 - o_ghost]])
+        #    # The owner of the outer normal won't add values also for the nodes
+        #    # of the intersection.
+        #    if (not o_ghost):
+        #        add_node_indices = False
+        #else:
+        #    c_indices.extend(r_indices)
+        #if (add_node_indices and node_1_interpolated):
+        #    c_indices.extend(n_cs_n_is[1][1])
+        #if (add_node_indices and node_0_interpolated):
+        #    c_indices.extend(n_cs_n_is[0][1])
+        # ---------------------------------------------------------------------
 
+        # ---------------------------------------------------------------------
         if (is_ghost_inter and (len(r_indices) == 2)):
             # Using \"extend.([number])\" to avoid \"TypeError: 'int'
             # object is not iterable\" error.
@@ -2475,12 +2500,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     c_indices.extend(n_cs_n_is[0][1])
         else:
             c_indices.extend(r_indices)
+            # TODO: check this \"if\"...useless?
             if (not is_bound_inter):
                 # See explanation of the comment just above.
                 if (n_cs_n_is[1][0].size):
                     c_indices.extend(n_cs_n_is[1][1])
                 if (n_cs_n_is[0][0].size):
                     c_indices.extend(n_cs_n_is[0][1])
+        # ---------------------------------------------------------------------
         # Both the owners of the intersection are not penalized.
         if (len(r_indices) == 2):
             # Values to insert in \"r_indices\"; each sub list contains
