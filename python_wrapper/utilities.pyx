@@ -447,7 +447,7 @@ def p_t_coeffs(int dimension                                        ,
 
 # Perspective transformation coefficients for adjoint matrix.
 def p_t_coeffs_adj(int dimension,
-                   numpy.ndarray[dtype = numpy.float64_t, ndim = 2] p_t_m): #Perspective transofrmation matrix
+                   numpy.ndarray[dtype = numpy.float64_t, ndim = 2] p_t_m): #Perspective transformation matrix
     cdef numpy.float64_t det_p_t_m = numpy.linalg.det(p_t_m)
     # Dimension of the adjoint matrix.
     cdef int d_adj_matrix

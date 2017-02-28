@@ -112,7 +112,7 @@ def set_trans_dicts(n_grids,
     trans_dictionary = {}
     trans_adj_dictionary = {}
     for grid in xrange(0, n_grids):
-        # Original points.
+        # Original points (grids with anchors (0, 0, 0) and edges 1.0).
         or_points = [anchors[grid][0], 
                      anchors[grid][1], 
                      anchors[grid][2], # Left low anchor.
@@ -125,15 +125,16 @@ def set_trans_dicts(n_grids,
                      anchors[grid][0], 
                      anchors[grid][1] + edges[grid], 
                      anchors[grid][2]] # Left high anchor.
+        # Original points, \"numpy\" version.
         n_or_points = numpy.array(or_points)
         n_or_points = numpy.reshape(n_or_points, (4,3))
         n_t_points = numpy.array(t_points[grid])
         n_t_points = numpy.reshape(n_t_points, (4,3))
-        # Matrix of tranformation coefficients from logical to physical.
+        # Matrix of transformation coefficients from logical to physical.
         t_coeffs = utilities.p_t_coeffs(dim           , # Problem's dimension
                                         n_or_points   , # Original points
                                         n_t_points)     # Mapped points
-        # Adjoint matrix of tranformation coefficients from physical to logical.
+        # Adjoint matrix of transformation coefficients from physical to logical.
         t_coeffs_adj = utilities.p_t_coeffs_adj(dim     , # Problem's dimension
                                                 t_coeffs) # Transformation coeffs
     
