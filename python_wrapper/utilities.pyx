@@ -352,6 +352,46 @@ def is_point_on_lines(point,
 
     return on_lines
 
+def bil_coeffs(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
+               numpy.ndarray[dtype = numpy.float64_t, ndim = 1] unknown_point,
+               int dim = 2):
+    cdef int n_points = points.shape[0]
+    cdef numpy.float64_t multiplier
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] coeffs =       \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+
+    # A \"numpy\" empty array (size == 0) of shape (0,).
+    cdef numpy.ndarray[dtype = numpy.float64_t,
+                       ndim = 1] n_e_array = \
+         numpy.array([], \
+                     dtype = numpy.float64)
+
+    if (points.size == 0):
+        return n_e_array
+
+    coeffs[0] = ((points[3][0] - unknown_point[0]) *
+                 (points[3][1] - unknown_point[1]))
+
+    coeffs[1] = ((unknown_point[0] - points[0][0]) *
+                 (points[3][1] - unknown_point[1]))
+
+    coeffs[2] = ((points[3][0] - unknown_point[0]) *
+                 (unknown_point[1] - points[0][1]))
+
+    coeffs[3] = ((unknown_point[0] - points[0][0]) *
+                 (unknown_point[1] - points[0][1]))
+
+    multiplier = 1 / ((points[3][0] - points[0][0]) *
+                      (points[3][1] - points[0][1]))
+
+    coeffs = multiplier * coeffs
+
+    return coeffs
+
+
 # https://it.wikipedia.org/wiki/Metodo_dei_minimi_quadrati
 def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
                   numpy.ndarray[dtype = numpy.float64_t, ndim = 1] unknown_point,
