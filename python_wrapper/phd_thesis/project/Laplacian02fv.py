@@ -1353,7 +1353,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         check_oct_corners = self.check_oct_corners
         get_owners_normals_inter = self.get_owners_normals_inter
         get_is_ghost = octree.get_is_ghost
-        least_squares = utilities.least_squares
+        least_squares = utilities.bil_coeffs
         get_l_owners_nodes_inter = self.get_l_owners_nodes_inter
         find_right_neighbours = self.find_right_neighbours
         set_bg_b_c = self.set_bg_b_c
@@ -2119,7 +2119,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_persp_trans = utilities.apply_persp_trans
         apply_persp_trans_inv = utilities.apply_persp_trans_inv
         find_right_neighbours = self.find_right_neighbours
-        least_squares = utilities.least_squares
+        least_squares = utilities.bil_coeffs
         metric_coefficients = utilities.metric_coefficients
         apply_rest_prol_ops = self.apply_rest_prol_ops
         narray = numpy.array
@@ -2232,7 +2232,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_persp_trans = utilities.apply_persp_trans
         apply_persp_trans_inv = utilities.apply_persp_trans_inv
         find_right_neighbours = self.find_right_neighbours
-        least_squares = utilities.least_squares
+        least_squares = utilities.bil_coeffs
         metric_coefficients = utilities.metric_coefficients
         apply_rest_prol_ops = self.apply_rest_prol_ops
         get_trans_adj = self.get_trans_adj
