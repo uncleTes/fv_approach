@@ -1228,6 +1228,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         octree = self._octree
         tot_oct = self._tot_oct
         dimension = self._dim
+        finer_o_inter = octree.get_finer(inter)
         t_background = self._t_background
         n_nodes = 2 if (dimension == 2) else 4
         nodes = octree.get_nodes(inter        ,
@@ -1250,22 +1251,23 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (on_b_boundary):
                 l_owner = "boundary"
             else:
-                # Temp owner. Returning \"max uint32_t\" if point outside of the
-                # domain.
-                t_owner = octree.get_point_owner_idx(node)
-                # If the index of the owner if equal to \"u32_max\", then we
-                # have reached or a ghost octant or we are outside the domain.
-                if (t_owner == u32_max):
-                    if (o_ghost is not None):
-                        # If the intersection is ghost, then we have only one
-                        # local octant owner.
-                        l_owner = l_owners_inter[1 - o_ghost]
-                    else:
-                        # In this case, boundary intersection, the local onwer
-                        # will be always the same.
-                        l_owner = l_owners_inter[i % 2]
-                else:
-                    l_owner = t_owner
+                l_owner = l_owners_inter[finer_o_inter]
+                ## Temp owner. Returning \"max uint32_t\" if point outside of the
+                ## domain.
+                #t_owner = octree.get_point_owner_idx(node)
+                ## If the index of the owner if equal to \"u32_max\", then we
+                ## have reached or a ghost octant or we are outside the domain.
+                #if (t_owner == u32_max):
+                #    if (o_ghost is not None):
+                #        # If the intersection is ghost, then we have only one
+                #        # local octant owner.
+                #        l_owner = l_owners_inter[1 - o_ghost]
+                #    else:
+                #        # In this case, boundary intersection, the local onwer
+                #        # will be always the same.
+                #        l_owner = l_owners_inter[i % 2]
+                #else:
+                #    l_owner = t_owner
             l_owners[i] = l_owner
 
         if (also_nodes):
