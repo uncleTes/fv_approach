@@ -352,14 +352,53 @@ def is_point_on_lines(point,
 
     return on_lines
 
+#https://www.particleincell.com/2012/quad-interpolation/
 def bil_coeffs(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
                numpy.ndarray[dtype = numpy.float64_t, ndim = 1] unknown_point,
                int dim = 2):
+    # Number of points; in 2D is equal to 4.
     cdef int n_points = points.shape[0]
-    cdef numpy.float64_t multiplier
+    cdef double multiplier
+    cdef double m_1
+    cdef double m_2
+    cdef double m
+    cdef double l
+    cdef double a_m
+    cdef double b_m
+    cdef double c_m
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 1] coeffs =       \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t,    \
+                       ndim = 2] A =               \
+         numpy.zeros(shape = (n_points, n_points), \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] b =            \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] b_x =          \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] b_y =          \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] alpha =        \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] beta =         \
          numpy.zeros(shape = (n_points),        \
                      dtype = numpy.float64)
 
@@ -372,22 +411,94 @@ def bil_coeffs(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
     if (points.size == 0):
         return n_e_array
 
-    coeffs[0] = ((points[3][0] - unknown_point[0]) *
-                 (points[3][1] - unknown_point[1]))
+    A[0][0] = 1.0
+    A[0][1] = 0.0
+    A[0][2] = 0.0
+    A[0][3] = 0.0
+    A[1][0] = 1.0
+    A[1][1] = 1.0
+    A[1][2] = 0.0
+    A[1][3] = 0.0
+    A[2][0] = 1.0
+    A[2][1] = 1.0
+    A[2][2] = 1.0
+    A[2][3] = 1.0
+    A[3][0] = 1.0
+    A[3][1] = 0.0
+    A[3][2] = 1.0
+    A[3][3] = 0.0
+    # Here \"b_x[2]\" and \"b_x[1]\" get inverted values from \"points\" be-
+    # cause \"PABLO\" is giving us first the neighbours of faces 0 and 1 (per-
+    # pendicular to \"x\") and then of faces 2 and 3 (perpendicular to \"y\").
+    # The same things happens for \"b_y\".
+    b_x[0] = points[0][0]
+    b_x[1] = points[2][0]
+    b_x[2] = points[1][0]
+    b_x[3] = points[3][0]
 
-    coeffs[1] = ((unknown_point[0] - points[0][0]) *
-                 (points[3][1] - unknown_point[1]))
+    b_y[0] = points[0][1]
+    b_y[1] = points[2][1]
+    b_y[2] = points[1][1]
+    b_y[3] = points[3][1]
+    # Finding coefficients for the bilinear mapping function between physical
+    # and logical domain: x = alpha_0 + alpha_1*l + alpha_2*m + alpha_3*l*m
+    #                     y = beta_0 + beta_1*l + beta_2*m + beta_3*l*m
+    # where \"l\" and \"m\" are the coordinates of a logical square of coordi-
+    # nates (0, 0), (1, 0), (1, 1), (0, 1) where we will apply the bilinear in-
+    # terpolation.
+    alpha = numpy.linalg.solve(A, b_x)
+    beta = numpy.linalg.solve(A, b_y)
+    # Defining inverse mapping from physical to logical.
+    a_m = ((alpha[3] * beta[2]) - (alpha[2] * beta[3]))
+    b_m = ((alpha[3] * beta[0]) - (alpha[0] * beta[3]) + (alpha[1] * beta[2]) -
+           (alpha[2] * beta[1]) + (unknown_point[0] * beta[3]) -
+           (unknown_point[1] * alpha[3]))
+    c_m = ((alpha[1] * beta[0]) - (alpha[0] * beta[1]) +
+           (unknown_point[0] * beta[1]) - (unknown_point[1] * alpha[1]))
 
-    coeffs[2] = ((points[3][0] - unknown_point[0]) *
-                 (unknown_point[1] - points[0][1]))
+    if (a_m == 0.0):
+        m = numpy.true_divide((-1.0 * c_m), b_m)
+    else:
+        # \"m\" is solution of a second order equation, so we have two solu-
+        # tions...
+        m_1 = numpy.true_divide((-1.0 * b_m) + numpy.sqrt((b_m * b_m) -     \
+                                                          (4 * a_m * c_m)), \
+                                (2 * a_m))
+        m_2 = numpy.true_divide((-1.0 * b_m) - numpy.sqrt((b_m * b_m) -     \
+                                                          (4 * a_m * c_m)), \
+                                (2 * a_m))
+        # ...but we choose the right value for \"m\", respecting the logical do-
+        # main.
+        if (0.0 <= m_1 <= 1.0):
+            m = m_1
+        else:
+            m = m_2
+    l = numpy.true_divide((unknown_point[0] - alpha[0] - (alpha[2] * m)),
+                          (alpha[1] + (alpha[3] * m)))
 
-    coeffs[3] = ((unknown_point[0] - points[0][0]) *
-                 (unknown_point[1] - points[0][1]))
+    b[0] = 1.0
+    b[1] = l
+    b[2] = m
+    b[3] = l * m
 
-    multiplier = 1 / ((points[3][0] - points[0][0]) *
-                      (points[3][1] - points[0][1]))
+    coeffs = numpy.linalg.solve(A.T, b)
 
-    coeffs = multiplier * coeffs
+    #coeffs[0] = ((points[3][0] - unknown_point[0]) *
+    #             (points[3][1] - unknown_point[1]))
+
+    #coeffs[1] = ((unknown_point[0] - points[0][0]) *
+    #             (points[3][1] - unknown_point[1]))
+
+    #coeffs[2] = ((points[3][0] - unknown_point[0]) *
+    #             (unknown_point[1] - points[0][1]))
+
+    #coeffs[3] = ((unknown_point[0] - points[0][0]) *
+    #             (unknown_point[1] - points[0][1]))
+
+    #multiplier = 1 / ((points[3][0] - points[0][0]) *
+    #                  (points[3][1] - points[0][1]))
+
+    #coeffs = multiplier * coeffs
 
     return coeffs
 
