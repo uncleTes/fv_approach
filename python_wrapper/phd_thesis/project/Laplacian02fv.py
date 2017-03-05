@@ -1870,7 +1870,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         # Setting tolerances.
 	# 1.0e-06 with level 9,9 is still ok for convergence
-        tol = 1.e-15
+        tol = 1.0e-15
         ksp.setTolerances(rtol = tol            ,
                           atol = tol            ,
                           divtol = PETSc.DEFAULT, # Let's PETSc use DEAFULT
@@ -2651,8 +2651,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 e_sol = solution(n_nodes_inter[i][0],
                                  n_nodes_inter[i][1],
                                  n_nodes_inter[i][2] if (dimension == 3) \
-                                 else None            ,
-                                 mapping = c_t_dict)
+                                 else None          ,
+                                 c_t_dict)
                 e_sol_coeff = coeffs_nodes[i]
                 e_sol = mult * e_sol * e_sol_coeff
                 # The owner of the inner normal will add values of the nodes of
