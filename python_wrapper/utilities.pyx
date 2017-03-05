@@ -751,8 +751,8 @@ def apply_persp_trans_inv(int dimension                                         
          numpy.zeros(shape = (dimension + 1,), \
                      dtype = numpy.float64)
     cdef size_t i
-    cdef float divisor = 0.0
-    cdef float w_first
+    cdef double divisor = 0.0
+    cdef double w_first
 
     for i in range(dimension):
         divisor = divisor + coefficients[i][dimension] * point[i]
