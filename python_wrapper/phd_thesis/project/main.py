@@ -352,8 +352,8 @@ def set_octree(comm_l,
     for octant in xrange(0, n_octs):
         center  = pablo.get_center(octant)[: dimension]
         # Refinement condition on \"x\".
-        ref_cond_x = (center[0] < 0.5)
-        #ref_cond_x = 0
+        #ref_cond_x = (center[0] < 0.5)
+        ref_cond_x = 0
         #ref_cond_x = (numpy.abs(center[0] - 0.5) <= 0.1)
         # Refinement condition on \"y\".
         ref_cond_y = (center[1] < 0.5)
