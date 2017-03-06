@@ -1365,9 +1365,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    is_ptr = True   ,
                                    is_inter = False,
                                    also_numpy_nodes = True)
-        f_r_n = lambda x : find_right_neighbours(x            ,
+        f_r_n = lambda x : find_right_neighbours(x[0]         ,
                                                  o_ranges[0]  ,
-                                                 is_background)
+                                                 is_background,
+                                                 True         ,
+                                                 True         ,
+                                                 x[1])
         l_s = lambda x : least_squares(x[0],
                                        x[1])
 
@@ -1493,7 +1496,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # TODO: use \"multiprocessing\" shared memory to map function on
                 #       local threads.
                 n_cs_n_is = map(f_r_n,
-                                l_o_nodes_inter)
+                                zip(l_o_nodes_inter,
+                                    nodes_inter))
                 # Least square coefficients.
                 # TODO: use \"multiprocessing\" shared memory to map function on
                 #       local threads.
