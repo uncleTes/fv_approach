@@ -601,6 +601,37 @@ def bil_coeffs(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
 
     return coeffs
 
+def jacobian_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
+                                       ndim = 1] l_point      , # logical point
+                         numpy.ndarray[dtype = numpy.float64_t, \
+                                       ndim = 1] alpha        ,
+                         numpy.ndarray[dtype = numpy.float64_t, \
+                                       ndim = 1] beta         ,
+                         int dim = 2):
+    # Jacobian size.
+    cdef int j_size = 4 if (dim == 2) else 6
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] J =            \
+         numpy.zeros(shape = (j_size, j_size),  \
+                     dtype = numpy.float64)
+
+    cdef double d_x_d_l
+    cdef double d_x_d_m
+    cdef double d_y_d_l
+    cdef double d_y_d_m
+
+    d_x_d_l = alpha[1] + (alpha[3] * l_point[1])
+    d_x_d_m = alpha[2] + (alpha[3] * l_point[0])
+    d_y_d_l = beta[1] + (beta[3] * l_point[1])
+    d_y_d_l = beta[2] + (beta[3] * l_point[0])
+
+    J[0][0] = d_x_d_l
+    J[0][1] = d_x_d_m
+    J[1][0] = d_y_d_l
+    J[1][1] = d_y_d_m
+
+    return J
 
 # https://it.wikipedia.org/wiki/Metodo_dei_minimi_quadrati
 def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
