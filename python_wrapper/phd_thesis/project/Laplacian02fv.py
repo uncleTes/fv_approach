@@ -2289,11 +2289,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # TODO: Find a more generic algortihm: try least squares.
     # --------------------------------------------------------------------------
     # Returns the right neighbours for an octant, being them of edges or nodes.
-    def find_right_neighbours(self                 ,
-                              current_octant       ,
-                              start_octant         ,
-                              is_background = False,
-                              also_outside_boundary = True):
+    def find_right_neighbours(self                        ,
+                              current_octant              ,
+                              start_octant                ,
+                              is_background = False       ,
+                              also_outside_boundary = True,
+                              with_node = False           ,
+                              node = 0):
         """Method which compute the right 4 neighbours for the octant
            \"current_octant\", considering first the label \"location\" to
            indicate in what directions go to choose the neighborhood.
@@ -2375,6 +2377,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # it means that we are near the boundary if we are on the back-
             # ground, or on an outside area if we are on the foreground, so...
             if (neighs):
+                # Distance center node.
+                d_c_n = 0.0
                 for j in xrange(0, n_neighs):
                     # Neighbour is into the same process, so is local.
                     if (not ghosts[j]):
@@ -2395,8 +2399,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     if (m_index != -1):
                         cell_center = get_center(py_ghost_oct,
                                                  by_octant)[: dimension]
-                        centers.append(cell_center)
-                        indices.append(m_index)
+                        if (with_node):
+                            # Temporary distance.
+                            t_d = numpy.linalg.norm(numpy.array(cell_center) - \
+                                                    numpy.array(node[: dimension]))
+                            # \"j\" == 0...first neighbour.
+                            if (not j):
+                                d_c_n = t_d
+                                centers.append(cell_center)
+                                indices.append(m_index)
+                            # Second neighbour case.
+                            else:
+                                if (t_d < d_c_n):
+                                    d_c_n = t_d
+                                    centers[-1] = cell_center
+                                    indices[-1] = m_index
+                        else:
+                            centers.append(cell_center)
+                            indices.append(m_index)
             # ...we need to evaluate boundary values (background) or not to
             # consider the indices and centers found (foreground).
             else:
