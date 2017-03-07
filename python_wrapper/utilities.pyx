@@ -518,27 +518,27 @@ def bil_coeffs(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 1] coeffs =       \
-         numpy.zeros(shape = (n_nodes),        \
+         numpy.zeros(shape = (n_nodes),         \
                      dtype = numpy.float64)
 
-    cdef numpy.ndarray[dtype = numpy.float64_t,    \
-                       ndim = 2] A =               \
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 2] A =             \
          numpy.zeros(shape = (n_nodes, n_nodes), \
                      dtype = numpy.float64)
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 1] b =            \
-         numpy.zeros(shape = (n_nodes),        \
+         numpy.zeros(shape = (n_nodes),         \
                      dtype = numpy.float64)
 
-    cdef numpy.ndarray[dtype = numpy.float64_t,\
-                       ndim = 1] alpha =       \
-         numpy.zeros(shape = (n_nodes),        \
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] alpha =        \
+         numpy.zeros(shape = (n_nodes),         \
                      dtype = numpy.float64)
 
-    cdef numpy.ndarray[dtype = numpy.float64_t,\
-                       ndim = 1] beta =        \
-         numpy.zeros(shape = (n_nodes),        \
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] beta =         \
+         numpy.zeros(shape = (n_nodes),         \
                      dtype = numpy.float64)
     # A \"numpy\" empty array (size == 0) of shape (0,).
     cdef numpy.ndarray[dtype = numpy.float64_t,
