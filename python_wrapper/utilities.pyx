@@ -624,7 +624,7 @@ def jacobian_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
     d_x_d_l = alpha[1] + (alpha[3] * l_point[1])
     d_x_d_m = alpha[2] + (alpha[3] * l_point[0])
     d_y_d_l = beta[1] + (beta[3] * l_point[1])
-    d_y_d_l = beta[2] + (beta[3] * l_point[0])
+    d_y_d_m = beta[2] + (beta[3] * l_point[0])
 
     J[0][0] = d_x_d_l
     J[0][1] = d_x_d_m
