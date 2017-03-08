@@ -2651,8 +2651,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Number of owners (of the intersection).
         n_owners = len(r_indices)
         dimension = self._dim
-        # Number of owners of the nodes (of the intersection).
-        n_o_nodes = 2 if (dimension == 2) else 4
+        # Number of nodes (of the intersection).
+        n_nodes = 2 if (dimension == 2) else 4
         grid = self._proc_g
         c_t_dict = self.get_trans(grid)
         values_rhs = []
@@ -2667,7 +2667,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         if (labels[0]):
             mult = -1.0
 
-        for i in xrange(0, n_o_nodes):
+        for i in xrange(0, n_nodes):
             # Number of least square coefficients.
             n_l_s_coeffs = l_s_coeffs[i].size
             # The node \"i\" of the interface is on the boundary.
@@ -2707,7 +2707,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # interpolated nodes "outside_bg" to the rhs. Same
                         # behaviour if there is no ghost intersection
                         # (\"o_ghost\" = \"None\").
-
                         if (o_ghost != 0):
                             values_rhs.append(e_sol)
 
