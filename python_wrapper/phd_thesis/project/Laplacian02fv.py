@@ -1085,6 +1085,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                            True) # We want also a \"numpy\"
                                                  # version
         n_axis = numpy.nonzero(n_normal_inter)[0][0]
+        n_value = n_normal_inter[n_axis]
         # evaluating length of the intersection, depending on its direc-
         # tion.
         h = octree.get_area(inter        ,
@@ -1101,7 +1102,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                      nodes_inter   ,
                                                      owners_centers,
                                                      is_bound_inter,
-                                                     n_axis)
+                                                     n_normal_inter)
 
         den = (d_o_centers_x * d_nodes_y) - \
               (d_o_centers_y * d_nodes_x)
@@ -1142,11 +1143,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         n_coeffs_grad_x = n_coeffs_grad_x * (den_inv               * \
                                              h_inv                 * \
                                              grad_transf_det_inv   * \
-                                             coeff_trans_x)
+                                             coeff_trans_x         * \
+                                             n_value)
         n_coeffs_grad_y = n_coeffs_grad_y * (den_inv               * \
                                              h_inv                 * \
                                              grad_transf_det_inv   * \
-                                             coeff_trans_y)
+                                             coeff_trans_y         * \
+                                             n_value)
         n_coeffs = n_coeffs_grad_x + n_coeffs_grad_y
 
         mult_node_1 = 1.0
@@ -1169,12 +1172,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 nodes_inter   ,
                                 owners_centers,
                                 is_bound_inter,
-                                n_axis):
+                                n_normal_inter):
         h = inter_size
         d_nodes_x = 0.0
         d_nodes_y = 0.0
         d_o_centers_x = 0.0
         d_o_centers_y = 0.0
+        # Normal axis.
+        n_axis = numpy.nonzero(n_normal_inter)[0][0]
+        # Normal value.
+        n_value = n_normal_inter[n_axis]
+
         if (n_axis):
             d_nodes_x = h
         else:
@@ -1184,24 +1192,27 @@ class Laplacian(BaseClass2D.BaseClass2D):
                    (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0)
         if (is_bound_inter):
             # Normal parallel to y-axis.
+            mult = 1.0 if (n_value > 0) else -1.0
             if (n_axis):
                 # Distance between y of center of the octant owner of
                 # the intersection and the extern boundary.
-                d_o_centers_y = h
+                d_o_centers_y = mult * h
             # Normal parallel to x-axis.
             else:
                 # Distance between x of center of the octant owner of
                 # the intersection and the extern boundary.
-                d_o_centers_x = h
+                d_o_centers_x = mult * h
         else:
             # Distance between xs of centers of the octants partaging
             # the intersection.
-            d_o_centers_x = numpy.absolute(owners_centers[1][0] - \
-                                           owners_centers[0][0])
+            #d_o_centers_x = numpy.absolute(owners_centers[1][0] - \
+            #                               owners_centers[0][0])
+            d_o_centers_x = owners_centers[0][0] - owners_centers[1][0]
             # Distance between ys of centers of the octants partaging
             # the intersection.
-            d_o_centers_y = numpy.absolute(owners_centers[1][1] - \
-                                           owners_centers[0][1])
+            #d_o_centers_y = numpy.absolute(owners_centers[1][1] - \
+            #                               owners_centers[0][1])
+            d_o_centers_y = owners_centers[0][1] - owners_centers[1][1]
 
         return (d_nodes_x    ,
                 d_nodes_y    ,
