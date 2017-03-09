@@ -367,3 +367,33 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
             return (py_nodes, np_nodes)
 
         return py_nodes
+
+    def get_intersection_local_rings(self,
+                                     uintptr_t inter):
+        cdef int f_index
+        cdef size_t i
+        cdef numpy.ndarray[dtype=numpy.uint8_t, mode="c", ndim=2] face_node = \
+             numpy.zeros((6, 4), dtype = numpy.uint8)
+        cdef numpy.ndarray[dtype=numpy.uint8_t, mode="c", ndim=1] n_indices = \
+             numpy.zeros((2, ), dtype = numpy.uint8)
+        cdef numpy.ndarray[dtype=numpy.uint8_t, mode="c", ndim=1] fn_indices = \
+             numpy.zeros((2, ), dtype = numpy.uint8)
+        cdef numpy.ndarray[dtype=numpy.uint8_t, mode="c", ndim=2] l_rings = \
+             numpy.zeros((2, 3), dtype = numpy.uint8)
+        # Finding the local index as face of the intersection passed in.
+        f_index = self.thisptr.getFace(<Intersection*><void*>inter)
+        # Getting local indices of the nodes of each local faces.
+        self.thisptr.getFacenode(<uint8_t (*)[4]>&face_node[0, 0])
+        for i in xrange(0, 2):
+            # Getting local indices of the nodes of the intersection passed in.
+            n_indices[i] = face_node[f_index][i]
+            # Getting local indices of neighbours of faces, to complete neigh-
+            # bours' ring for each node of the intersection.
+            fn_indices[i] = 2 - (2 * (f_index / 2)) + (n_indices[i] / 2)
+        # Completing rings.
+        for i in xrange(0, 2):
+            l_rings[i][0] = f_index
+            l_rings[i][1] = n_indices[i]
+            l_rings[i][2] = fn_indices[i]
+
+        return l_rings.tolist()
