@@ -1367,6 +1367,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         least_squares = utilities.bil_coeffs
         get_l_owners_nodes_inter = self.get_l_owners_nodes_inter
         find_right_neighbours = self.find_right_neighbours
+        new_find_right_neighbours = self.new_find_right_neighbours
         set_bg_b_c = self.set_bg_b_c
         fill_rhs = self.fill_rhs
         fill_mat = self.fill_mat
@@ -1376,12 +1377,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    is_ptr = True   ,
                                    is_inter = False,
                                    also_numpy_nodes = True)
-        f_r_n = lambda x : find_right_neighbours(x[0]         ,
-                                                 o_ranges[0]  ,
-                                                 is_background,
-                                                 True         ,
-                                                 True         ,
-                                                 x[1])
+        f_r_n = lambda x : new_find_right_neighbours(x[0]         ,
+                                                     o_ranges[0]  ,
+                                                     x[1]         ,
+                                                     is_background,
+                                                     True         ,
+                                                     True         ,
+                                                     x[2])
         l_s = lambda x : least_squares(x[0],
                                        x[1])
 
@@ -1501,6 +1503,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                           # Return also \"num-
                                                           # py\" data.
                                                           r_a_n_d = True)
+                rings = octree.get_intersection_local_rings(inter)
+                print(rings)
                 # Neighbour centers neighbours indices: it is a list of tuple,
                 # and in each tuple are contained the lists of centers and in-
                 # dices of each local owner of the nodes.
@@ -1508,6 +1512,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #       local threads.
                 n_cs_n_is = map(f_r_n,
                                 zip(l_o_nodes_inter,
+                                    rings          ,
                                     nodes_inter))
                 # Least square coefficients.
                 # TODO: use \"multiprocessing\" shared memory to map function on
@@ -2299,6 +2304,148 @@ class Laplacian(BaseClass2D.BaseClass2D):
         msg = "Updated restriction blocks"
         self.log_msg(msg   ,
                      "info")
+    # --------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    def new_find_right_neighbours(self                        ,
+                                  current_octant              ,
+                                  start_octant                ,
+                                  inter_ring                  ,
+                                  is_background = False       ,
+                                  also_outside_boundary = True,
+                                  with_node = False           ,
+                                  node = None):
+        if (current_octant == "boundary"):
+            # A \"numpy\" empty array (size == 0) of shape (2, 0).
+            n_e_array = numpy.array([[], []])
+            return (n_e_array, n_e_array)
+
+        octree = self._octree
+        py_oct = octree.get_octant(current_octant)
+        centers = []
+        indices = []
+        grid = self._proc_g
+        l_ring = 3
+        dimension = self._dim
+        nfaces = octree.get_n_faces()
+        nnodes = octree.get_n_nodes()
+        faces_nodes = octree.get_face_node()
+        c_t_dict = self.get_trans(grid)
+        t_background = self._t_background
+        # Ghosts' deplacement.
+        g_d = 0
+        for i in xrange(0, grid):
+            g_d = g_d + self._oct_f_g[i]
+        # Current center.
+        c_c = octree.get_center(current_octant)[: dimension]
+        h = octree.get_area(current_octant)
+
+        index = current_octant
+        # Current mask index.
+        c_m_index = self.mask_octant(index + start_octant)
+
+        neighs, ghosts = ([] for i in range(0, 2))
+
+        #Code hoisting.
+        find_neighbours = octree.find_neighbours
+        mask_octant = self.mask_octant
+        get_center = octree.get_center
+        get_ghost_global_idx = octree.get_ghost_global_idx
+        get_ghost_octant = octree.get_ghost_octant
+        neighbour_centers = self.neighbour_centers
+        apply_persp_trans = utilities.apply_persp_trans
+        is_point_inside_polygon = utilities.is_point_inside_polygon
+        # Lambda function.
+        f_n = lambda x, y : find_neighbours(current_octant,
+                                            x             ,
+                                            y             ,
+                                            neighs        ,
+                                            ghosts)
+
+        for i in xrange(0, l_ring):
+            # Codimension = 1, looping just on the faces.
+            codim = 2 if (i == 1) else 1
+            # Index of current face or node.
+            face_node = inter_ring[i]
+
+            (neighs, ghosts) = f_n(face_node, codim)
+            n_neighs = len(neighs)
+            # Check if it is really a neighbour of edge or node. If not,
+            # it means that we are near the boundary if we are on the back-
+            # ground, or on an outside area if we are on the foreground, so...
+            if (neighs):
+                # Distance center node.
+                d_c_n = 0.0
+                for j in xrange(0, n_neighs):
+                    # Neighbour is into the same process, so is local.
+                    if (not ghosts[j]):
+                        by_octant = False
+                        index = neighs[j]
+                        m_index = mask_octant(index + start_octant)
+                        py_ghost_oct = index
+                    else:
+                        by_octant = True
+                        # In this case, the quas(/oc)tree is no more local into
+                        # the current process, so we have to find it globally.
+                        index = get_ghost_global_idx(neighs[j])
+                        # \".index\" give us the \"self._global_ghosts\" index
+                        # that contains the index of the global ghost quad(/oc)-
+                        # tree previously found and stored in \"index\".
+                        py_ghost_oct = get_ghost_octant(neighs[j])
+                        m_index = mask_octant(index + g_d)
+                    if (m_index != -1):
+                        cell_center = get_center(py_ghost_oct,
+                                                 by_octant)[: dimension]
+                        if (with_node):
+                            # Temporary distance.
+                            t_d = numpy.linalg.norm(numpy.array(cell_center) - \
+                                                    numpy.array(node[: dimension]))
+                            # \"j\" == 0...first neighbour.
+                            if (not j):
+                                d_c_n = t_d
+                                centers.append(cell_center)
+                                indices.append(m_index)
+                            # Second neighbour case.
+                            else:
+                                if (t_d < d_c_n):
+                                    d_c_n = t_d
+                                    centers[-1] = cell_center
+                                    indices[-1] = m_index
+                        else:
+                            centers.append(cell_center)
+                            indices.append(m_index)
+            # ...we need to evaluate boundary values (background) or not to
+            # consider the indices and centers found (foreground).
+            else:
+                if (also_outside_boundary):
+                    to_consider = True
+
+                    border_center, \
+                    numpy_border_center = neighbour_centers(c_c      ,
+                                                            codim    ,
+                                                            face_node,
+                                                            h        ,
+                                                            r_a_n_d = True)
+
+                    if (not is_background):
+                        t_center =  apply_persp_trans(dimension          ,
+                                                      numpy_border_center,
+                                                      c_t_dict)[: dimension]
+                        check = is_point_inside_polygon(t_center    ,
+                                                        t_background)
+                        to_consider = (not check)
+
+                    if (to_consider):
+                        centers.append(border_center)
+                        indices.append("outside_bg")
+
+        centers.append(c_c)
+
+        indices.append(c_m_index)
+
+        numpy_centers = numpy.array(centers)
+
+        return (numpy_centers, indices)
     # --------------------------------------------------------------------------
 
     # TODO: Find a more generic algortihm: try least squares.
