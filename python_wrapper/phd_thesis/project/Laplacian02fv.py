@@ -1364,7 +1364,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         check_oct_corners = self.check_oct_corners
         get_owners_normals_inter = self.get_owners_normals_inter
         get_is_ghost = octree.get_is_ghost
-        least_squares = utilities.bil_coeffs
+        least_squares = utilities.least_squares
+        bil_coeffs = utilities.bil_coeffs
+        # Interpolation coefficients
+        inter_coeffs = self.inter_coeffs
         get_l_owners_nodes_inter = self.get_l_owners_nodes_inter
         find_right_neighbours = self.find_right_neighbours
         new_find_right_neighbours = self.new_find_right_neighbours
@@ -1384,8 +1387,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                      True         ,
                                                      True         ,
                                                      x[2])
+
         l_s = lambda x : least_squares(x[0],
                                        x[1])
+
+        i_c = lambda x : inter_coeffs(x[0],
+                                      x[1],
+                                      x[2])
 
         self._f_nodes = []
         self._f_nodes_exact = []
@@ -1517,12 +1525,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 zip(l_o_nodes_inter,
                                     rings          ,
                                     nodes_inter))
+                apply_bil_coeffs = [False if (n_cs[0].size == 3) else True for \
+                                    n_cs in n_cs_n_is]
                 # Least square coefficients.
                 # TODO: use \"multiprocessing\" shared memory to map function on
                 #       local threads.
-                l_s_coeffs = map(l_s,
-                                 zip([pair[0] for pair in n_cs_n_is],
-                                     [n_node for n_node in n_nodes_inter]))
+                l_s_coeffs = map(i_c,
+                                 zip([pair[0] for pair in n_cs_n_is]     ,
+                                     [n_node for n_node in n_nodes_inter],
+                                     apply_bil_coeffs))
 
                 self.compute_function_on_nodes(inter      ,
                                                nodes_inter,
@@ -3019,6 +3030,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                            l_s_coeffs[1][1] * f_1 +
                            l_s_coeffs[1][2] * f_2 +
                            l_s_coeffs[1][3] * f_3)
+    # --------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    def inter_coeffs(self ,
+                     nodes,
+                     point,
+                     bil_inter = True):
+        if (bil_inter):
+            return utilities.bil_coeffs(nodes,
+                                        point)
+
+        return utilities.least_squares(nodes,
+                                       point)
     # --------------------------------------------------------------------------
 
     @property
