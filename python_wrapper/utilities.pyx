@@ -550,35 +550,55 @@ def bil_coeffs(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
         return n_e_array
 
     A[0][0] = 1.0
-    A[0][1] = 0.0
-    A[0][2] = 0.0
-    A[0][3] = 0.0
+    A[0][1] = nodes[0][0]
+    A[0][2] = nodes[0][1]
+    A[0][3] = nodes[0][0] * nodes[0][1]
     A[1][0] = 1.0
-    A[1][1] = 1.0
-    A[1][2] = 0.0
-    A[1][3] = 0.0
+    A[1][1] = nodes[1][0]
+    A[1][2] = nodes[1][1]
+    A[1][3] = nodes[1][0] * nodes[1][1]
     A[2][0] = 1.0
-    A[2][1] = 1.0
-    A[2][2] = 1.0
-    A[2][3] = 1.0
+    A[2][1] = nodes[2][0]
+    A[2][2] = nodes[2][1]
+    A[2][3] = nodes[2][0] * nodes[2][1]
     A[3][0] = 1.0
-    A[3][1] = 0.0
-    A[3][2] = 1.0
-    A[3][3] = 0.0
+    A[3][1] = nodes[3][0]
+    A[3][2] = nodes[3][1]
+    A[3][3] = nodes[3][0] * nodes[3][1]
+    #A[0][0] = 1.0
+    #A[0][1] = 0.0
+    #A[0][2] = 0.0
+    #A[0][3] = 0.0
+    #A[1][0] = 1.0
+    #A[1][1] = 1.0
+    #A[1][2] = 0.0
+    #A[1][3] = 0.0
+    #A[2][0] = 1.0
+    #A[2][1] = 1.0
+    #A[2][2] = 1.0
+    #A[2][3] = 1.0
+    #A[3][0] = 1.0
+    #A[3][1] = 0.0
+    #A[3][2] = 1.0
+    #A[3][3] = 0.0
 
-    alpha, \
-    beta = bil_mapping(nodes          ,
-                       for_pablo = True,
-                       dim = 2)
-    # Getting logical coordinates.
-    l, m = apply_bil_mapping_inv(point,
-                                 alpha,
-                                 beta ,
-                                 dim = 2)
+    #alpha, \
+    #beta = bil_mapping(nodes            ,
+    #                   for_pablo = False,
+    #                   dim = 2)
+    ## Getting logical coordinates.
+    #l, m = apply_bil_mapping_inv(point,
+    #                             alpha,
+    #                             beta ,
+    #                             dim = 2)
+    #b[0] = 1.0
+    #b[1] = l
+    #b[2] = m
+    #b[3] = l * m
     b[0] = 1.0
-    b[1] = l
-    b[2] = m
-    b[3] = l * m
+    b[1] = point[0]
+    b[2] = point[1]
+    b[3] = point[0] * point[1]
 
     coeffs = numpy.linalg.solve(A.T, b)
 
