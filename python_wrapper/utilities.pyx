@@ -352,6 +352,15 @@ def is_point_on_lines(point,
 
     return on_lines
 
+def exact_sol(double x,
+              double y):
+    cdef double sol
+
+    sol = numpy.sin(numpy.power(x - 0.5, 2) + \
+                    numpy.power(y - 0.5, 2))
+
+    return sol
+
 #https://www.particleincell.com/2012/quad-interpolation/
 def bil_mapping(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
                 bool for_pablo = False                                ,
