@@ -475,6 +475,14 @@ def compute(comm_dictionary     ,
                                  "(%e, %e)" % (norm_inf, norm_L2))
                                  #str((norm_inf, norm_L2)))
     print(msg)
+    norm_inf, \
+    norm_L2 = laplacian.evaluate_norms(laplacian.f_nodes      ,
+                                       laplacian.f_nodes_exact,
+                                       laplacian.h_s_inter)
+    msg = utilities.join_strings("Function on nodes (inf, L2): process ",
+                                 "%d " % comm_w.Get_rank()              ,
+                                 "(%e, %e)" % (norm_inf, norm_L2))
+    print(msg)
     interpolate_sol = laplacian.reset_partially_solution()
     p_centers = [utilities.apply_persp_trans(dimension,
                                              center   , 
