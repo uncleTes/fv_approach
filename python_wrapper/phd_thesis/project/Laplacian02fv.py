@@ -1387,6 +1387,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         l_s = lambda x : least_squares(x[0],
                                        x[1])
 
+        self._f_nodes = []
+        self._f_nodes_exact = []
+        self._h_s_inter = []
+
         for i in xrange(0, ninters):
             # Rows indices for the \"PETSc\" matrix.
             r_indices = []
@@ -1504,7 +1508,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                           # py\" data.
                                                           r_a_n_d = True)
                 rings = octree.get_intersection_local_rings(inter)
-                print(rings)
                 # Neighbour centers neighbours indices: it is a list of tuple,
                 # and in each tuple are contained the lists of centers and in-
                 # dices of each local owner of the nodes.
@@ -1520,6 +1523,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 l_s_coeffs = map(l_s,
                                  zip([pair[0] for pair in n_cs_n_is],
                                      [n_node for n_node in n_nodes_inter]))
+
+                self.compute_function_on_nodes(inter      ,
+                                               nodes_inter,
+                                               n_cs_n_is  ,
+                                               l_s_coeffs)
 
                 n_coeffs     , \
                 coeffs_node_1, \
@@ -2962,6 +2970,57 @@ class Laplacian(BaseClass2D.BaseClass2D):
         return (norm_inf, norm_L2)
     # --------------------------------------------------------------------------
 
+    # --------------------------------------------------------------------------
+    def compute_function_on_nodes(self       ,
+                                  inter      ,
+                                  nodes_inter,
+                                  n_cs_n_is  ,
+                                  l_s_coeffs):
+        octree = self._octree
+        solution = utilities.exact_sol
+        self._f_nodes_exact.append(solution(nodes_inter[0][0],
+                                            nodes_inter[0][1]))
+        self._f_nodes_exact.append(solution(nodes_inter[1][0],
+                                            nodes_inter[1][1]))
+        h_inter = octree.get_area(inter        ,
+                                  is_ptr = True,
+                                  is_inter = True)
+        self._h_s_inter.append(h_inter)
+        self._h_s_inter.append(h_inter)
+        if (l_s_coeffs[0].size == 0):
+            self._f_nodes.append(solution(nodes_inter[0][0],
+                                          nodes_inter[0][1]))
+        else:
+            f_0 = solution(n_cs_n_is[0][0][0][0],
+                           n_cs_n_is[0][0][0][1])
+            f_1 = solution(n_cs_n_is[0][0][1][0],
+                           n_cs_n_is[0][0][1][1])
+            f_2 = solution(n_cs_n_is[0][0][2][0],
+                           n_cs_n_is[0][0][2][1])
+            f_3 = solution(n_cs_n_is[0][0][3][0],
+                           n_cs_n_is[0][0][3][1])
+            self._f_nodes.append(l_s_coeffs[0][0] * f_0 +
+                           l_s_coeffs[0][1] * f_1 +
+                           l_s_coeffs[0][2] * f_2 +
+                           l_s_coeffs[0][3] * f_3)
+        if (l_s_coeffs[1].size == 0):
+            self._f_nodes.append(solution(nodes_inter[1][0],
+                                          nodes_inter[1][1]))
+        else:
+            f_0 = solution(n_cs_n_is[1][0][0][0],
+                           n_cs_n_is[1][0][0][1])
+            f_1 = solution(n_cs_n_is[1][0][1][0],
+                           n_cs_n_is[1][0][1][1])
+            f_2 = solution(n_cs_n_is[1][0][2][0],
+                           n_cs_n_is[1][0][2][1])
+            f_3 = solution(n_cs_n_is[1][0][3][0],
+                           n_cs_n_is[1][0][3][1])
+            self._f_nodes.append(l_s_coeffs[1][0] * f_0 +
+                           l_s_coeffs[1][1] * f_1 +
+                           l_s_coeffs[1][2] * f_2 +
+                           l_s_coeffs[1][3] * f_3)
+    # --------------------------------------------------------------------------
+
     @property
     def comm(self):
         return self._comm
@@ -2997,4 +3056,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
     @property
     def not_pen_centers(self):
         return self._centers_not_penalized
+
+    @property
+    def f_nodes(self):
+        return numpy.array(self._f_nodes)
+
+    @property
+    def f_nodes_exact(self):
+        return numpy.array(self._f_nodes_exact)
+
+    @property
+    def h_s_inter(self):
+        return numpy.array(self._h_s_inter)
 
