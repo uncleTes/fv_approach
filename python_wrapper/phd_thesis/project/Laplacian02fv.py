@@ -2437,8 +2437,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # consider the indices and centers found (foreground).
             else:
                 if (also_outside_boundary):
-                    to_consider = True
-
                     border_center, \
                     numpy_border_center = neighbour_centers(c_c      ,
                                                             codim    ,
@@ -2446,13 +2444,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                             h        ,
                                                             r_a_n_d = True)
 
-                    if (not is_background):
-                        t_center =  apply_persp_trans(dimension          ,
-                                                      numpy_border_center,
-                                                      c_t_dict)[: dimension]
-                        check = is_point_inside_polygon(t_center    ,
-                                                        t_background)
-                        to_consider = (not check)
+                    t_center =  apply_persp_trans(dimension          ,
+                                                  numpy_border_center,
+                                                  c_t_dict)[: dimension]
+                    check = is_point_inside_polygon(t_center    ,
+                                                    t_background)
+                    to_consider = (not check)
 
                     if (to_consider):
                         centers.append(border_center)
