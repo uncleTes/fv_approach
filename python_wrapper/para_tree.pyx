@@ -599,7 +599,9 @@ cdef class Py_Para_Tree:
             n_indices[i] = face_node[f_index][i]
             # Getting local indices of neighbours of faces, to complete neigh-
             # bours' ring for each node of the intersection.
-            fn_indices[i] = 2 - (2 * (f_index / 2)) + (n_indices[i] / 2)
+            fn_indices[i] = 2 - (2 * (f_index / 2)) + ((n_indices[i] / 2) if \
+                                                       f_index < 2 else      \
+                                                       (n_indices[i] % 2))
         # Completing rings.
         for i in xrange(0, 2):
             l_rings[i][0] = f_index
