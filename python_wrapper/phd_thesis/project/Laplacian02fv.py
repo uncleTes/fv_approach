@@ -1520,8 +1520,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 zip(l_o_nodes_inter,
                                     rings          ,
                                     nodes_inter))
-                apply_bil_coeffs = [False if (n_cs[0].size == 3) else True for \
-                                    n_cs in n_cs_n_is]
+                apply_bil_coeffs = [True for n_cs in n_cs_n_is]
                 # Least square coefficients.
                 # TODO: use \"multiprocessing\" shared memory to map function on
                 #       local threads.
