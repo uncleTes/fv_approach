@@ -2998,6 +2998,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   is_inter = True)
         self._h_s_inter.append(h_inter)
         self._h_s_inter.append(h_inter)
+        l_s_coeffs_s_0 = l_s_coeffs[0].shape[0]
+        l_s_coeffs_s_1 = l_s_coeffs[1].shape[0]
         if (l_s_coeffs[0].size == 0):
             self._f_nodes.append(solution(nodes_inter[0][0],
                                           nodes_inter[0][1]))
@@ -3008,12 +3010,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
                            n_cs_n_is[0][0][1][1])
             f_2 = solution(n_cs_n_is[0][0][2][0],
                            n_cs_n_is[0][0][2][1])
-            f_3 = solution(n_cs_n_is[0][0][3][0],
-                           n_cs_n_is[0][0][3][1])
+            if (l_s_coeffs_s_0 == 4):
+                f_3 = solution(n_cs_n_is[0][0][3][0],
+                               n_cs_n_is[0][0][3][1])
             self._f_nodes.append(l_s_coeffs[0][0] * f_0 +
-                           l_s_coeffs[0][1] * f_1 +
-                           l_s_coeffs[0][2] * f_2 +
-                           l_s_coeffs[0][3] * f_3)
+                                 l_s_coeffs[0][1] * f_1 +
+                                 l_s_coeffs[0][2] * f_2 +
+                                 ((l_s_coeffs[0][3] * f_3) if \
+                                 (l_s_coeffs_s_0 == 4) else 0))
         if (l_s_coeffs[1].size == 0):
             self._f_nodes.append(solution(nodes_inter[1][0],
                                           nodes_inter[1][1]))
@@ -3024,12 +3028,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
                            n_cs_n_is[1][0][1][1])
             f_2 = solution(n_cs_n_is[1][0][2][0],
                            n_cs_n_is[1][0][2][1])
-            f_3 = solution(n_cs_n_is[1][0][3][0],
-                           n_cs_n_is[1][0][3][1])
+            if (l_s_coeffs_s_1 == 4):
+                f_3 = solution(n_cs_n_is[1][0][3][0],
+                               n_cs_n_is[1][0][3][1])
             self._f_nodes.append(l_s_coeffs[1][0] * f_0 +
-                           l_s_coeffs[1][1] * f_1 +
-                           l_s_coeffs[1][2] * f_2 +
-                           l_s_coeffs[1][3] * f_3)
+                                 l_s_coeffs[1][1] * f_1 +
+                                 l_s_coeffs[1][2] * f_2 +
+                                 ((l_s_coeffs[1][3] * f_3) if \
+                                 (l_s_coeffs_s_1 == 4) else 0))
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
@@ -3040,7 +3046,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         if (bil_inter):
             return utilities.bil_coeffs(nodes,
                                         point)
-
         return utilities.least_squares(nodes,
                                        point)
     # --------------------------------------------------------------------------
