@@ -1364,8 +1364,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         check_oct_corners = self.check_oct_corners
         get_owners_normals_inter = self.get_owners_normals_inter
         get_is_ghost = octree.get_is_ghost
-        least_squares = utilities.least_squares
-        bil_coeffs = utilities.bil_coeffs
         # Interpolation coefficients
         inter_coeffs = self.inter_coeffs
         get_l_owners_nodes_inter = self.get_l_owners_nodes_inter
@@ -1387,9 +1385,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                      True         ,
                                                      True         ,
                                                      x[2])
-
-        l_s = lambda x : least_squares(x[0],
-                                       x[1])
 
         i_c = lambda x : inter_coeffs(x[0],
                                       x[1],
