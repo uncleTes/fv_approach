@@ -1086,8 +1086,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                  # version
         n_axis = numpy.nonzero(n_normal_inter)[0][0]
         n_value = n_normal_inter[n_axis]
-        # evaluating length of the intersection, depending on its direc-
-        # tion.
+        # evaluating length of the intersection.
         h = octree.get_area(inter        ,
                             is_ptr = True,
                             is_inter = True)
@@ -1191,8 +1190,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         c_inter = ((nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
                    (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0)
         if (is_bound_inter):
-            # Normal parallel to y-axis.
             mult = 1.0 if (n_value > 0) else -1.0
+            # Normal parallel to y-axis.
             if (n_axis):
                 # Distance between y of center of the octant owner of
                 # the intersection and the extern boundary.
@@ -2669,10 +2668,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # \"Numpy\" temporary array.
             n_t_array = numpy.array([n_coeffs[0],
                                      n_coeffs[1]])
-            if (n_cs_n_is[1][0].size):
+            if (node_1_interpolated):
                 n_t_array = numpy.append(n_t_array,
                                          coeffs_node_1)
-            if (n_cs_n_is[0][0].size):
+            if (node_0_interpolated):
                 n_t_array = numpy.append(n_t_array,
                                          coeffs_node_0)
             # \"values[0]\" is for the owner with the inner normal,
@@ -2689,10 +2688,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Here we can be only on the background, where some octants
             # are penalized.
             if (not is_bound_inter):
-                if (n_cs_n_is[1][0].size):
+                if (node_1_interpolated):
                     n_t_array = numpy.append(n_t_array,
                                              coeffs_node_1)
-                if (n_cs_n_is[0][0].size):
+                if (node_0_interpolated):
                     n_t_array = numpy.append(n_t_array,
                                              coeffs_node_0)
                 mult = -1.0
