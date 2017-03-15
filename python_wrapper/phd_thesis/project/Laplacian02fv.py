@@ -1221,21 +1221,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 d_o_centers_y)
 
     # TODO: change the name of this function, I really do not like it!
-    def get_l_owners_nodes_inter(self              ,
-                                 inter             ,
-                                 l_owners_inter    ,
-                                 o_ghost           , # Owner ghost; if it is
-                                                     # \"None\", there is no ow-
-                                                     # ner ghost but, if it is
-                                                     # \"0\" or \"1\", it means
-                                                     # that is respectively the
-                                                     # owner with the inner nor-
-                                                     # mal or the one with the
-                                                     # outer one.
-                                 also_nodes = False, # Return also the nodes of
-                                                     # the intersection, not
-                                                     # just their owners
-                                 r_a_n_d = False):
+    def get_owners_nodes_inter(self              ,
+                               inter             ,
+                               l_owners_inter    ,
+                               o_ghost           , # Owner ghost; if it is
+                                                   # \"None\", there is no ow-
+                                                   # ner ghost but, if it is
+                                                   # \"0\" or \"1\", it means
+                                                   # that is respectively the
+                                                   # owner with the inner nor-
+                                                   # mal or the one with the
+                                                   # outer one.
+                               also_nodes = False, # Return also the nodes of
+                                                   # the intersection, not
+                                                   # just their owners
+                               r_a_n_d = False):
         octree = self._octree
         tot_oct = self._tot_oct
         dimension = self._dim
@@ -1255,35 +1255,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Local indices of the octants owners of the nodes of the
         # intersection.
         l_owners = [0] * n_nodes
-        u32_info = numpy.iinfo(numpy.uint32)
-        # \"max uint32_t\".
-        u32_max = u32_info.max
         for i in xrange(0, n_nodes):
             node = (nodes[i][0], nodes[i][1], nodes[i][2])
             on_b_boundary = is_on_b_boundary(node)
             if (on_b_boundary):
                 l_owner = "boundary"
             else:
+                # We will not have a case of a ghost owner, because the current
+                # function is runned only if the intersection is owned by the
+                # current process.
                 l_owner = i_finer_o_inter
-                # TODO: Is correct?
-                if (o_ghost is not None):
-                    l_owner = l_owners_inter[1 - o_ghost]
-                # Temp owner. Returning \"max uint32_t\" if point outside of the
-                # domain.
-                #t_owner = octree.get_point_owner_idx(node)
-                # If the index of the owner if equal to \"u32_max\", then we
-                # have reached or a ghost octant or we are outside the domain.
-                #if (t_owner == u32_max):
-                #    if (o_ghost is not None):
-                #        # If the intersection is ghost, then we have only one
-                #        # local octant owner.
-                #        l_owner = l_owners_inter[1 - o_ghost]
-                #    else:
-                #        # In this case, boundary intersection, the local onwer
-                #        # will be always the same.
-                #        l_owner = l_owners_inter[i % 2]
-                #else:
-                #    l_owner = t_owner
             l_owners[i] = l_owner
 
         if (also_nodes):
@@ -1371,12 +1352,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_is_ghost = octree.get_is_ghost
         # Interpolation coefficients
         inter_coeffs = self.inter_coeffs
-        get_l_owners_nodes_inter = self.get_l_owners_nodes_inter
+        get_owners_nodes_inter = self.get_owners_nodes_inter
         find_right_neighbours = self.find_right_neighbours
         new_find_right_neighbours = self.new_find_right_neighbours
         set_bg_b_c = self.set_bg_b_c
         fill_rhs = self.fill_rhs
         fill_mat = self.fill_mat
+        bil_coeffs = utilities.bil_coeffs
         # Lambda functions.
         g_n = lambda x : get_nodes(x               ,
                                    dimension       ,
@@ -1394,6 +1376,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         i_c = lambda x : inter_coeffs(x[0],
                                       x[1],
                                       x[2])
+        b_c = lambda x: bil_coeffs(x[0],
+                                   x[1])
 
         self._f_nodes = []
         self._f_nodes_exact = []
@@ -1418,157 +1402,163 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        0    , # Being with an intersection, it
                                        True)  # does not matter what number we
                                               # are giving to the second arg
-            # Global indices of owners inner/outer normal of the intersection
-            # (is a list, and the first element is the one with the inner nor-
-            # mal), followed by local indices of owners (needed by functions
-            # \"get_octant\" and \"get_ghost_octant\"), and an integer to know
-            # what owner is ghost.
-            #
-            # Here, global means global in the current octree. To have global
-            # for the totality of the octrees, we have to add \"g_d\".
-            #
-            # First owner will be the one with the inner normal.
-            #
-            # Owner ghost equal to 1 means that is ghost the one with the outer
-            # normal, if is 0 is ghost the one with the inner.
-            g_o_norms_inter, \
-            l_o_norms_inter, \
-            o_ghost = get_owners_normals_inter(inter,
-                                               is_ghost_inter)
-            # List containing 0 or 1 to indicate inner normal or outer normal.
-            labels = []
-            # Masked global indices of owners inner/outer normal of the inter-
-            # section. REMEMBER: \"octree.get_global_idx(octant) + gd\" ==
-            #                    \"o_ranges[0] + octant\".
-            # TODO: use \"multiprocessing\" shared memory to map function on
-            #       local threads.
-            m_g_o_norms_inter = map(mask_octant,
-                                    [(g_o_norm_inter + g_d) for g_o_norm_inter \
-                                     in g_o_norms_inter])
-            # Number of intersection's owners (both in 2D and 3D, it will be
-            # always equal to 2).
-            n_i_owners = 2
-            n_polygon = None
-            # Looping on the owners of the intersection.
-            for j in xrange(0, n_i_owners):
-                # Here, means that the owner is ghost.
-                if (j == o_ghost):
-                    py_oct = get_ghost_octant(l_o_norms_inter[j])
-                else:
-                    py_oct = get_octant(l_o_norms_inter[j])
-                center, \
-                numpy_center = get_center(py_oct           ,
-                                          ptr_octant = True,
-                                          also_numpy_center = True)[: dimension]
-                owners_centers.append(numpy_center)
-                m_g_octant = m_g_o_norms_inter[j]
-                # If an intersection owner is penalized (it should be just for
-                # background grid)...
-                if (m_g_octant == -1):
-                    oct_corners,\
-                    numpy_corners = g_n(py_oct)
-                    # TODO: save globally a vector with the corresponding num-
-                    #       ber of the grid covering the penalized octant,
-                    #       without redoing the check calling the function
-                    #       \"check_oct_corners\".
-                    # \"is_penalized_useless\" will not be used because we al-
-                    # ready know that the octant is penalized (we entered the
-                    # \"if\" clause). But we need \"n_polygon\" to be used in
-                    # the \"key\" for the background grid.
-                    is_penalized_useless, \
-                    n_polygon = check_oct_corners(numpy_corners,
-                                                  c_t_dict     ,
-                                                  t_foregrounds)
-                # ...else...
-                else:
-                    r_indices.append(m_g_octant)
-                    if (is_bound_inter):
-                        # Normal always directed outside the domain.
-                        labels.append(1)
+            # Choosing if the current intersection is owned by the current pro-
+            # cess. If yes, do everything; if not (ghost case), do nothing be-
+            # cause everything will be done by the other process, real owner of
+            # the intersection.
+            finer_o_inter = octree.get_finer(inter)
+            cur_proc_owner = True
+            if (is_ghost_inter):
+                if (finer_o_inter):
+                    cur_proc_owner = False
+            if (cur_proc_owner):
+                # Global indices of owners inner/outer normal of the intersection
+                # (is a list, and the first element is the one with the inner nor-
+                # mal), followed by local indices of owners (needed by functions
+                # \"get_octant\" and \"get_ghost_octant\"), and an integer to know
+                # what owner is ghost.
+                #
+                # Here, global means global in the current octree. To have global
+                # for the totality of the octrees, we have to add \"g_d\".
+                #
+                # First owner will be the one with the inner normal.
+                #
+                # Owner ghost equal to 1 means that is ghost the one with the outer
+                # normal, if is 0 is ghost the one with the inner.
+                g_o_norms_inter, \
+                l_o_norms_inter, \
+                o_ghost = get_owners_normals_inter(inter,
+                                                   is_ghost_inter)
+                # List containing 0 or 1 to indicate inner normal or outer normal.
+                labels = []
+                # Masked global indices of owners inner/outer normal of the inter-
+                # section. REMEMBER: \"octree.get_global_idx(octant) + gd\" ==
+                #                    \"o_ranges[0] + octant\".
+                # TODO: use \"multiprocessing\" shared memory to map function on
+                #       local threads.
+                m_g_o_norms_inter = map(mask_octant,
+                                        [(g_o_norm_inter + g_d) for g_o_norm_inter \
+                                         in g_o_norms_inter])
+                # Number of intersection's owners (both in 2D and 3D, it will be
+                # always equal to 2).
+                n_i_owners = 2
+                n_polygon = None
+                # Looping on the owners of the intersection.
+                for j in xrange(0, n_i_owners):
+                    # Here, means that the owner is ghost.
+                    if (j == o_ghost):
+                        py_oct = get_ghost_octant(l_o_norms_inter[j])
                     else:
-                        labels.append(j)
-            if (is_bound_inter):
-                # Being a boundary intersection, owner is the same.
-                del r_indices[-1]
-            # If the owners of the intersection are not both penalized (row in-
-            # dices are not empty).
-            if (r_indices):
-                # Local indices of the octants owners of the nodes of the
-                # intersection (needed for \"find_right_neighbours\"
-                # function).
-                #
-                # The coordinates of the nodes are given by \"nodes_inter\".
-                #
-                # The coordinates of the nodes but in a \"numpy\" array are into
-                # \"n_nodes_inter\".
-                l_o_nodes_inter, \
-                nodes_inter    , \
-                n_nodes_inter  = get_l_owners_nodes_inter(inter            ,
-                                                          l_o_norms_inter  ,
-                                                          o_ghost          ,
-                                                          # Return also coor-
-                                                          # dinates of the no-
-                                                          # des, and not just
-                                                          # local indices of the
-                                                          # owners.
-                                                          also_nodes = True,
-                                                          # Return also \"num-
-                                                          # py\" data.
-                                                          r_a_n_d = True)
-                rings = octree.get_intersection_local_rings(inter)
-                # Neighbour centers neighbours indices: it is a list of tuple,
-                # and in each tuple are contained the lists of centers and in-
-                # dices of each local owner of the nodes.
-                # TODO: use \"multiprocessing\" shared memory to map function on
-                #       local threads.
-                n_cs_n_is = map(f_r_n,
-                                zip(l_o_nodes_inter,
-                                    rings          ,
-                                    nodes_inter))
-                apply_bil_coeffs = [True for n_cs in n_cs_n_is]
-                # Least square coefficients.
-                # TODO: use \"multiprocessing\" shared memory to map function on
-                #       local threads.
-                l_s_coeffs = map(i_c,
-                                 zip([pair[0] for pair in n_cs_n_is]     ,
-                                     [n_node for n_node in n_nodes_inter],
-                                     apply_bil_coeffs))
+                        py_oct = get_octant(l_o_norms_inter[j])
+                    center, \
+                    numpy_center = get_center(py_oct           ,
+                                              ptr_octant = True,
+                                              also_numpy_center = True)[: dimension]
+                    owners_centers.append(numpy_center)
+                    m_g_octant = m_g_o_norms_inter[j]
+                    # If an intersection owner is penalized (it should be just for
+                    # background grid)...
+                    if (m_g_octant == -1):
+                        oct_corners,\
+                        numpy_corners = g_n(py_oct)
+                        # TODO: save globally a vector with the corresponding num-
+                        #       ber of the grid covering the penalized octant,
+                        #       without redoing the check calling the function
+                        #       \"check_oct_corners\".
+                        # \"is_penalized_useless\" will not be used because we al-
+                        # ready know that the octant is penalized (we entered the
+                        # \"if\" clause). But we need \"n_polygon\" to be used in
+                        # the \"key\" for the background grid.
+                        is_penalized_useless, \
+                        n_polygon = check_oct_corners(numpy_corners,
+                                                      c_t_dict     ,
+                                                      t_foregrounds)
+                    # ...else...
+                    else:
+                        r_indices.append(m_g_octant)
+                        if (is_bound_inter):
+                            # Normal always directed outside the domain.
+                            labels.append(1)
+                        else:
+                            labels.append(j)
+                if (is_bound_inter):
+                    # Being a boundary intersection, owner is the same.
+                    del r_indices[-1]
+                # If the owners of the intersection are not both penalized (row in-
+                # dices are not empty).
+                if (r_indices):
+                    # Local indices of the octants owners of the nodes of the
+                    # intersection (needed for \"find_right_neighbours\"
+                    # function).
+                    #
+                    # The coordinates of the nodes are given by \"nodes_inter\".
+                    #
+                    # The coordinates of the nodes but in a \"numpy\" array are into
+                    # \"n_nodes_inter\".
+                    l_o_nodes_inter, \
+                    nodes_inter    , \
+                    n_nodes_inter  = get_owners_nodes_inter(inter            ,
+                                                            l_o_norms_inter  ,
+                                                            o_ghost          ,
+                                                            # Return also coor-
+                                                            # dinates of the no-
+                                                            # des, and not just
+                                                            # local indices of the
+                                                            # owners.
+                                                            also_nodes = True,
+                                                            # Return also \"num-
+                                                            # py\" data.
+                                                            r_a_n_d = True)
+                    rings = octree.get_intersection_local_rings(inter)
+                    # Neighbour centers neighbours indices: it is a list of tuple,
+                    # and in each tuple are contained the lists of centers and in-
+                    # dices of each local owner of the nodes.
+                    # TODO: use \"multiprocessing\" shared memory to map function on
+                    #       local threads.
+                    n_cs_n_is = map(f_r_n,
+                                    zip(l_o_nodes_inter,
+                                        rings          ,
+                                        nodes_inter))
+                    # Least square coefficients.
+                    # TODO: use \"multiprocessing\" shared memory to map function on
+                    #       local threads.
+                    l_s_coeffs = map(b_c,
+                                     zip([pair[0] for pair in n_cs_n_is]     ,
+                                         [n_node for n_node in n_nodes_inter]))
 
-                self.compute_function_on_nodes(inter      ,
-                                               nodes_inter,
-                                               n_cs_n_is  ,
-                                               l_s_coeffs)
+                    self.compute_function_on_nodes(inter      ,
+                                                   nodes_inter,
+                                                   n_cs_n_is  ,
+                                                   l_s_coeffs)
 
-                n_coeffs     , \
-                coeffs_node_1, \
-                coeffs_node_0  =  self.get_interface_coefficients(inter         ,
-                                                                  dimension     ,
-                                                                  nodes_inter   ,
-                                                                  owners_centers,
-                                                                  l_s_coeffs)
+                    n_coeffs     , \
+                    coeffs_node_1, \
+                    coeffs_node_0  =  self.get_interface_coefficients(inter         ,
+                                                                      dimension     ,
+                                                                      nodes_inter   ,
+                                                                      owners_centers,
+                                                                      l_s_coeffs)
 
-                coeffs_nodes = (coeffs_node_0,
-                                coeffs_node_1)
+                    coeffs_nodes = (coeffs_node_0,
+                                    coeffs_node_1)
 
-                fill_rhs(l_s_coeffs  ,
-                         labels      ,
-                         o_ghost     ,
-                         coeffs_nodes,
-                         n_cs_n_is   ,
-                         r_indices   ,
-                         n_nodes_inter)
+                    fill_rhs(l_s_coeffs  ,
+                             labels      ,
+                             coeffs_nodes,
+                             n_cs_n_is   ,
+                             r_indices   ,
+                             n_nodes_inter)
 
-                fill_mat(inter            ,
-                         owners_centers   ,
-                         n_cs_n_is        ,
-                         r_indices        ,
-                         o_ghost          ,
-                         labels           ,
-                         g_o_norms_inter  ,
-                         m_g_o_norms_inter,
-                         coeffs_nodes     ,
-                         n_polygon        ,
-                         n_coeffs)
+                    fill_mat(inter            ,
+                             owners_centers   ,
+                             n_cs_n_is        ,
+                             r_indices        ,
+                             labels           ,
+                             g_o_norms_inter  ,
+                             m_g_o_norms_inter,
+                             coeffs_nodes     ,
+                             n_polygon        ,
+                             n_coeffs)
 
         # We have inserted argument \"assembly\" equal to
         # \"PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY\" because the final assembly
@@ -2630,7 +2620,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                  owners_centers   ,
                  n_cs_n_is        ,
                  r_indices        ,
-                 o_ghost          ,
                  labels           ,
                  g_o_norms_inter  ,
                  m_g_o_norms_inter,
@@ -2666,20 +2655,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # the intersection, only if they are not on the background boundary.
         node_1_interpolated = n_cs_n_is[1][0].size
         node_0_interpolated = n_cs_n_is[0][0].size
-        add_node_indices = True
-        if (is_ghost_inter):
-            # Using \"extend.([number])\" to avoid \"TypeError: 'int' object
-            # is not iterable\" error.
-            c_indices.extend([r_indices[1 - o_ghost]])
-            # The owner of the outer normal won't add values also for the nodes
-            # of the intersection.
-            if (not o_ghost):
-                add_node_indices = False
-        else:
-            c_indices.extend(r_indices)
-        if (add_node_indices and node_1_interpolated):
+        c_indices.extend(r_indices)
+        if (node_1_interpolated):
             c_indices.extend(n_cs_n_is[1][1])
-        if (add_node_indices and node_0_interpolated):
+        if (node_0_interpolated):
             c_indices.extend(n_cs_n_is[0][1])
 
         # Both the owners of the intersection are not penalized.
@@ -2690,20 +2669,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # \"Numpy\" temporary array.
             n_t_array = numpy.array([n_coeffs[0],
                                      n_coeffs[1]])
-            # If is a ghost intersection, we store just one coefficient
-            # for each time we will pass on the current intersection
-            # (being ghost, there will be two processes owning it).
-            if (is_ghost_inter):
-                n_t_array = numpy.array(n_coeffs[1 - o_ghost])
-            # So, if there is no ghost intersection or if the ghost is
-            # the owner of the outer normal.
-            if (o_ghost != 0):
-                if (n_cs_n_is[1][0].size):
-                    n_t_array = numpy.append(n_t_array,
-                                             coeffs_node_1)
-                if (n_cs_n_is[0][0].size):
-                    n_t_array = numpy.append(n_t_array,
-                                             coeffs_node_0)
+            if (n_cs_n_is[1][0].size):
+                n_t_array = numpy.append(n_t_array,
+                                         coeffs_node_1)
+            if (n_cs_n_is[0][0].size):
+                n_t_array = numpy.append(n_t_array,
+                                         coeffs_node_0)
             # \"values[0]\" is for the owner with the inner normal,
             # while \"values[1]\" is for the owner with the outer one:
             # Add to the octant with the outer normal, subtract to the
@@ -2789,7 +2760,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def fill_rhs(self        ,
                  l_s_coeffs  ,
                  labels      ,
-                 o_ghost     ,
                  coeffs_nodes,
                  n_cs_n_is   ,
                  r_indices   ,
@@ -2805,7 +2775,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         insert_mode = PETSc.InsertMode.ADD_VALUES
 
-        solution = ExactSolution2D.ExactSolution2D.solution
+        solution = utilities.exact_sol
         # If the first octant owner of the intersection has the inner normal,
         # then the values should be subtracted, so added to the rhs. Viceversa
         # if the owner has the outgoing normal.
@@ -2819,18 +2789,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # The node \"i\" of the interface is on the boundary.
             if (n_l_s_coeffs == 0):
                 e_sol = solution(n_nodes_inter[i][0],
-                                 n_nodes_inter[i][1],
-                                 n_nodes_inter[i][2] if (dimension == 3) \
-                                 else None          ,
-                                 c_t_dict)
+                                 n_nodes_inter[i][1])
                 e_sol_coeff = coeffs_nodes[i]
                 e_sol = mult * e_sol * e_sol_coeff
-                # The owner of the inner normal will add values of the nodes of
-                # the intersection (on the background border) to the rhs. Same
-                # behaviour if there is no ghost intersection (\"o_ghost\" =
-                # \"None\").
-                if (o_ghost != 0):
-                    values_rhs.append(e_sol)
+                values_rhs.append(e_sol)
             else:
                 for j in xrange(0, n_l_s_coeffs):
                     # Neighbour index.
@@ -2843,18 +2805,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # \"outside_bg\".
                         n_cs_n_is[i][1][j] = -1
                         e_sol = solution(n_cs_n_is[i][0][j][0],
-                                         n_cs_n_is[i][0][j][1],
-                                         n_cs_n_is[i][0][j][2] if (dimension == 3) \
-                                         else None            ,
-                                         mapping = c_t_dict)
+                                         n_cs_n_is[i][0][j][1])
                         e_sol_coeff = coeffs_nodes[i][j]
                         e_sol = mult * e_sol * e_sol_coeff
-                        # The owner of the inner normal will add values of the
-                        # interpolated nodes "outside_bg" to the rhs. Same
-                        # behaviour if there is no ghost intersection
-                        # (\"o_ghost\" = \"None\").
-                        if (o_ghost != 0):
-                            values_rhs.append(e_sol)
+                        values_rhs.append(e_sol)
 
         if (values_rhs):
             n_values = len(values_rhs)
