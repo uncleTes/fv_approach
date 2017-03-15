@@ -351,7 +351,8 @@ def is_point_on_lines(point,
             return on_lines
 
     return on_lines
-
+# TODO: extend to 3D and apply mapping, and pass also \"numpy\" array instead of
+        # just \"double\".
 def exact_sol(double x,
               double y):
     cdef double sol
