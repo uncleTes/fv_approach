@@ -1352,7 +1352,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Interpolation coefficients
         inter_coeffs = self.inter_coeffs
         get_owners_nodes_inter = self.get_owners_nodes_inter
-        find_right_neighbours = self.find_right_neighbours
         new_find_right_neighbours = self.new_find_right_neighbours
         set_bg_b_c = self.set_bg_b_c
         fill_rhs = self.fill_rhs
