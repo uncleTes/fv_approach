@@ -458,7 +458,7 @@ def compute(comm_dictionary     ,
     if (n_grids > 1):
         laplacian.check_foreground_boundaries()
     laplacian.fill_mat_and_rhs()
-    laplacian.add_rhs(exact_solution.s_der)
+    laplacian.add_rhs(exact_solution.s_der * h_s * h_s)
     laplacian.update_values(intercomm_dictionary)
     #laplacian.mat.view()
     laplacian.solve()
