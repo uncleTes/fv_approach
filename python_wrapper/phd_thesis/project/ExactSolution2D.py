@@ -61,10 +61,11 @@ class ExactSolution2D(BaseClass2D.BaseClass2D):
             x_t = x_n
             y_t = y_n
 
-        return numpy.sin(numpy.power(numpy.array(x_t) - 0.5, 2) + 
-                     numpy.power(numpy.array(y_t) - 0.5, 2))
+        #return numpy.sin(numpy.power(numpy.array(x_t) - 0.5, 2) +
+        #             numpy.power(numpy.array(y_t) - 0.5, 2))
+        return numpy.ones(shape = len(x_t))
 
-    # Solution second derivative = 4 * cos((x - 0.5)^2 + (y - 0.5)^2) - 
+    # Solution second derivative = 4 * cos((x - 0.5)^2 + (y - 0.5)^2) -
     #                              4 * sin((x - 0.5)^2 + (y - 0.5)^2) *
     #                              ((x - 0.5)^2 + (y - 0.5)^2).
     @staticmethod
@@ -83,14 +84,15 @@ class ExactSolution2D(BaseClass2D.BaseClass2D):
            Returns:
                a numpy vector with the solution second derivative."""
 
-        return (numpy.multiply(numpy.cos(numpy.power(x - 0.5, 2)       + 
-                                         numpy.power(y - 0.5, 2)),
-                               4)                                      -
-                numpy.multiply(numpy.sin(numpy.power(x - 0.5, 2)       + 
-                                         numpy.power(y - 0.5, 2)), 
-                               numpy.multiply(numpy.power(x - 0.5, 2)  + 
-                                              numpy.power(y - 0.5, 2),
-                                              4)))
+        #return (numpy.multiply(numpy.cos(numpy.power(x - 0.5, 2)       +
+        #                                 numpy.power(y - 0.5, 2)),
+        #                       4)                                      -
+        #        numpy.multiply(numpy.sin(numpy.power(x - 0.5, 2)       +
+        #                                 numpy.power(y - 0.5, 2)),
+        #                       numpy.multiply(numpy.power(x - 0.5, 2)  +
+        #                                      numpy.power(y - 0.5, 2),
+        #                                      4)))
+        return numpy.zeros(shape = x.size)
 
     # Solution second derivative x.
     @staticmethod

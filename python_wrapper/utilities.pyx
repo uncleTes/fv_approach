@@ -356,9 +356,9 @@ def is_point_on_lines(point,
 def exact_sol(double x,
               double y):
     cdef double sol
-
-    sol = numpy.sin(numpy.power(x - 0.5, 2) + \
-                    numpy.power(y - 0.5, 2))
+    sol = 1.0
+    #sol = numpy.sin(numpy.power(x - 0.5, 2) + \
+    #                numpy.power(y - 0.5, 2))
 
     return sol
 
