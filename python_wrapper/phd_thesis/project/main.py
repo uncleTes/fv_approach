@@ -353,6 +353,7 @@ def set_octree(comm_l,
         center  = pablo.get_center(octant)[: dimension]
         # Refinement condition on \"x\".
         ref_cond_x = (center[0] < 0.5)
+        #ref_cond_x = False
         ref_cond_x_02 = (center[0] > 0.5)
         #ref_cond_x = True
         #ref_cond_x = 0
@@ -366,7 +367,8 @@ def set_octree(comm_l,
         ref_cond_z = True if (dimension == 2) else \
                      True
         if ((ref_cond_x and ref_cond_y and ref_cond_z)):
-            if (ref_cond_x_03 and ref_cond_y_03):
+            #or (ref_cond_x_02 and ref_cond_y_02 and ref_cond_z)):
+            #if (ref_cond_x_03 and ref_cond_y_03):
                 pablo.set_marker(octant, 1)
 
     pablo.adapt()
@@ -461,6 +463,7 @@ def compute(comm_dictionary     ,
     laplacian.add_rhs(exact_solution.s_der * h_s * h_s)
     laplacian.update_values(intercomm_dictionary)
     #laplacian.mat.view()
+    #laplacian.rhs.view()
     laplacian.solve()
     norm_inf, \
     norm_L2 = laplacian.evaluate_norms(exact_solution.sol      ,
