@@ -351,14 +351,32 @@ def is_point_on_lines(point,
             return on_lines
 
     return on_lines
-# TODO: extend to 3D and apply mapping, and pass also \"numpy\" array instead of
-        # just \"double\".
-def exact_sol(double x,
-              double y):
+# TODO: extend to 3D.
+def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
+              numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha    ,
+              numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta     ,
+              int dim = 2):
     cdef double sol
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] x =            \
+         numpy.array(l_points[:, 0]      , \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] y =            \
+         numpy.array(l_points[:, 1]      , \
+                     dtype = numpy.float64)
+
+    apply_bil_mapping(l_points,
+                      alpha   ,
+                      beta    ,
+                      x       ,
+                      y)
     #sol = 1.0
-    sol = numpy.sin(numpy.power(x - 0.5, 2) + \
-                    numpy.power(y - 0.5, 2))
+    nsin = numpy.sin
+    npower = numpy.power
+    nadd = numpy.add
+    sol = nsin(npower(nadd(x, -0.5), 2) + \
+               npower(nadd(y, -0.5), 2))
 
     return sol
 
