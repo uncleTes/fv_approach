@@ -1243,7 +1243,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         octree = self._octree
         tot_oct = self._tot_oct
         dimension = self._dim
+        grid = self._proc_g
         finer_o_inter = octree.get_finer(inter)
+        c_t_dict = self.get_trans(grid)[0]
         # Index finer owner intersection.
         i_finer_o_inter = octree.get_owners(inter)[finer_o_inter]
         t_background = self._t_background
@@ -1261,7 +1263,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
         l_owners = [0] * n_nodes
         for i in xrange(0, n_nodes):
             node = (nodes[i][0], nodes[i][1], nodes[i][2])
-            on_b_boundary = is_on_b_boundary(node)
+            n_node = numpy.array(node)
+            t_node =  utilities.apply_persp_trans(dimension,
+                                                  n_node   ,
+                                                  c_t_dict)[: dimension]
+            on_b_boundary = is_on_b_boundary(t_node)
             if (on_b_boundary):
                 l_owner = "boundary"
             else:
