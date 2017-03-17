@@ -382,6 +382,8 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
 
 #https://www.particleincell.com/2012/quad-interpolation/
 def bil_mapping(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
+                numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha,
+                numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta ,
                 bool for_pablo = False                                ,
                 int dim = 2):
     # Number of points; in 2D is equal to 4.
@@ -399,16 +401,6 @@ def bil_mapping(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
 
     cdef numpy.ndarray[dtype = numpy.float64_t,\
                        ndim = 1] b_y =         \
-         numpy.zeros(shape = (n_nodes),        \
-                     dtype = numpy.float64)
-
-    cdef numpy.ndarray[dtype = numpy.float64_t,\
-                       ndim = 1] alpha =       \
-         numpy.zeros(shape = (n_nodes),        \
-                     dtype = numpy.float64)
-
-    cdef numpy.ndarray[dtype = numpy.float64_t,\
-                       ndim = 1] beta =        \
          numpy.zeros(shape = (n_nodes),        \
                      dtype = numpy.float64)
 
@@ -454,10 +446,8 @@ def bil_mapping(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
     # where \"l\" and \"m\" are the coordinates of a logical square of coordi-
     # nates (0, 0), (1, 0), (1, 1), (0, 1) where we will apply the bilinear in-
     # terpolation.
-    alpha = numpy.linalg.solve(A, b_x)
-    beta = numpy.linalg.solve(A, b_y)
-
-    return (alpha, beta)
+    numpy.copyto(alpha, numpy.linalg.solve(A, b_x))
+    numpy.copyto(beta, numpy.linalg.solve(A, b_y))
 
 def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
                                         ndim = 1] p_point      , # physical point
