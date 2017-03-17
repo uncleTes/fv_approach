@@ -130,6 +130,15 @@ def set_trans_dicts(n_grids,
         n_or_points = numpy.reshape(n_or_points, (4,3))
         n_t_points = numpy.array(t_points[grid])
         n_t_points = numpy.reshape(n_t_points, (4,3))
+        alpha = numpy.zeros(shape = (4, ),
+                            dtype = numpy.float64)
+        beta = numpy.zeros(shape = (4, ),
+                           dtype = numpy.float64)
+        utilities.bil_mapping(n_t_points       ,
+                              alpha            ,
+                              beta             ,
+                              for_pablo = False,
+                              dim = 2)
         # Matrix of transformation coefficients from logical to physical.
         t_coeffs = utilities.p_t_coeffs(dim           , # Problem's dimension
                                         n_or_points   , # Original points
@@ -138,7 +147,7 @@ def set_trans_dicts(n_grids,
         t_coeffs_adj = utilities.p_t_coeffs_adj(dim     , # Problem's dimension
                                                 t_coeffs) # Transformation coeffs
     
-        trans_dictionary.update({grid : t_coeffs})
+        trans_dictionary.update({grid : (t_coeffs, alpha, beta)})
         trans_adj_dictionary.update({grid : t_coeffs_adj})
 
     return (trans_dictionary, trans_adj_dictionary)
@@ -421,7 +430,7 @@ def compute(comm_dictionary     ,
                                                              dimension,
                                                              logger   ,
                                                              log_file)
-    t_coeffs = trans_dictionary[proc_grid]
+    t_coeffs = trans_dictionary[proc_grid][0]
     t_coeffs_adj = trans_adj_dictionary[proc_grid]
     laplacian.init_trans_dict(trans_dictionary)
     laplacian.init_trans_adj_dict(trans_adj_dictionary)
