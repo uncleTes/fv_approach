@@ -6,7 +6,6 @@ import numbers
 import math
 import collections
 import BaseClass2D
-import ExactSolution2D
 import numpy
 # http://sbrisard.github.io/posts/20130904-First_things_first_import_petsc4py_correctly.html
 import sys
@@ -298,10 +297,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
         edges_or_nodes = []
         just_one_neighbour = False
         proc_grid = self._proc_g
+        grid = self._proc_g
+        c_t_dict = self.get_trans(grid)[0]
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
         dimension = self._dim
+        solution = utilities.exact_sol
+        narray = numpy.array
+        nsolution = lambda x : solution(narray(x),
+                                        alpha    ,
+                                        beta     ,
+                                        dim = 2)
 
-        # Current transformation matrix's dictionary.
-        c_t_dict = self.get_trans(proc_grid)
         if (codim is None):
             for i in xrange(0, len(centers)):
                 # Evaluating boundary conditions for edges.
@@ -326,10 +333,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         else:
             z_s = None
 
-        boundary_values = ExactSolution2D.ExactSolution2D.solution(x_s     ,
-                                                   		   y_s     ,
-                                                                   z_s     ,
-                                                                   c_t_dict)
+        x_y_s = zip(x_s, y_s)
+        boundary_values = nsolution(x_y_s)
 
         msg = "Evaluated boundary conditions"
         if just_one_neighbour:
@@ -466,7 +471,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         o_ranges = self.get_ranges()
         dimension = self._dim
         # Current transformation matrix's dictionary.
-        c_t_dict = self.get_trans(grid)
+        c_t_dict = self.get_trans(grid)[0]
         # Transformed background.
         t_background = self._t_background
         # Centers of octants on the boundary.
@@ -655,7 +660,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if ((n_grids > 1) and (is_background)):
                 t_foregrounds = self._t_foregrounds
                 # Current transformation matrix's dictionary.
-                c_t_dict = self.get_trans(0)
+                c_t_dict = self.get_trans(0)[0]
                 idx_or_oct = neighs[i] if (not ghosts[i]) else \
                              py_ghost_oct
                 is_ptr = False if (not ghosts[i]) else \
@@ -742,7 +747,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         t_foregrounds = self._t_foregrounds
         if (is_background):
             # Current transformation matrix's dictionary.
-            c_t_dict = self.get_trans(0)
+            c_t_dict = self.get_trans(0)[0]
 
         # Code hoisting.
         get_nodes = octree.get_nodes
@@ -1075,7 +1080,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    l_s_coeffs):     # Least square coefficients.
         octree = self._octree
         grid = self._proc_g
-        c_t_dict = self.get_trans(grid)
+        c_t_dict = self.get_trans(grid)[0]
         is_bound_inter = octree.get_bound(inter,
                                           0    ,
                                           True)
@@ -1336,7 +1341,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         o_ranges = self.get_ranges()
 
         # Current transformation matrix's dictionary.
-        c_t_dict = self.get_trans(grid)
+        c_t_dict = self.get_trans(grid)[0]
 
         # Code hoisting.
         mask_octant = self.mask_octant
@@ -2336,7 +2341,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         nfaces = octree.get_n_faces()
         nnodes = octree.get_n_nodes()
         faces_nodes = octree.get_face_node()
-        c_t_dict = self.get_trans(grid)
+        c_t_dict = self.get_trans(grid)[0]
         t_background = self._t_background
         # Ghosts' deplacement.
         g_d = 0
@@ -2495,7 +2500,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         nfaces = octree.get_n_faces()
         nnodes = octree.get_n_nodes()
         faces_nodes = octree.get_face_node()
-        c_t_dict = self.get_trans(grid)
+        c_t_dict = self.get_trans(grid)[0]
         t_background = self._t_background
         # Ghosts' deplacement.
         g_d = 0
@@ -2768,12 +2773,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Number of nodes (of the intersection).
         n_nodes = 2 if (dimension == 2) else 4
         grid = self._proc_g
-        c_t_dict = self.get_trans(grid)
+        c_t_dict = self.get_trans(grid)[0]
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
         values_rhs = []
 
         insert_mode = PETSc.InsertMode.ADD_VALUES
 
         solution = utilities.exact_sol
+        narray = numpy.array
+        nsolution = lambda x : solution(narray([[x[0], x[1]]]),
+                                        alpha                 ,
+                                        beta                  ,
+                                        dim = 2)
         # If the first octant owner of the intersection has the inner normal,
         # then the values should be subtracted, so added to the rhs. Viceversa
         # if the owner has the outgoing normal.
@@ -2786,8 +2798,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_l_s_coeffs = l_s_coeffs[i].size
             # The node \"i\" of the interface is on the boundary.
             if (n_l_s_coeffs == 0):
-                e_sol = solution(n_nodes_inter[i][0],
-                                 n_nodes_inter[i][1])
+                e_sol = nsolution((n_nodes_inter[i][0],
+                                   n_nodes_inter[i][1]))
                 e_sol_coeff = coeffs_nodes[i]
                 e_sol = mult * e_sol * e_sol_coeff
                 values_rhs.append(e_sol)
@@ -2802,9 +2814,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # not cause problems not being no more indices signed as
                         # \"outside_bg\".
                         n_cs_n_is[i][1][j] = -1
-                        e_sol = solution(n_cs_n_is[i][0][j][0],
-                                         n_cs_n_is[i][0][j][1])
-                        e_sol_coeff = coeffs_nodes[i][j]
+                        e_sol = nsolution((n_cs_n_is[i][0][j][0],
+                                           n_cs_n_is[i][0][j][1]))
+                        # TODO: check if multipling for \"l_s_coeffs[j]\" is or
+                        #       not correct.
+                        e_sol_coeff = coeffs_nodes[i][j] * l_s_coeffs[j]
                         e_sol = mult * e_sol * e_sol_coeff
                         values_rhs.append(e_sol)
 
@@ -2844,12 +2858,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_background = True
         dimension = self._dim
         # Current transformation matrix's dictionary.
-        c_t_dict = self.get_trans(grid)
+        c_t_dict = self.get_trans(grid)[0]
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
         if (grid):
             is_background = False
             numpy_row_indices = numpy.array(row_indices)
             numpy_row_indices = numpy_row_indices[numpy_row_indices >= 0]
         insert_mode = PETSc.InsertMode.ADD_VALUES
+        solution = utilities.exact_sol
+        narray = numpy.array
+        nsolution = lambda x : solution(narray([[x[0], x[1]]]),
+                                               alpha          ,
+                                               beta           ,
+                                               dim = 2)
         n_rows = 1 if (is_background) else numpy_row_indices.size
         to_rhs = []
         # Exact solutions.
@@ -2860,12 +2882,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # solution is evaluated.
             if (index == "outside_bg"):
                 to_rhs.append(i)
-                e_sol = ExactSolution2D.ExactSolution2D.solution(centers[i][0]     ,
-                                                                 centers[i][1]     ,
-                                                                 centers[i][2] if\
-                                                                 (dimension == 3)\
-                                                                 else None         ,
-                                                                 mapping = c_t_dict)
+                e_sol = nsolution((centers[i][0],
+                                   centers[i][1]))
                 e_sols.append(e_sol)
 
         for i in range(0, n_rows):
@@ -2936,11 +2954,22 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   n_cs_n_is  ,
                                   l_s_coeffs):
         octree = self._octree
+        grid = self._proc_g
+        c_t_dict = self.get_trans(grid)[0]
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
         solution = utilities.exact_sol
-        self._f_nodes_exact.append(solution(nodes_inter[0][0],
-                                            nodes_inter[0][1]))
-        self._f_nodes_exact.append(solution(nodes_inter[1][0],
-                                            nodes_inter[1][1]))
+        narray = numpy.array
+        nsolution = lambda x : solution(narray([[x[0], x[1]]]),
+                                               alpha          ,
+                                               beta           ,
+                                               dim = 2)
+        e_nsolution_node_0 = nsolution((nodes_inter[0][0],
+                                        nodes_inter[0][1]))
+        e_nsolution_node_1 = nsolution((nodes_inter[1][0],
+                                        nodes_inter[1][1]))
+        self._f_nodes_exact.append(e_nsolution_node_0)
+        self._f_nodes_exact.append(e_nsolution_node_1)
         h_inter = octree.get_area(inter        ,
                                   is_ptr = True,
                                   is_inter = True)
@@ -2949,36 +2978,34 @@ class Laplacian(BaseClass2D.BaseClass2D):
         l_s_coeffs_s_0 = l_s_coeffs[0].shape[0]
         l_s_coeffs_s_1 = l_s_coeffs[1].shape[0]
         if (l_s_coeffs[0].size == 0):
-            self._f_nodes.append(solution(nodes_inter[0][0],
-                                          nodes_inter[0][1]))
+            self._f_nodes.append(e_nsolution_node_0)
         else:
-            f_0 = solution(n_cs_n_is[0][0][0][0],
-                           n_cs_n_is[0][0][0][1])
-            f_1 = solution(n_cs_n_is[0][0][1][0],
-                           n_cs_n_is[0][0][1][1])
-            f_2 = solution(n_cs_n_is[0][0][2][0],
-                           n_cs_n_is[0][0][2][1])
+            f_0 = nsolution((n_cs_n_is[0][0][0][0],
+                             n_cs_n_is[0][0][0][1]))
+            f_1 = nsolution((n_cs_n_is[0][0][1][0],
+                             n_cs_n_is[0][0][1][1]))
+            f_2 = nsolution((n_cs_n_is[0][0][2][0],
+                             n_cs_n_is[0][0][2][1]))
             if (l_s_coeffs_s_0 == 4):
-                f_3 = solution(n_cs_n_is[0][0][3][0],
-                               n_cs_n_is[0][0][3][1])
+                f_3 = nsolution((n_cs_n_is[0][0][3][0],
+                                 n_cs_n_is[0][0][3][1]))
             self._f_nodes.append(l_s_coeffs[0][0] * f_0 +
                                  l_s_coeffs[0][1] * f_1 +
                                  l_s_coeffs[0][2] * f_2 +
                                  ((l_s_coeffs[0][3] * f_3) if \
                                  (l_s_coeffs_s_0 == 4) else 0))
         if (l_s_coeffs[1].size == 0):
-            self._f_nodes.append(solution(nodes_inter[1][0],
-                                          nodes_inter[1][1]))
+            self._f_nodes.append(e_nsolution_node_1)
         else:
-            f_0 = solution(n_cs_n_is[1][0][0][0],
-                           n_cs_n_is[1][0][0][1])
-            f_1 = solution(n_cs_n_is[1][0][1][0],
-                           n_cs_n_is[1][0][1][1])
-            f_2 = solution(n_cs_n_is[1][0][2][0],
-                           n_cs_n_is[1][0][2][1])
+            f_0 = nsolution((n_cs_n_is[1][0][0][0],
+                             n_cs_n_is[1][0][0][1]))
+            f_1 = nsolution((n_cs_n_is[1][0][1][0],
+                             n_cs_n_is[1][0][1][1]))
+            f_2 = nsolution((n_cs_n_is[1][0][2][0],
+                             n_cs_n_is[1][0][2][1]))
             if (l_s_coeffs_s_1 == 4):
-                f_3 = solution(n_cs_n_is[1][0][3][0],
-                               n_cs_n_is[1][0][3][1])
+                f_3 = nsolution((n_cs_n_is[1][0][3][0],
+                                 n_cs_n_is[1][0][3][1]))
             self._f_nodes.append(l_s_coeffs[1][0] * f_0 +
                                  l_s_coeffs[1][1] * f_1 +
                                  l_s_coeffs[1][2] * f_2 +
