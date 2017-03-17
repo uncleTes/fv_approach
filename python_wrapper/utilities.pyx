@@ -500,26 +500,32 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
     return (l, m)
 
 def apply_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
-                                    ndim = 1] l_point      , # logical point
+                                    ndim = 2] l_points     , # logical points
                       numpy.ndarray[dtype = numpy.float64_t, \
                                     ndim = 1] alpha        ,
                       numpy.ndarray[dtype = numpy.float64_t, \
                                     ndim = 1] beta         ,
+                      numpy.ndarray[dtype = numpy.float64_t, \
+                                    ndim = 1] x            ,
+                      numpy.ndarray[dtype = numpy.float64_t, \
+                                    ndim = 1] y            ,
                       int dim = 2):
     # Applying the following equation (for the \"ys\" is the same but with
     # betas):
     # x = alpha_0 + alpha_1*l + alpha_2*m + alpha_3*l*m (2D)
     # x = alpha_0 + alpha_1*l + alpha_2*m + alpha_3*n + alpha_4*l*m +
     #     alpha_5*l*n + alpha_6*m*n (3D)
-    cdef double x
-    cdef double y
-
-    x = alpha[0] + (alpha[1] * l_point[0]) + (alpha[2] * l_point[1]) + \
-        (alpha[3] * l_point[0] * l_point[1])
-    y = beta[0] + (beta[1] * l_point[0]) + (beta[2] * l_point[1]) + \
-        (beta[3] * l_point[0] * l_point[1])
+    nadd = numpy.add
+    ndot = numpy.dot
     # Returning physical coordinates.
-    return (x, y)
+    numpy.copyto(x,
+                 nadd(nadd(alpha[0], ndot(alpha[1], l_points[:, 0])),
+                      nadd(ndot(alpha[2], l_points[:, 1]),
+                           ndot(alpha[3], ndot(l_points[:, 0], l_points[:, 1])))))
+    numpy.copyto(y,
+                 nadd(nadd(beta[0], ndot(beta[1], l_points[:, 0])),
+                      nadd(ndot(beta[2], l_points[:, 1]),
+                           ndot(beta[3], ndot(l_points[:, 0], l_points[:, 1])))))
 
 #https://en.wikipedia.org/wiki/Bilinear_interpolation
 # We want to obtain the alternative algorithm:
