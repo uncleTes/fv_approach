@@ -2822,9 +2822,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         n_cs_n_is[i][1][j] = -1
                         e_sol = nsolution((n_cs_n_is[i][0][j][0],
                                            n_cs_n_is[i][0][j][1]))
-                        # TODO: check if multipling for \"l_s_coeffs[j]\" is or
-                        #       not correct.
-                        e_sol_coeff = coeffs_nodes[i][j] * l_s_coeffs[j]
+                        # TODO: check if multipling for \"l_s_coeffs[i][j]\" is
+                        #       or not correct.
+                        e_sol_coeff = coeffs_nodes[i][j] * l_s_coeffs[i][j]
                         e_sol = mult * e_sol * e_sol_coeff
                         values_rhs.append(e_sol)
 
