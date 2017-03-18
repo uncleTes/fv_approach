@@ -654,7 +654,7 @@ def jacobian_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
                                        ndim = 1] beta         ,
                          int dim = 2):
     # Jacobian size.
-    cdef int j_size = 4 if (dim == 2) else 6
+    cdef int j_size = 2 if (dim == 2) else 3
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] J =            \
