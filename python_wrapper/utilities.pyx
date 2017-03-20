@@ -450,54 +450,87 @@ def bil_mapping(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
     numpy.copyto(beta, numpy.linalg.solve(A, b_y))
 
 def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
-                                        ndim = 1] p_point      , # physical point
+                                        ndim = 2] p_points     , # physical points
                           numpy.ndarray[dtype = numpy.float64_t, \
                                         ndim = 1] alpha        ,
                           numpy.ndarray[dtype = numpy.float64_t, \
                                         ndim = 1] beta         ,
+                          numpy.ndarray[dtype = numpy.float64_t, \
+                                        ndim = 1] l            ,
+                          numpy.ndarray[dtype = numpy.float64_t, \
+                                        ndim = 1] m            ,
                           int dim = 2):
     # Inverting the following equation (for the \"ys\" is the same but with
     # betas):
     # x = alpha_0 + alpha_1*l + alpha_2*m + alpha_3*l*m (2D)
     # x = alpha_0 + alpha_1*l + alpha_2*m + alpha_3*n + alpha_4*l*m +
     #     alpha_5*l*n + alpha_6*m*n (3D)
-    cdef double m_1
-    cdef double m_2
-    cdef double m
-    cdef double l
     cdef double a_m
-    cdef double b_m
-    cdef double c_m
+    cdef size_t i
+    cdef int n_points = p_points.shape[0]
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] b_m =          \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] c_m =          \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] m_1 =          \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] m_2 =          \
+         numpy.zeros(shape = (n_points),        \
+                     dtype = numpy.float64)
+    nadd = numpy.add
+    ndot = numpy.dot
+    ntdivide = numpy.true_divide
     # Defining inverse mapping from physical to logical.
-    a_m = ((alpha[3] * beta[2]) - (alpha[2] * beta[3]))
-    b_m = ((alpha[3] * beta[0]) - (alpha[0] * beta[3]) + (alpha[1] * beta[2]) -
-           (alpha[2] * beta[1]) + (p_point[0] * beta[3]) -
-           (p_point[1] * alpha[3]))
-    c_m = ((alpha[1] * beta[0]) - (alpha[0] * beta[1]) +
-           (p_point[0] * beta[1]) - (p_point[1] * alpha[1]))
-
+    a_m = nadd(ndot(alpha[3], beta[2]),
+               ndot(-1.0, ndot(alpha[2], beta[3])))
+    numpy.copyto(b_m,
+                 nadd(ndot(alpha[3], beta[0]),
+                      nadd(ndot(-1.0, ndot(alpha[0], beta[3])),
+                           nadd(ndot(alpha[1], beta[2]),
+                                nadd(ndot(-1.0, ndot(alpha[2], beta[1])),
+                                     nadd(ndot(p_points[:, 0], beta[3]),
+                                          ndot(-1.0, ndot(p_points[:, 1], alpha[3]))))))))
+    numpy.copyto(c_m,
+                 nadd(ndot(alpha[1], beta[0]),
+                      nadd(ndot(-1.0, ndot(alpha[0], beta[1])),
+                           nadd(ndot(p_points[:, 0], beta[1]),
+                                ndot(-1.0, ndot(p_points[:, 1], alpha[1]))))))
+    # Returning logical coordinates.
     if (not a_m):
-        m = numpy.true_divide((-1.0 * c_m), b_m)
+        numpy.copyto(m, ntdivide(ndot(-1.0, c_m), b_m))
     else:
         # \"m\" is solution of a second order equation, so we have two solu-
         # tions...
-        m_1 = numpy.true_divide((-1.0 * b_m) + numpy.sqrt((b_m * b_m) -     \
-                                                          (4 * a_m * c_m)), \
-                                (2 * a_m))
-        m_2 = numpy.true_divide((-1.0 * b_m) - numpy.sqrt((b_m * b_m) -     \
-                                                          (4 * a_m * c_m)), \
-                                (2 * a_m))
+        numpy.copyto(m_1,
+                     ntdivide(nadd(ndot(-1.0, b_m),
+                                   numpy.sqrt(nadd(ndot(b_m, b_m),
+                                                   ndot(-4.0, ndot(a_m, c_m))))),
+                              ndot(2.0, a_m)))
+        numpy.copyto(m_2,
+                     ntdivide(nadd(ndot(-1.0, b_m),
+                                   ndot(-1.0, numpy.sqrt(nadd(ndot(b_m, b_m),
+                                                              ndot(-4.0, ndot(a_m, c_m)))))),
+                              ndot(2.0, a_m)))
         # ...but we choose the right value for \"m\", respecting the logical do-
         # main.
-        if (0.0 <= m_1 <= 1.0):
-            m = m_1
-        else:
-            m = m_2
-
-    l = numpy.true_divide((p_point[0] - alpha[0] - (alpha[2] * m)),
-                          (alpha[1] + (alpha[3] * m)))
-    # Returning logical coordinates.
-    return (l, m)
+        for i in xrange(0, n_points):
+            if (0.0 <= m_1[i] <= 1.0):
+                m[i] = m_1[i]
+            else:
+                m[i] = m_2[i]
+    numpy.copyto(l,
+                 ntdivide(nadd(p_points[:, 0],
+                               nadd(ndot(-1.0, alpha[0]),
+                                    ndot(-1.0, ndot(alpha[2], m)))),
+                          nadd(alpha[1],
+                               ndot(alpha[3], m))))
 
 def apply_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
                                     ndim = 2] l_points     , # logical points
