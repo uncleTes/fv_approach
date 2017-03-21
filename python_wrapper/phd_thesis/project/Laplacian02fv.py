@@ -2988,14 +2988,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         beta = self.get_trans(grid)[2]
         solution = utilities.exact_sol
         narray = numpy.array
-        nsolution = lambda x : solution(narray([[x[0], x[1]]]),
-                                               alpha          ,
-                                               beta           ,
-                                               dim = 2)
-        e_nsolution_node_0 = nsolution((nodes_inter[0][0],
-                                        nodes_inter[0][1]))
-        e_nsolution_node_1 = nsolution((nodes_inter[1][0],
-                                        nodes_inter[1][1]))
+        nsolution = lambda x : solution(x    ,
+                                        alpha,
+                                        beta ,
+                                        dim = 2)
+        e_nsolution_nodes = nsolution(narray(nodes_inter))
+        e_nsolution_node_0 = e_nsolution_nodes[0]
+        e_nsolution_node_1 = e_nsolution_nodes[1]
         self._f_nodes_exact.append(e_nsolution_node_0)
         self._f_nodes_exact.append(e_nsolution_node_1)
         h_inter = octree.get_area(inter        ,
@@ -3008,15 +3007,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
         if (l_s_coeffs[0].size == 0):
             self._f_nodes.append(e_nsolution_node_0)
         else:
-            f_0 = nsolution((n_cs_n_is[0][0][0][0],
-                             n_cs_n_is[0][0][0][1]))
-            f_1 = nsolution((n_cs_n_is[0][0][1][0],
-                             n_cs_n_is[0][0][1][1]))
-            f_2 = nsolution((n_cs_n_is[0][0][2][0],
-                             n_cs_n_is[0][0][2][1]))
+            f_s = nsolution(n_cs_n_is[0][0])
+            f_0 = f_s[0]
+            f_1 = f_s[1]
+            f_2 = f_s[2]
             if (l_s_coeffs_s_0 == 4):
-                f_3 = nsolution((n_cs_n_is[0][0][3][0],
-                                 n_cs_n_is[0][0][3][1]))
+                f_3 = f_s[3]
             self._f_nodes.append(l_s_coeffs[0][0] * f_0 +
                                  l_s_coeffs[0][1] * f_1 +
                                  l_s_coeffs[0][2] * f_2 +
@@ -3025,15 +3021,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
         if (l_s_coeffs[1].size == 0):
             self._f_nodes.append(e_nsolution_node_1)
         else:
-            f_0 = nsolution((n_cs_n_is[1][0][0][0],
-                             n_cs_n_is[1][0][0][1]))
-            f_1 = nsolution((n_cs_n_is[1][0][1][0],
-                             n_cs_n_is[1][0][1][1]))
-            f_2 = nsolution((n_cs_n_is[1][0][2][0],
-                             n_cs_n_is[1][0][2][1]))
+            f_s = nsolution(n_cs_n_is[1][0])
+            f_0 = f_s[0]
+            f_1 = f_s[1]
+            f_2 = f_s[2]
             if (l_s_coeffs_s_1 == 4):
-                f_3 = nsolution((n_cs_n_is[1][0][3][0],
-                                 n_cs_n_is[1][0][3][1]))
+                f_3 = f_s[3]
             self._f_nodes.append(l_s_coeffs[1][0] * f_0 +
                                  l_s_coeffs[1][1] * f_1 +
                                  l_s_coeffs[1][2] * f_2 +
