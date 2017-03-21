@@ -635,10 +635,9 @@ def main():
     #                                                       trans_coeff, 
     #                                                       logger     , 
     #                                                       log_file)
-    geo_nodes = pablo.apply_persp_trans(dimension  ,
-                                        trans_coeff, 
-                                        logger     , 
-                                        log_file)
+    geo_nodes = pablo.apply_persp_trans(dimension,
+                                        alpha    ,
+                                        beta)
 
     vtk = my_class_vtk.Py_My_Class_VTK(data_to_save            ,  # Data
                                        pablo                   ,  # Octree
