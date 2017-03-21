@@ -244,21 +244,40 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
 
         return py_oct
 
-    def apply_persp_trans(self      ,
-                          dimension , 
-                          p_t_coeffs, 
-                          logger    , 
-                          log_file):
+    def apply_persp_trans(self                                 ,
+                          int dimension                        ,
+                          numpy.ndarray[dtype = numpy.float64_t, \
+                                        ndim = 1] alpha        ,
+                          numpy.ndarray[dtype = numpy.float64_t, \
+                                    ndim = 1] beta):
         import utilities
         # Number of nodes.
         cdef size_t n_nodes = self.thisptr.getNumNodes()
         # Number of ghost nodes.
         #cdef size_t n_g_nodes = (self.thisptr.getGhostNodes()).size()
-        cdef int index
+        cdef size_t index
         cdef darray3 coordinates
-        py_coordinates = [0.0] * 3
+        cdef numpy.ndarray[dtype = numpy.float64_t,   \
+                           ndim = 1] x =              \
+             numpy.zeros(shape = (n_nodes,),          \
+                         dtype = numpy.float64)
+        cdef numpy.ndarray[dtype = numpy.float64_t,   \
+                           ndim = 1] y =              \
+             numpy.zeros(shape = (n_nodes,),          \
+                         dtype = numpy.float64)
+        cdef numpy.ndarray[dtype = numpy.float64_t,   \
+                           ndim = 1] py_coordinates = \
+             numpy.zeros(shape = (3,),                \
+                         dtype = numpy.float64)
+        cdef numpy.ndarray[dtype = numpy.float64_t,         \
+                           ndim = 2] numpy_py_coordinates = \
+             numpy.zeros(shape = (n_nodes, 3),              \
+                         dtype = numpy.float64)
         # Geo nodes.
-        g_nodes = []
+        cdef numpy.ndarray[dtype = numpy.float64_t,         \
+                           ndim = 2] g_nodes =              \
+             numpy.zeros(shape = (n_nodes, 3),              \
+                         dtype = numpy.float64)
         # Ghost geo nodes.
         g_g_nodes = []
 
@@ -266,13 +285,15 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
             coordinates = self.der_thisptr._getNodeCoordinates(index)
             for i in xrange(0, dimension):
                 py_coordinates[i] = coordinates[i]
-
-            numpy_py_coordinates = numpy.array(py_coordinates)
-
-            to_append = utilities.apply_persp_trans(dimension           ,
-                                                    numpy_py_coordinates,
-                                                    p_t_coeffs)
-            g_nodes.append(to_append)
+            numpy.copyto(numpy_py_coordinates[index],
+                         py_coordinates)
+        utilities.apply_bil_mapping(numpy_py_coordinates,
+                                    alpha               ,
+                                    beta                ,
+                                    x                   ,
+                                    y)
+        numpy.copyto(g_nodes[:, 0], x)
+        numpy.copyto(g_nodes[:, 1], y)
         
         #for index in xrange(0, n_g_nodes):
         #    coordinates = self.der_thisptr._getGhostNodeCoordinates(index)
@@ -286,7 +307,7 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
         #                                            log_file)
         #    g_g_nodes.append(to_append)
 
-        return g_nodes
+        return g_nodes.tolist()
 
     # FV approach...
     def get_area(self               ,
