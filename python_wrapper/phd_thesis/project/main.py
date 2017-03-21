@@ -424,7 +424,6 @@ def compute(comm_dictionary     ,
                                         subsequently into the \"VTK\" file."""
 
     laplacian = Laplacian.Laplacian(comm_dictionary)
-    exact_solution = ExactSolution2D.ExactSolution2D(comm_dictionary)
 
     t_coeffs = numpy.array(None)
     t_coeffs_adj = numpy.array(None)
@@ -443,45 +442,31 @@ def compute(comm_dictionary     ,
     o_nnz, \
     h_s = laplacian.create_mask()
     laplacian.init_sol()
-
-    not_penalized_centers = laplacian.not_pen_centers
-    numpy_not_penalized_centers = [numpy.array(n_p_c) for n_p_c in \
-                                   not_penalized_centers]
-    numpy_centers = [numpy.array(center) for center in \
-                     centers]
-    # Physical centers.
-    p_centers = [utilities.apply_persp_trans(dimension,
-                                             center   , 
-                                             t_coeffs)\
-                 for center in numpy_not_penalized_centers]
-    # Numpy physical centers.
-    # Numpy's \".asarray()\" or \".array()\" function? Checkout this link:
-    # http://stackoverflow.com/questions/14415741/numpy-array-vs-asarray
-    # If the original array is a Python list, then use the second function,
-    # because it will be always needed a copy of the object.
-    n_p_centers = numpy.array(p_centers)
-
-    exact_solution.e_sol(n_p_centers[:, 0]                              , 
-                         n_p_centers[:, 1]                              ,
-                         n_p_centers[:, 2] if (dimension == 3) else None,
-                         numpy.array(None)                              ,
-                         use_mapping = False)
-    exact_solution.e_s_der(n_p_centers[:, 0], 
-                           n_p_centers[:, 1],
-                           n_p_centers[:, 2] if (dimension == 3) else None)
+    # Not penalized centers.
+    n_p_cs = numpy.array(laplacian.not_pen_centers)
+    e_sol = utilities.exact_sol(n_p_cs,
+                                alpha ,
+                                beta)
+    e_2nd_der = utilities.exact_2nd_der(n_p_cs,
+                                        alpha ,
+                                        beta)
     laplacian.init_rhs()
     laplacian.init_mat((d_nnz, o_nnz))
     if (n_grids > 1):
         laplacian.check_foreground_boundaries()
     laplacian.fill_mat_and_rhs()
-    dets = [numpy.absolute(numpy.linalg.det(utilities.jacobian_bil_mapping(l_center, alpha, beta))) for l_center in n_p_centers]
-    laplacian.add_rhs(exact_solution.s_der * h_s * h_s * numpy.array(dets))
+    # \"Numpy\" determinants.
+    dets = numpy.linalg.det(utilities.jacobians_bil_mapping(n_p_cs, alpha, beta))
+    # Absolute values \"numpy\" determinants.
+    a_dets = numpy.absolute(dets)
+    h_s2 = numpy.power(h_s, 2)
+    laplacian.add_rhs(e_2nd_der * h_s2 * a_dets)
     laplacian.update_values(intercomm_dictionary)
     #laplacian.mat.view()
     #laplacian.rhs.view()
     laplacian.solve()
     norm_inf, \
-    norm_L2 = laplacian.evaluate_norms(exact_solution.sol      ,
+    norm_L2 = laplacian.evaluate_norms(e_sol                   ,
                                        laplacian.sol.getArray(),
                                        h_s)
     msg = utilities.join_strings("Errors (inf, L2): process ",
@@ -490,7 +475,7 @@ def compute(comm_dictionary     ,
                                  #str((norm_inf, norm_L2)))
     print(msg) 
     norm_inf, \
-    norm_L2 = laplacian.evaluate_residual_norms(exact_solution.sol,
+    norm_L2 = laplacian.evaluate_residual_norms(e_sol,
                                                 h_s)
     msg = utilities.join_strings("Residuals (inf, L2): process ",
                                  "%d " % comm_w.Get_rank()      ,
@@ -506,21 +491,14 @@ def compute(comm_dictionary     ,
                                  "(%e, %e)" % (norm_inf, norm_L2))
     print(msg)
     interpolate_sol = laplacian.reset_partially_solution()
-    p_centers = [utilities.apply_persp_trans(dimension,
-                                             center   , 
-                                             t_coeffs)\
-                 for center in numpy_centers]
-    n_p_centers = numpy.array(p_centers)
-    exact_solution.e_sol(n_p_centers[:, 0]                              , 
-                         n_p_centers[:, 1]                              ,
-                         n_p_centers[:, 2] if (dimension == 3) else None,
-                         numpy.array(None)                              ,
-                         use_mapping = False)
-    data_to_save = numpy.array([exact_solution.sol        ,
+    e_sol = utilities.exact_sol(centers,
+                                alpha  ,
+                                beta)
+    data_to_save = numpy.array([e_sol                     ,
                                 interpolate_sol.getArray(),
                                 laplacian.residual.getArray()])
 
-    return (data_to_save, t_coeffs)
+    return (data_to_save, t_coeffs, alpha, beta)
 # ------------------------------------------------------------------------------
 
 # -------------------------------------MAIN-------------------------------------
@@ -647,11 +625,11 @@ def main():
     # \"data_to_save\" = evaluated and exact solution;
     # \"trans_coeff\" = matrix containing perspective transformation's 
     # coefficients.
-    data_to_save, trans_coeff = compute(comm_dictionary     ,
-                                        intercomm_dictionary,
-                                        proc_grid           ,
-                                        centers             ,
-                                        logger)
+    data_to_save, trans_coeff, alpha, beta = compute(comm_dictionary     ,
+                                                     intercomm_dictionary,
+                                                     proc_grid           ,
+                                                     centers             ,
+                                                     logger)
 
     #(geo_nodes, ghost_geo_nodes) = pablo.apply_persp_trans(dimension  ,
     #                                                       trans_coeff, 
