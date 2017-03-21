@@ -356,7 +356,11 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
               numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha    ,
               numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta     ,
               int dim = 2):
-    cdef double sol
+    cdef int n_points = l_points.shape[0]
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] sol =          \
+         numpy.zeros(n_points                 , \
+                     dtype = numpy.float64)
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 1] x =            \
          numpy.array(l_points[:, 0]      , \
@@ -371,12 +375,13 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
                       beta    ,
                       x       ,
                       y)
-    #sol = 1.0
     nsin = numpy.sin
     npower = numpy.power
     nadd = numpy.add
-    sol = nsin(npower(nadd(x, -0.5), 2) + \
-               npower(nadd(y, -0.5), 2))
+    # sin((x - 0.5)^2 + (y - 0.5)^2).
+    numpy.copyto(sol,
+                 nsin(nadd(npower(nadd(x, -0.5), 2),
+                           npower(nadd(y, -0.5), 2))))
 
     return sol
 
