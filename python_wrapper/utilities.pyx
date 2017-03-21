@@ -385,6 +385,49 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
 
     return sol
 
+# TODO: extend to 3D.
+def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
+                  numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha    ,
+                  numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta     ,
+                  int dim = 2):
+    cdef int n_points = l_points.shape[0]
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] x =            \
+         numpy.array(l_points[:, 0],            \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] y =            \
+         numpy.array(l_points[:, 1],            \
+                     dtype = numpy.float64)
+
+    apply_bil_mapping(l_points,
+                      alpha   ,
+                      beta    ,
+                      x       ,
+                      y)
+    nsin = numpy.sin
+    ncos = numpy.cos
+    npower = numpy.power
+    nadd = numpy.add
+    nmul = numpy.multiply
+    # 4 * cos((x - 0.5)^2 + (y - 0.5)^2) -
+    # 4 * sin((x - 0.5)^2 + (y - 0.5)^2) *
+    # ((x - 0.5)^2 + (y - 0.5)^2).
+    return nadd(nmul(4.0,
+                     ncos(nadd(npower(nadd(x, -0.5),
+                                      2),
+                               npower(nadd(y, -0.5),
+                                      2)))),
+                nmul(nmul(-4.0,
+                          nsin(nadd(npower(nadd(x, -0.5),
+                                           2),
+                                    npower(nadd(y, -0.5),
+                                           2)))),
+                     nadd(npower(nadd(x, -0.5),
+                                 2),
+                          npower(nadd(y, -0.5),
+                                 2))))
+
 #https://www.particleincell.com/2012/quad-interpolation/
 def bil_mapping(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
                 numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha,
