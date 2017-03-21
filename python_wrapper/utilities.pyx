@@ -727,6 +727,31 @@ def bil_coeffs(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
 
     return coeffs
 
+def jacobians_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
+                                        ndim = 2] l_points      , # logical points
+                          numpy.ndarray[dtype = numpy.float64_t, \
+                                        ndim = 1] alpha        ,
+                          numpy.ndarray[dtype = numpy.float64_t, \
+                                        ndim = 1] beta         ,
+                         int dim = 2):
+    # Jacobian size.
+    cdef int j_size = 2 if (dim == 2) else 3
+    cdef size_t n_points = l_points.shape[0]
+    cdef size_t i
+
+    cdef numpy.ndarray[dtype = numpy.float64_t,          \
+                       ndim = 3] Js =                    \
+         numpy.zeros(shape = (n_points, j_size, j_size), \
+                     dtype = numpy.float64)
+
+    for i in xrange(0, n_points):
+        numpy.copyto(Js[i],
+                     jacobian_bil_mapping(l_points[i],
+                                          alpha      ,
+                                          beta       ,
+                                          dim))
+    return Js
+
 def jacobian_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
                                        ndim = 1] l_point      , # logical point
                          numpy.ndarray[dtype = numpy.float64_t, \
