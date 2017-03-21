@@ -533,39 +533,39 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
          numpy.zeros(shape = (n_points),        \
                      dtype = numpy.float64)
     nadd = numpy.add
-    ndot = numpy.dot
+    nmul = numpy.multiply
     ntdivide = numpy.true_divide
     # Defining inverse mapping from physical to logical.
-    a_m = nadd(ndot(alpha[3], beta[2]),
-               ndot(-1.0, ndot(alpha[2], beta[3])))
+    a_m = nadd(nmul(alpha[3], beta[2]),
+               nmul(-1.0, nmul(alpha[2], beta[3])))
     numpy.copyto(b_m,
-                 nadd(ndot(alpha[3], beta[0]),
-                      nadd(ndot(-1.0, ndot(alpha[0], beta[3])),
-                           nadd(ndot(alpha[1], beta[2]),
-                                nadd(ndot(-1.0, ndot(alpha[2], beta[1])),
-                                     nadd(ndot(p_points[:, 0], beta[3]),
-                                          ndot(-1.0, ndot(p_points[:, 1], alpha[3]))))))))
+                 nadd(nmul(alpha[3], beta[0]),
+                      nadd(nmul(-1.0, nmul(alpha[0], beta[3])),
+                           nadd(nmul(alpha[1], beta[2]),
+                                nadd(nmul(-1.0, nmul(alpha[2], beta[1])),
+                                     nadd(nmul(p_points[:, 0], beta[3]),
+                                          nmul(-1.0, nmul(p_points[:, 1], alpha[3]))))))))
     numpy.copyto(c_m,
-                 nadd(ndot(alpha[1], beta[0]),
-                      nadd(ndot(-1.0, ndot(alpha[0], beta[1])),
-                           nadd(ndot(p_points[:, 0], beta[1]),
-                                ndot(-1.0, ndot(p_points[:, 1], alpha[1]))))))
+                 nadd(nmul(alpha[1], beta[0]),
+                      nadd(nmul(-1.0, nmul(alpha[0], beta[1])),
+                           nadd(nmul(p_points[:, 0], beta[1]),
+                                nmul(-1.0, nmul(p_points[:, 1], alpha[1]))))))
     # Returning logical coordinates.
     if (not a_m):
-        numpy.copyto(m, ntdivide(ndot(-1.0, c_m), b_m))
+        numpy.copyto(m, ntdivide(nmul(-1.0, c_m), b_m))
     else:
         # \"m\" is solution of a second order equation, so we have two solu-
         # tions...
         numpy.copyto(m_1,
-                     ntdivide(nadd(ndot(-1.0, b_m),
-                                   numpy.sqrt(nadd(ndot(b_m, b_m),
-                                                   ndot(-4.0, ndot(a_m, c_m))))),
-                              ndot(2.0, a_m)))
+                     ntdivide(nadd(nmul(-1.0, b_m),
+                                   numpy.sqrt(nadd(nmul(b_m, b_m),
+                                                   nmul(-4.0, nmul(a_m, c_m))))),
+                              nmul(2.0, a_m)))
         numpy.copyto(m_2,
-                     ntdivide(nadd(ndot(-1.0, b_m),
-                                   ndot(-1.0, numpy.sqrt(nadd(ndot(b_m, b_m),
-                                                              ndot(-4.0, ndot(a_m, c_m)))))),
-                              ndot(2.0, a_m)))
+                     ntdivide(nadd(nmul(-1.0, b_m),
+                                   nmul(-1.0, numpy.sqrt(nadd(nmul(b_m, b_m),
+                                                              nmul(-4.0, nmul(a_m, c_m)))))),
+                              nmul(2.0, a_m)))
         # ...but we choose the right value for \"m\", respecting the logical do-
         # main.
         for i in xrange(0, n_points):
@@ -575,10 +575,10 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
                 m[i] = m_2[i]
     numpy.copyto(l,
                  ntdivide(nadd(p_points[:, 0],
-                               nadd(ndot(-1.0, alpha[0]),
-                                    ndot(-1.0, ndot(alpha[2], m)))),
+                               nadd(nmul(-1.0, alpha[0]),
+                                    nmul(-1.0, nmul(alpha[2], m)))),
                           nadd(alpha[1],
-                               ndot(alpha[3], m))))
+                               nmul(alpha[3], m))))
 
 def apply_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
                                     ndim = 2] l_points     , # logical points
@@ -597,16 +597,16 @@ def apply_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
     # x = alpha_0 + alpha_1*l + alpha_2*m + alpha_3*n + alpha_4*l*m +
     #     alpha_5*l*n + alpha_6*m*n (3D)
     nadd = numpy.add
-    ndot = numpy.dot
+    nmul = numpy.multiply
     # Returning physical coordinates.
     numpy.copyto(x,
-                 nadd(nadd(alpha[0], ndot(alpha[1], l_points[:, 0])),
-                      nadd(ndot(alpha[2], l_points[:, 1]),
-                           ndot(alpha[3], ndot(l_points[:, 0], l_points[:, 1])))))
+                 nadd(nadd(alpha[0], nmul(alpha[1], l_points[:, 0])),
+                      nadd(nmul(alpha[2], l_points[:, 1]),
+                           nmul(alpha[3], nmul(l_points[:, 0], l_points[:, 1])))))
     numpy.copyto(y,
-                 nadd(nadd(beta[0], ndot(beta[1], l_points[:, 0])),
-                      nadd(ndot(beta[2], l_points[:, 1]),
-                           ndot(beta[3], ndot(l_points[:, 0], l_points[:, 1])))))
+                 nadd(nadd(beta[0], nmul(beta[1], l_points[:, 0])),
+                      nadd(nmul(beta[2], l_points[:, 1]),
+                           nmul(beta[3], nmul(l_points[:, 0], l_points[:, 1])))))
 
 #https://en.wikipedia.org/wiki/Bilinear_interpolation
 # We want to obtain the alternative algorithm:
