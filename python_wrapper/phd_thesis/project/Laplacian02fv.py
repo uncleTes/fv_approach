@@ -661,6 +661,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 t_foregrounds = self._t_foregrounds
                 # Current transformation matrix's dictionary.
                 c_t_dict = self.get_trans(0)[0]
+                alpha = self.get_trans(0)[1]
+                beta = self.get_trans(0)[2]
                 idx_or_oct = neighs[i] if (not ghosts[i]) else \
                              py_ghost_oct
                 is_ptr = False if (not ghosts[i]) else \
@@ -674,7 +676,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                 is_n_penalized, \
                 n_polygon = check_oct_corners(numpy_corners,
-                                              c_t_dict     ,
+                                              alpha        ,
+                                              beta         ,
                                               t_foregrounds)
             if (not is_penalized):
                 if (is_n_penalized):
@@ -748,6 +751,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         if (is_background):
             # Current transformation matrix's dictionary.
             c_t_dict = self.get_trans(0)[0]
+            alpha = self.get_trans(0)[1]
+            beta = self.get_trans(0)[2]
 
         # Code hoisting.
         get_nodes = octree.get_nodes
@@ -779,7 +784,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                 is_penalized, \
                 n_polygon = check_oct_corners(numpy_corners,
-                                              c_t_dict     ,
+                                              alpha        ,
+                                              beta         ,
                                               t_foregrounds)
             if (is_penalized):
                 self._nln[octant] = -1
@@ -1081,6 +1087,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         octree = self._octree
         grid = self._proc_g
         c_t_dict = self.get_trans(grid)[0]
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
         is_bound_inter = octree.get_bound(inter,
                                           0    ,
                                           True)
@@ -1121,13 +1129,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
         coeff_node_0_grad_x = -1.0 * coeff_node_1_grad_x
         coeff_node_0_grad_y = -1.0 * coeff_node_1_grad_y
 
-        grad_transf = utilities.metric_coefficients(dimension           ,
-                                                    numpy.array(c_inter),
-                                                    c_t_dict)
+        grad_transf = utilities.jacobian_bil_mapping(numpy.array(c_inter),
+                                                     alpha               ,
+                                                     beta                ,
+                                                     dim = 2)
         grad_transf_inv = numpy.linalg.inv(grad_transf)
         grad_transf_det = numpy.linalg.det(grad_transf)
         grad_transf_det_inv = (1.0 / grad_transf_det)
         cofactors = (grad_transf_inv * grad_transf_det).T
+
         coeffs_trans = numpy.dot(grad_transf_inv, cofactors)
 
         coeff_trans_x = coeffs_trans[0][1] if (n_axis) else \
@@ -1244,6 +1254,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         grid = self._proc_g
         finer_o_inter = octree.get_finer(inter)
         c_t_dict = self.get_trans(grid)[0]
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
         # Index finer owner intersection.
         i_finer_o_inter = octree.get_owners(inter)[finer_o_inter]
         t_background = self._t_background
@@ -1253,19 +1265,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  is_ptr = True,
                                  is_inter = True)[: n_nodes]
         is_point_on_lines = utilities.is_point_on_lines
+        apply_bil_mapping = utilities.apply_bil_mapping
         # Is on background boundary.
         is_on_b_boundary = lambda x : is_point_on_lines(x,
                                                         t_background)
         # Local indices of the octants owners of the nodes of the
         # intersection.
         l_owners = [0] * n_nodes
+        n_t_corner = numpy.zeros(shape = (3, 1), dtype = numpy.float64)
         for i in xrange(0, n_nodes):
             node = (nodes[i][0], nodes[i][1], nodes[i][2])
-            n_node = numpy.array(node)
-            t_node =  utilities.apply_persp_trans(dimension,
-                                                  n_node   ,
-                                                  c_t_dict)[: dimension]
-            on_b_boundary = is_on_b_boundary(t_node)
+            n_node = numpy.array([node])
+            apply_bil_mapping(n_node       ,
+                              alpha        ,
+                              beta         ,
+                              n_t_corner[0],
+                              n_t_corner[1],
+                              dim = 2)
+            on_b_boundary = is_on_b_boundary(n_t_corner[: dimension])
             if (on_b_boundary):
                 l_owner = "boundary"
             else:
@@ -1346,6 +1363,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         # Current transformation matrix's dictionary.
         c_t_dict = self.get_trans(grid)[0]
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
 
         # Code hoisting.
         mask_octant = self.mask_octant
@@ -1478,7 +1497,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # the \"key\" for the background grid.
                         is_penalized_useless, \
                         n_polygon = check_oct_corners(numpy_corners,
-                                                      c_t_dict     ,
+                                                      alpha        ,
+                                                      beta         ,
                                                       t_foregrounds)
                     # ...else...
                     else:
@@ -1587,25 +1607,29 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     def check_oct_corners(self         ,
                           numpy_corners,
-                          t_dict       ,
+                          alpha        ,
+                          beta         ,
                           polygons):
         penalized = True
         dimension = self._dim
         n_oct_corners = 4 if (dimension == 2) else 8
 
-        apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
+        apply_bil_mapping = utilities.apply_bil_mapping
 
+        n_t_corner = numpy.zeros(shape = (3, 1), dtype = numpy.float64)
         for i in xrange(n_oct_corners):
             is_corner_penalized = False
-            numpy_corner = numpy_corners[i]
-            corner, numpy_corner = apply_persp_trans(dimension   ,
-                                                     numpy_corner,
-                                                     t_dict      ,
-                                                     # Return also numpy data
-                                                     r_a_n_d = True)
+            # Getting a \"numpy\" array of \"ndim\" = 2.
+            numpy_corner = numpy.array([numpy_corners[i]])
+            apply_bil_mapping(numpy_corner ,
+                              alpha        ,
+                              beta         ,
+                              n_t_corner[0],
+                              n_t_corner[1],
+                              dim = 2)
             (is_corner_penalized,
-             n_polygon) = is_point_inside_polygons(numpy_corner,
+             n_polygon) = is_point_inside_polygons(n_t_corner,
                                                    polygons)
             if (not is_corner_penalized):
                 penalized = False
