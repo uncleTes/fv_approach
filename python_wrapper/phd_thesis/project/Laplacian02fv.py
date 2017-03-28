@@ -628,8 +628,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_ghost_octant = octree.get_ghost_octant
         find_neighbours = octree.find_neighbours
         check_oct_corners = utilities.check_oct_corners
-        mask_octant = self.mask_octant
-        apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
 
         # Check to know if a neighbour of an octant is penalized.
@@ -660,7 +658,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if ((n_grids > 1) and (is_background)):
                 t_foregrounds = self._t_foregrounds
                 # Current transformation matrix's dictionary.
-                c_t_dict = self.get_trans(0)[0]
                 alpha = self.get_trans(0)[1]
                 beta = self.get_trans(0)[2]
                 idx_or_oct = neighs[i] if (not ghosts[i]) else \
@@ -682,12 +679,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (not is_penalized):
                 if (is_n_penalized):
                     # Being the neighbour penalized, it means that it will
-                    # be substituted by 9 octant being part of the foreground
+                    # be substituted by 4 octants being part of the foreground
                     # grids, so being on the non diagonal part of the grid.
                     # TODO: This is the worst case, not always presents. We
                     #       should find a better way to evaluate the right num-
-                    #       ber of neighbours.
-                    o_count += 9
+                    #       ber of neighbours (better case has 3 octants on the
+                    #       foreground grids, due to a planar interpolation).
+                    o_count += 4
                 else:
                     if (ghosts[i]):
                         o_count += 1
@@ -797,23 +795,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # store info of the stencil it belongs to to push on the rela-
                 # tive rows of the matrix, the right indices of the octants of
                 # the foreground grid owning the penalized one:
-                # first \"stencil\"'s element: \"h\";
-                # second \"stencil\"'s element: index global of the penalized
-                # octant;
-                # third, fourth and fifth \"stencil\"'s elements: center of the
+                # first, second and third \"stencil\"'s elements: center of the
                 # penalized octant;
-                # others \"stencil\"'s elements: global indices and coefficient
-                # to multiply \"least squares\" approximation (being in a case
-                # of a possible jump of 1 level between elements, we have to
-                # store two possible neighbours for each face of the current oc-
-                # tant).
-                l_stencil = 20 if (dimension == 2) else 21
+                # others \"stencil\"'s elements: global indices and bilinear
+                # coefficients to multiply approximation (being in a case of a
+                # possible jump of 1 level between elements, we have to store
+                # two possible neighbours for each face of the current octant).
+                l_stencil = 18 if (dimension == 2) else 19
                 stencil = [-1] * l_stencil
-                stencil[0] = h # TODO: is this useful or not? I think not.
-                stencil[1] = g_octant # TODO: is this useful? I think not, be-
-                                      #       cause it is already into \"key\".
                 for i in xrange(dimension):
-                    stencil[2 + i] = center[i]
+                    stencil[i] = center[i]
                 # http://www.laurentluce.com/posts/python-dictionary-implementation/
                 # http://effbot.org/zone/python-hash.htm
                 self._edl.update({key : stencil})
@@ -823,7 +814,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 d_count += 1
                 h_s.append(h)
             # \"stencil\"'s index.
-            s_i = 4 if (dimension == 2) else 5
+            s_i = 2 if (dimension == 2) else 3
             # Number of neighbours (Being the possibility of a jump between oc-
             # tants, we can have a minimum of 4 and a maximum of 8 neighbours on
             # the faces.
@@ -846,32 +837,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 is_background)
                     n_neighbours = n_neighbours + n_neighs
                 else:
-                    # Adding an imaginary neighbour...why it is explained later,
-                    # encountering the following two lines of code:
-                    # \"d_count += (9 * n_neighbours)\"
-                    # \"o_count += (9 * n_neighbours)\"
-                    n_neighbours = n_neighbours + 1
-
                     if (not is_background):
-                        # Adding elements for the octants of the background to
-                        # use to interpolate stencil values for boundary condi-
-                        # tions of the octants of the foreground grid. Note that
-                        # we are considering the fact that the foreground grids
-                        # elements are contained into the background, and we are
-                        # not checking it or if they are outside it (it should
-                        # not have a lot of sense however). That's why we are
-                        # adding always +9 to the \"o_count\" variable, despite
-                        # the fact that they could be on the border of the back-
-                        # ground domain, exactly, and in this case we should not
-                        # add anything to \"o_count\" and \"d_count\", being an
-                        # exact boundary condition. It is added +9 because now,
-                        # being in a finite volume approach, we can let the oc-
-                        # tants to have one level of difference between them, so
-                        # an octant can have two neighbours on one face.
-                        o_count += 9
+                        # Adding an imaginary neighbour...why it is explained later,
+                        # encountering the following two lines of code:
+                        # \"d_count += (4 * n_neighbours)\"
+                        # \"o_count += (4 * n_neighbours)\"
+                        n_neighbours = n_neighbours + 1
+                        # Extern \"ghost\" octant for foreground grids will be
+                        # approximated by just its background owner.
+                        o_count += 1
 
             # For the moment, we have to store space in the \"PETSc\" matrix for
-            # the octants that will interpolate with the least square method (13
+            # the octants that will interpolate with the bilinear method (4
             # octants in 2D at maximum) for the vertices of each intersection.
             # And these vertices are equal to the number of neighbours of the
             # current octant (With a gap of one level, we can have as maximum
@@ -880,8 +857,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # (\"d_count\").
             # TODO: find a better algorithm to store just the right number of e-
             # lements for \"d_count\" and for \"o_count\".
-            d_count += (9 * n_neighbours)
-            o_count += (9 * n_neighbours)
+            d_count += (4 * n_neighbours)
+            o_count += (4 * n_neighbours)
             if (not is_penalized):
                 d_nnz.append(d_count)
                 o_nnz.append(o_count)
