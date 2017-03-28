@@ -627,7 +627,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_ghost_global_idx = octree.get_ghost_global_idx
         get_ghost_octant = octree.get_ghost_octant
         find_neighbours = octree.find_neighbours
-        check_oct_corners = self.check_oct_corners
+        check_oct_corners = utilities.check_oct_corners
         mask_octant = self.mask_octant
         apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygons = utilities.is_point_inside_polygons
@@ -749,18 +749,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
         centers = [octree.get_center(octant)[: dimension] for octant in octants]
         t_foregrounds = self._t_foregrounds
         if (is_background):
-            # Current transformation matrix's dictionary.
-            c_t_dict = self.get_trans(0)[0]
             alpha = self.get_trans(0)[1]
             beta = self.get_trans(0)[2]
 
         # Code hoisting.
         get_nodes = octree.get_nodes
-        apply_persp_trans = utilities.apply_persp_trans
-        is_point_inside_polygons = utilities.is_point_inside_polygons
         get_bound = octree.get_bound
         check_neighbours = self.check_neighbours
-        check_oct_corners = self.check_oct_corners
+        check_oct_corners = utilities.check_oct_corners
         # TODO: try to parallelize this for avoiding data dependencies.
         for octant in octants:
             d_count, o_count = 0, 0
@@ -1374,7 +1370,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_nodes = octree.get_nodes
         get_intersection = octree.get_intersection
         get_bound = octree.get_bound
-        check_oct_corners = self.check_oct_corners
+        check_oct_corners = utilities.check_oct_corners
         get_owners_normals_inter = self.get_owners_normals_inter
         get_is_ghost = octree.get_is_ghost
         # Interpolation coefficients
@@ -2338,7 +2334,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         nnodes = octree.get_n_nodes()
         faces_nodes = octree.get_face_node()
         c_t_dict = self.get_trans(grid)[0]
-        t_background = self._t_background
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
+        t_background = numpy.array([self._t_background])
         # Ghosts' deplacement.
         g_d = 0
         for i in xrange(0, grid):
