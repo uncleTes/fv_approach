@@ -207,31 +207,33 @@ def check_octree(octree,
 
     return l_octree
 
-def is_point_inside_polygons(point   ,
-                             polygons,
+def is_point_inside_polygons(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point   ,
+                             numpy.ndarray[dtype = numpy.float64_t, ndim = 4] polygons,
                              int dimension = 2):
     cdef bool inside = False
     cdef size_t i
-    cdef size_t n_polys = len(polygons)
+    cdef int n_polys = polygons.shape[0]
+    cdef int no_poly = -1
 
-    for i in range(n_polys):
+    for i in xrange(n_polys):
         inside = is_point_inside_polygon(point      ,
                                          polygons[i],
                                          dimension)
         if (inside):
             return (inside, i)
-    return (inside, None)
+
+    return (inside, no_poly)
 
 # Determine if a point is inside a given polygon or not.
 # https://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html ---> Better link
 # http://www.ariel.com.au/a/python-point-int-poly.html
 # http://stackoverflow.com/questions/16625507/python-checking-if-point-is-inside-a-polygon
-def is_point_inside_polygon(point  ,
-                            polygon,
+def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point  ,
+                            numpy.ndarray[dtype = numpy.float64_t, ndim = 3] polygon,
                             int dimension = 2):
 
-    cdef size_t n_verts_face = 4
-    cdef size_t n_faces = 1 if (dimension == 2) else 6
+    cdef int n_verts_face = 4
+    cdef int n_faces = 1 if (dimension == 2) else 6
     cdef size_t i
     cdef size_t j
     cdef size_t face
@@ -240,13 +242,13 @@ def is_point_inside_polygon(point  ,
     cdef bool inside = False
     cdef double i_x, i_y, j_x, j_y
 
-    faces = [polygon] if (dimension == 2) else \
-            [[polygon[0], polygon[1], polygon[2], polygon[3]],
-             [polygon[4], polygon[5], polygon[6], polygon[7]],
-             [polygon[0], polygon[4], polygon[2], polygon[6]],
-             [polygon[1], polygon[5], polygon[3], polygon[7]],
-             [polygon[0], polygon[1], polygon[4], polygon[5]],
-             [polygon[2], polygon[3], polygon[6], polygon[7]]]
+    #faces = [polygon] if (dimension == 2) else \
+    #        [[polygon[0], polygon[1], polygon[2], polygon[3]],
+    #         [polygon[4], polygon[5], polygon[6], polygon[7]],
+    #         [polygon[0], polygon[4], polygon[2], polygon[6]],
+    #         [polygon[1], polygon[5], polygon[3], polygon[7]],
+    #         [polygon[0], polygon[1], polygon[4], polygon[5]],
+    #         [polygon[2], polygon[3], polygon[6], polygon[7]]]
 
     #cdef numpy.ndarray[dtype = numpy.float64_t,
     #                   ndim = 3] faces = \
@@ -276,18 +278,18 @@ def is_point_inside_polygon(point  ,
             x = 0
             y = 2
 
-        p_x = point[x]
-        p_y = point[y]
+        p_x = point[x][0]
+        p_y = point[y][0]
 
-        for i in range(n_verts_face):
+        for i in xrange(0, n_verts_face):
             j = i - 1
             if (i == 0):
                 j = n_verts_face - 1
 
-            i_x = faces[face][i][x]
-            i_y = faces[face][i][y]
-            j_x = faces[face][j][x]
-            j_y = faces[face][j][y]
+            i_x = polygon[face][i][x]
+            i_y = polygon[face][i][y]
+            j_x = polygon[face][j][x]
+            j_y = polygon[face][j][y]
 
             if (((i_y > p_y) != (j_y > p_y)) and
                 (p_x <
