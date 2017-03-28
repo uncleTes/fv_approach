@@ -471,9 +471,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         o_ranges = self.get_ranges()
         dimension = self._dim
         # Current transformation matrix's dictionary.
-        c_t_dict = self.get_trans(grid)[0]
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
         # Transformed background.
-        t_background = self._t_background
+        t_background = numpy.array([self._t_background])
         # Centers of octants on the boundary.
         #
         # Numbers between 0 and 3 (included) which represent the indices of the
@@ -497,21 +498,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_center = octree.get_center
         get_bound = octree.get_bound
         get_area = octree.get_area
-        apply_persp_trans = utilities.apply_persp_trans
+        apply_bil_mapping = utilities.apply_bil_mapping
         is_point_inside_polygon = utilities.is_point_inside_polygon
         # TODO: try to parallelize this for avoiding data dependencies.
-        for octant in xrange(0, n_oct):
-            py_oct = get_octant(octant)
-            # \"get_area\" is always of codimension 1, so in 2D with quadtrees,
-            # it returns the size of the edge.
-            h = get_area(py_oct       ,
-                         is_ptr = True,
-                         is_inter = False)
-            # Global index of the current local octant \"octant\".
-            g_octant = o_ranges[0] + octant
-            m_g_octant = mask_octant(g_octant)
-            # Check if the octant is not penalized.
-            if (m_g_octant != -1):
+        if (grid):
+            for octant in xrange(0, n_oct):
+                py_oct = get_octant(octant)
+                # \"get_area\" is always of codimension 1, so in 2D with quadtrees,
+                # it returns the size of the edge.
+                h = get_area(py_oct       ,
+                             is_ptr = True,
+                             is_inter = False)
+                # Global index of the current local octant \"octant\".
+                g_octant = o_ranges[0] + octant
+                m_g_octant = mask_octant(g_octant)
                 center = get_center(octant)[: dimension]
 
                 # Lambda function.
@@ -525,26 +525,27 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         b_centers.append(center)
                         b_codim.append(1)
                         b_h.append(h)
-        c_neighs, \
-        n_c_neighs  = self.neighbour_centers(b_centers,
-                                             b_codim  ,
-                                             b_f_o_n  ,
-                                             b_h      ,
-                                             # Return also \"numpy\" data.
-                                             r_a_n_d = True)
-        l_c_neighs = len(c_neighs)
-        # Grids not of the background: numbers >= 1.
-        if (grid):
-            for i in xrange(l_c_neighs):
+            c_neighs, \
+            n_c_neighs  = self.neighbour_centers(b_centers,
+                                                 b_codim  ,
+                                                 b_f_o_n  ,
+                                                 b_h      ,
+                                                 # Return also \"numpy\" data.
+                                                 r_a_n_d = True)
+            l_c_neighs = len(c_neighs)
+            t_center = numpy.zeros(shape = (3, 1), dtype = numpy.float64)
+            for i in xrange(0, l_c_neighs):
                 # TODO: I think that this assignment can be deleted.
                 check = False
                 # Check if the \"ghost\" points outside the foreground grids are
                 # inside the background one.
                 numpy_center = n_c_neighs[i]
-                t_center = apply_persp_trans(dimension   ,
-                                             numpy_center,
-                                             c_t_dict    ,
-                                             r_a_n_d = False)[: dimension]
+                apply_bil_mapping(numpy_center,
+                                  alpha       ,
+                                  beta        ,
+                                  t_center[0] ,
+                                  t_center[1] ,
+                                  dim = 2)
                 check = is_point_inside_polygon(t_center    ,
                                                 t_background)
                 if (check):
@@ -563,14 +564,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                            n_axis)       # \"0\" if face is parallel to y (so
                                          # normal axis is parallel to x), other-
                                          # wise \"1\".
-                    l_stencil = 20 if (dimension == 2) else 21
+                    l_stencil = 18 if (dimension == 2) else 19
                     stencil = [-1] * l_stencil
-                    stencil[0] = b_h[i] # TODO: is this useful or not? I think
-                                        #       not.
                     # We store the center of the cells ghost outside the boun-
                     # dary of the borders of the foreground grids.
-                    for j in xrange(dimension):
-                        stencil[1 + j] = numpy_center[j]
+                    for j in xrange(0, dimension):
+                        stencil[j] = numpy_center[j]
+                    # We store the center of the cells on the boundary of the
+                    # borders of the foreground grids.
+                    for j in xrange(dimension, (dimension * 2)):
+                        stencil[j] = b_centersi[i][j]
                     self._edl.update({key : stencil})
 
         msg = "Checked boundaries"
