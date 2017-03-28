@@ -430,6 +430,48 @@ def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
                           npower(nadd(y, -0.5),
                                  2))))
 
+def check_oct_corners(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] numpy_corners,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha        ,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta         ,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 4] polygons     ,
+                      int dim = 2):
+    cdef bool penalized = True
+    cdef bool is_corner_penalized
+    cdef int n_oct_corners = 4 if (dim == 2) else 8
+    cdef int n_polygon
+    cdef size_t i
+    # Getting a \"numpy\" array of shape (3, 1): \"array([[0.], [0.], [0.]])\"
+    # (each element of the array is a \"numpy\" array of \"ndim\" = 1 and
+    # \"shape\" = (1, )).
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] n_t_corner =   \
+         numpy.zeros(shape = (3, 1),            \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] numpy_corner = \
+         numpy.zeros(shape = (1, 3),            \
+                     dtype = numpy.float64)
+
+    for i in xrange(n_oct_corners):
+        # Getting a \"numpy\" array of \"ndim\" = 2.
+        numpy.copyto(numpy_corner[0],
+                     numpy_corners[i])
+        apply_bil_mapping(numpy_corner ,
+                          alpha        ,
+                          beta         ,
+                          n_t_corner[0],
+                          n_t_corner[1],
+                          dim)
+        (is_corner_penalized,
+         n_polygon) = is_point_inside_polygons(n_t_corner,
+                                               polygons  ,
+                                               dim)
+        if (not is_corner_penalized):
+            penalized = False
+            break
+
+    return (penalized, n_polygon)
+
 #https://www.particleincell.com/2012/quad-interpolation/
 def bil_mapping(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
                 numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha,

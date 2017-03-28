@@ -1605,38 +1605,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                      extra_msg)
     # --------------------------------------------------------------------------
 
-    def check_oct_corners(self         ,
-                          numpy_corners,
-                          alpha        ,
-                          beta         ,
-                          polygons):
-        penalized = True
-        dimension = self._dim
-        n_oct_corners = 4 if (dimension == 2) else 8
-
-        is_point_inside_polygons = utilities.is_point_inside_polygons
-        apply_bil_mapping = utilities.apply_bil_mapping
-
-        n_t_corner = numpy.zeros(shape = (3, 1), dtype = numpy.float64)
-        for i in xrange(n_oct_corners):
-            is_corner_penalized = False
-            # Getting a \"numpy\" array of \"ndim\" = 2.
-            numpy_corner = numpy.array([numpy_corners[i]])
-            apply_bil_mapping(numpy_corner ,
-                              alpha        ,
-                              beta         ,
-                              n_t_corner[0],
-                              n_t_corner[1],
-                              dim = 2)
-            (is_corner_penalized,
-             n_polygon) = is_point_inside_polygons(n_t_corner,
-                                                   polygons)
-            if (not is_corner_penalized):
-                penalized = False
-                break
-
-        return (penalized, n_polygon)
-
     # --------------------------------------------------------------------------
     # Assembly PETSc's structures, like \"self._b_mat\" or \"self._rhs\".
     def assembly_petsc_struct(self       ,
