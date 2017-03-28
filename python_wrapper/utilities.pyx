@@ -302,8 +302,8 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poi
 
 # http://www.ripmat.it/mate/d/dc/dcee.html
 # http://stackoverflow.com/questions/11907947/how-to-check-if-a-point-lies-on-a-line-between-2-other-points
-def is_point_on_line(point      ,
-                     line_points,
+def is_point_on_line(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point      ,
+                     numpy.ndarray[dtype = numpy.float64_t, ndim = 2] line_points,
                      int dimension = 2):
 
     absolute = numpy.absolute
@@ -312,8 +312,8 @@ def is_point_on_line(point      ,
     cdef n_points = 2
     cdef double d_x
     cdef double d_y
-    cdef double d_yc = point[1] - line_points[0][1]
-    cdef double d_xc = point[0] - line_points[0][0]
+    cdef double d_yc = point[1][0] - line_points[0][1]
+    cdef double d_xc = point[0][0] - line_points[0][0]
     cdef double d_x1 = line_points[1][0] - line_points[0][0]
     cdef double d_y1 = line_points[1][1] - line_points[0][1]
     cdef double threshold = 1.0e-15
@@ -321,8 +321,8 @@ def is_point_on_line(point      ,
     cdef bool on_line = False
 
     for i in xrange(0, n_points):
-        d_x = absolute(point[0] - line_points[i][0])
-        d_y = absolute(point[1] - line_points[i][1])
+        d_x = absolute(point[0][0] - line_points[i][0])
+        d_y = absolute(point[1][0] - line_points[i][1])
 
         if ((d_x <= threshold) and (d_y <= threshold)):
             on_line = True
@@ -335,22 +335,26 @@ def is_point_on_line(point      ,
 
     return on_line
 
-def is_point_on_lines(point,
-                      line_points,
+def is_point_on_lines(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point      ,
+                      numpy.ndarray[dtype = numpy.float64_t, ndim = 3] line_points,
                       int dimension = 2):
 
     cdef size_t i
     cdef size_t j
-    cdef size_t n_lines = 4 if (dimension == 2) else 12
+    cdef size_t k
+    cdef int n_lines = 4 if (dimension == 2) else 12
+    cdef int n_polys = line_points.shape[0]
     cdef bool on_lines = False
     # TODO: Modify for 3D case.
-    for i in xrange(0, n_lines):
-        j = (i + 1) if (i < 3) else 0
-        on_lines = is_point_on_line(point                           ,
-                                    (line_points[i], line_points[j]),
-                                    dimension)
-        if (on_lines):
-            return on_lines
+    for k in xrange(0, n_polys):
+        for i in xrange(0, n_lines):
+            j = (i + 1) if (i < 3) else 0
+            on_lines = is_point_on_line(point                           ,
+                                        numpy.array((line_points[k][i],
+                                                     line_points[k][j])),
+                                        dimension)
+            if (on_lines):
+                return on_lines
 
     return on_lines
 # TODO: extend to 3D.
