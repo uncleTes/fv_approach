@@ -2681,7 +2681,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                        0)
 
                 stencil = self._edl.get(key)
-                displ = 4 if (dimension == 2) else 5
+                displ = 2 if (dimension == 2) else 3
                 step = 2
                 # Sometimes \"stencil\" is equal to \"None\" because
                 # there are values of \"p_g_index\" which correspond to
@@ -2716,7 +2716,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # \"self._edl\" because it is outside the transfor-
                     # med background.
                     if (stencil):
-                        stencil[dimension + 1] = value_to_store
+                        stencil[(2 * dimension) + 1] = value_to_store
 
             values = (n_t_array * mult).tolist()
         self._b_mat.setValues(r_indices, # Row
