@@ -751,6 +751,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         if (is_background):
             alpha = self.get_trans(0)[1]
             beta = self.get_trans(0)[2]
+            # Penalized octants foreground grids. It is a dictionary to store
+            # global (locally on the background) octants and the foreground grid
+            # which cover them.
+            self._p_o_f_g = {}
 
         # Code hoisting.
         get_nodes = octree.get_nodes
@@ -785,6 +789,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               t_foregrounds)
             if (is_penalized):
                 self._nln[octant] = -1
+                self._p_o_f_g[g_octant] = n_polygon
                 # Moved \"h\" from the \"key\" to the \"stencil\", preferring
                 # not to use float into dict keys.
                 key = (n_polygon + 1, # Foreground grid to which the node be-
@@ -1459,21 +1464,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # If an intersection owner is penalized (it should be just for
                     # background grid)...
                     if (m_g_octant == -1):
-                        oct_corners,\
-                        numpy_corners = g_n(py_oct)
-                        # TODO: save globally a vector with the corresponding num-
-                        #       ber of the grid covering the penalized octant,
-                        #       without redoing the check calling the function
-                        #       \"check_oct_corners\".
-                        # \"is_penalized_useless\" will not be used because we al-
-                        # ready know that the octant is penalized (we entered the
-                        # \"if\" clause). But we need \"n_polygon\" to be used in
-                        # the \"key\" for the background grid.
-                        is_penalized_useless, \
-                        n_polygon = check_oct_corners(numpy_corners,
-                                                      alpha        ,
-                                                      beta         ,
-                                                      t_foregrounds)
+                        n_polygon = self._p_o_f_g[g_o_norms_inter[j]]
                     # ...else...
                     else:
                         r_indices.append(m_g_octant)
