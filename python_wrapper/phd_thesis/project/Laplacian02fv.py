@@ -533,7 +533,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                  # Return also \"numpy\" data.
                                                  r_a_n_d = True)
             l_c_neighs = len(c_neighs)
-            t_center = numpy.zeros(shape = (3, 1), dtype = numpy.float64)
+            t_center = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
             for i in xrange(0, l_c_neighs):
                 # TODO: I think that this assignment can be deleted.
                 check = False
@@ -543,8 +543,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 apply_bil_mapping(numpy_center,
                                   alpha       ,
                                   beta        ,
-                                  t_center[0] ,
-                                  t_center[1] ,
+                                  t_center    ,
                                   dim = 2)
                 check = is_point_inside_polygon(t_center    ,
                                                 t_background)
@@ -1248,15 +1247,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Local indices of the octants owners of the nodes of the
         # intersection.
         l_owners = [0] * n_nodes
-        n_t_corner = numpy.zeros(shape = (3, 1), dtype = numpy.float64)
+        n_t_corner = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
         for i in xrange(0, n_nodes):
             node = (nodes[i][0], nodes[i][1], nodes[i][2])
             n_node = numpy.array([node])
             apply_bil_mapping(n_node       ,
                               alpha        ,
                               beta         ,
-                              n_t_corner[0],
-                              n_t_corner[1],
+                              n_t_corner   ,
                               dim = 2)
             on_b_boundary = is_on_b_boundary(n_t_corner[: dimension])
             if (on_b_boundary):
@@ -2410,12 +2408,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                             h        ,
                                                             r_a_n_d = True)
 
-                    t_center = numpy.zeros(shape = (3, 1), dtype = numpy.float64)
+                    t_center = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
                     apply_bil_mapping(numpy.array([numpy_border_center]),
                                       alpha                             ,
                                       beta                              ,
-                                      t_center[0]                       ,
-                                      t_center[1]                       ,
+                                      t_center                          ,
                                       dim = 2)
                     check = is_point_inside_polygon(t_center    ,
                                                     t_background)

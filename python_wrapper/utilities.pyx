@@ -278,8 +278,8 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poi
             x = 0
             y = 2
 
-        p_x = point[x][0]
-        p_y = point[y][0]
+        p_x = point[0][x]
+        p_y = point[0][y]
 
         for i in xrange(0, n_verts_face):
             j = i - 1
@@ -312,7 +312,7 @@ def is_point_on_line(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point     
     cdef n_points = 2
     cdef double d_x
     cdef double d_y
-    cdef double d_yc = point[1][0] - line_points[0][1]
+    cdef double d_yc = point[0][1] - line_points[0][1]
     cdef double d_xc = point[0][0] - line_points[0][0]
     cdef double d_x1 = line_points[1][0] - line_points[0][0]
     cdef double d_y1 = line_points[1][1] - line_points[0][1]
@@ -322,7 +322,7 @@ def is_point_on_line(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point     
 
     for i in xrange(0, n_points):
         d_x = absolute(point[0][0] - line_points[i][0])
-        d_y = absolute(point[1][0] - line_points[i][1])
+        d_y = absolute(point[0][1] - line_points[i][1])
 
         if ((d_x <= threshold) and (d_y <= threshold)):
             on_line = True
