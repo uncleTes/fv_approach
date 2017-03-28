@@ -658,7 +658,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                       True)[: dimension]
 
             if ((n_grids > 1) and (is_background)):
-                t_foregrounds = self._t_foregrounds
+                t_foregrounds = numpy.array(self._t_foregrounds)
                 # Current transformation matrix's dictionary.
                 alpha = self.get_trans(0)[1]
                 beta = self.get_trans(0)[2]
@@ -1238,7 +1238,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         beta = self.get_trans(grid)[2]
         # Index finer owner intersection.
         i_finer_o_inter = octree.get_owners(inter)[finer_o_inter]
-        t_background = self._t_background
+        t_background = numpy.array([self._t_background])
         n_nodes = 2 if (dimension == 2) else 4
         nodes = octree.get_nodes(inter        ,
                                  dimension    ,
@@ -1331,7 +1331,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         octree = self._octree
         tot_oct = self._tot_oct
         is_background = False if (grid) else True
-        t_foregrounds = self._t_foregrounds
+        t_foregrounds = numpy.array(self._t_foregrounds)
 
         n_oct = self._n_oct
         nfaces = octree.get_n_faces()
