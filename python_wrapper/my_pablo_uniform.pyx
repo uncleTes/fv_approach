@@ -290,10 +290,8 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
         utilities.apply_bil_mapping(numpy_py_coordinates,
                                     alpha               ,
                                     beta                ,
-                                    x                   ,
-                                    y)
-        numpy.copyto(g_nodes[:, 0], x)
-        numpy.copyto(g_nodes[:, 1], y)
+                                    g_nodes             ,
+                                    dimension)
         
         #for index in xrange(0, n_g_nodes):
         #    coordinates = self.der_thisptr._getGhostNodeCoordinates(index)

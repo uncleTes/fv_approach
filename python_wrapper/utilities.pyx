@@ -368,26 +368,22 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
          numpy.zeros(n_points                 , \
                      dtype = numpy.float64)
     cdef numpy.ndarray[dtype = numpy.float64_t, \
-                       ndim = 1] x =            \
-         numpy.array(l_points[:, 0]      , \
-                     dtype = numpy.float64)
-    cdef numpy.ndarray[dtype = numpy.float64_t, \
-                       ndim = 1] y =            \
-         numpy.array(l_points[:, 1]      , \
+                       ndim = 2] p_points =     \
+         numpy.zeros((n_points, dim)          , \
                      dtype = numpy.float64)
 
     apply_bil_mapping(l_points,
                       alpha   ,
                       beta    ,
-                      x       ,
-                      y)
+                      p_points,
+                      dim)
     nsin = numpy.sin
     npower = numpy.power
     nadd = numpy.add
     # sin((x - 0.5)^2 + (y - 0.5)^2).
     numpy.copyto(sol,
-                 nsin(nadd(npower(nadd(x, -0.5), 2),
-                           npower(nadd(y, -0.5), 2))))
+                 nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
+                           npower(nadd(p_points[:, 1], -0.5), 2))))
 
     return sol
 
@@ -398,19 +394,15 @@ def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
                   int dim = 2):
     cdef int n_points = l_points.shape[0]
     cdef numpy.ndarray[dtype = numpy.float64_t, \
-                       ndim = 1] x =            \
-         numpy.array(l_points[:, 0],            \
-                     dtype = numpy.float64)
-    cdef numpy.ndarray[dtype = numpy.float64_t, \
-                       ndim = 1] y =            \
-         numpy.array(l_points[:, 1],            \
+                       ndim = 2] p_points =     \
+         numpy.zeros((n_points, dim)          , \
                      dtype = numpy.float64)
 
     apply_bil_mapping(l_points,
                       alpha   ,
                       beta    ,
-                      x       ,
-                      y)
+                      p_points,
+                      dim)
     nsin = numpy.sin
     ncos = numpy.cos
     npower = numpy.power
@@ -420,18 +412,18 @@ def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
     # 4 * sin((x - 0.5)^2 + (y - 0.5)^2) *
     # ((x - 0.5)^2 + (y - 0.5)^2).
     return nadd(nmul(4.0,
-                     ncos(nadd(npower(nadd(x, -0.5),
+                     ncos(nadd(npower(nadd(p_points[:, 0], -0.5),
                                       2),
-                               npower(nadd(y, -0.5),
+                               npower(nadd(p_points[:, 1], -0.5),
                                       2)))),
                 nmul(nmul(-4.0,
-                          nsin(nadd(npower(nadd(x, -0.5),
+                          nsin(nadd(npower(nadd(p_points[:, 0], -0.5),
                                            2),
-                                    npower(nadd(y, -0.5),
+                                    npower(nadd(p_points[:, 1], -0.5),
                                            2)))),
-                     nadd(npower(nadd(x, -0.5),
+                     nadd(npower(nadd(p_points[:, 0], -0.5),
                                  2),
-                          npower(nadd(y, -0.5),
+                          npower(nadd(p_points[:, 1], -0.5),
                                  2))))
 
 def check_oct_corners(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] numpy_corners,
@@ -463,8 +455,7 @@ def check_oct_corners(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] numpy_cor
         apply_bil_mapping(numpy_corner ,
                           alpha        ,
                           beta         ,
-                          n_t_corner[0],
-                          n_t_corner[1],
+                          n_t_corner   ,
                           dim)
         (is_corner_penalized,
          n_polygon) = is_point_inside_polygons(n_t_corner,
@@ -635,9 +626,7 @@ def apply_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
                       numpy.ndarray[dtype = numpy.float64_t, \
                                     ndim = 1] beta         ,
                       numpy.ndarray[dtype = numpy.float64_t, \
-                                    ndim = 1] x            ,
-                      numpy.ndarray[dtype = numpy.float64_t, \
-                                    ndim = 1] y            ,
+                                    ndim = 2] p_points     , # physical points
                       int dim = 2):
     # Applying the following equation (for the \"ys\" is the same but with
     # betas):
@@ -647,11 +636,11 @@ def apply_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
     nadd = numpy.add
     nmul = numpy.multiply
     # Returning physical coordinates.
-    numpy.copyto(x,
+    numpy.copyto(p_points[:, 0],
                  nadd(nadd(alpha[0], nmul(alpha[1], l_points[:, 0])),
                       nadd(nmul(alpha[2], l_points[:, 1]),
                            nmul(alpha[3], nmul(l_points[:, 0], l_points[:, 1])))))
-    numpy.copyto(y,
+    numpy.copyto(p_points[:, 1],
                  nadd(nadd(beta[0], nmul(beta[1], l_points[:, 0])),
                       nadd(nmul(beta[2], l_points[:, 1]),
                            nmul(beta[3], nmul(l_points[:, 0], l_points[:, 1])))))
