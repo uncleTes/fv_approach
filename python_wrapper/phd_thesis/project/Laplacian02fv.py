@@ -2358,8 +2358,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_ghost_global_idx = octree.get_ghost_global_idx
         get_ghost_octant = octree.get_ghost_octant
         neighbour_centers = self.neighbour_centers
-        apply_persp_trans = utilities.apply_persp_trans
         is_point_inside_polygon = utilities.is_point_inside_polygon
+        apply_bil_mapping = utilities.apply_bil_mapping
         # Lambda function.
         f_n = lambda x, y : find_neighbours(current_octant,
                                             x             ,
@@ -2430,9 +2430,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                             h        ,
                                                             r_a_n_d = True)
 
-                    t_center =  apply_persp_trans(dimension          ,
-                                                  numpy_border_center,
-                                                  c_t_dict)[: dimension]
+                    t_center = numpy.zeros(shape = (3, 1), dtype = numpy.float64)
+                    apply_bil_mapping(numpy.array([numpy_border_center]),
+                                      alpha                             ,
+                                      beta                              ,
+                                      t_center[0]                       ,
+                                      t_center[1]                       ,
+                                      dim = 2)
                     check = is_point_inside_polygon(t_center    ,
                                                     t_background)
                     to_consider = (not check)
