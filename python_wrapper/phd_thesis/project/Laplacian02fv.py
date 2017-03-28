@@ -1341,7 +1341,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         o_ranges = self.get_ranges()
 
         # Current transformation matrix's dictionary.
-        c_t_dict = self.get_trans(grid)[0]
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
 
@@ -2687,6 +2686,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # there are values of \"p_g_index\" which correspond to
                 # ghost octant not included in the local octree, and in
                 # the local \"self._edl\".
+                # TODO: I think that with the add of the \"cur_proc_owner\" in
+                #       the function \"fill_mat_and_rhs\", this \"if\" is no
+                #       more useful.
                 if (stencil):
                     for k in xrange(displ, len(stencil), step):
                         if (stencil[k] == n_p_g_index):
@@ -2762,7 +2764,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         for i in xrange(0, n_nodes):
             # Number of least square coefficients.
             n_l_s_coeffs = l_s_coeffs[i].size
-            # The node \"i\" of the interface is on the boundary.
+            # The node \"i\" of the interface is on the background boundary.
             if (n_l_s_coeffs == 0):
                 e_sol = nsolution((n_nodes_inter[i][0],
                                    n_nodes_inter[i][1]))
