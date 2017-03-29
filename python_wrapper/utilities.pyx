@@ -543,9 +543,7 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
                           numpy.ndarray[dtype = numpy.float64_t, \
                                         ndim = 1] beta         ,
                           numpy.ndarray[dtype = numpy.float64_t, \
-                                        ndim = 1] l            ,
-                          numpy.ndarray[dtype = numpy.float64_t, \
-                                        ndim = 1] m            ,
+                                        ndim = 2] l_points     , # logical points
                           int dim = 2):
     # Inverting the following equation (for the \"ys\" is the same but with
     # betas):
@@ -591,7 +589,7 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
                                 nmul(-1.0, nmul(p_points[:, 1], alpha[1]))))))
     # Returning logical coordinates.
     if (not a_m):
-        numpy.copyto(m, ntdivide(nmul(-1.0, c_m), b_m))
+        numpy.copyto(l_points[:, 1], ntdivide(nmul(-1.0, c_m), b_m))
     else:
         # \"m\" is solution of a second order equation, so we have two solu-
         # tions...
@@ -609,15 +607,15 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
         # main.
         for i in xrange(0, n_points):
             if (0.0 <= m_1[i] <= 1.0):
-                m[i] = m_1[i]
+                l_points[i, 1] = m_1[i]
             else:
-                m[i] = m_2[i]
-    numpy.copyto(l,
+                l_points[i, 1] = m_2[i]
+    numpy.copyto(l_points[:, 0],
                  ntdivide(nadd(p_points[:, 0],
                                nadd(nmul(-1.0, alpha[0]),
-                                    nmul(-1.0, nmul(alpha[2], m)))),
+                                    nmul(-1.0, nmul(alpha[2], l_points[:, 1])))),
                           nadd(alpha[1],
-                               nmul(alpha[3], m))))
+                               nmul(alpha[3], l_points[:, 1]))))
 
 def apply_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
                                     ndim = 2] l_points     , # logical points
