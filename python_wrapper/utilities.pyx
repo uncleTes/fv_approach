@@ -617,6 +617,46 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
                           nadd(alpha[1],
                                nmul(alpha[3], l_points[:, 1]))))
 
+def get_points_local_ring(numpy.ndarray[dtype = numpy.float64_t, \
+                                        ndim = 1] point        ,
+                          numpy.ndarray[dtype = numpy.float64_t, \
+                                        ndim = 1] oct_center   ,
+                          int dim = 2):
+    # Index of quadrant.
+    cdef int ind_quad
+    cdef double x_p = point[0]
+    cdef double y_p = point[1]
+    cdef double x_c = oct_center[0]
+    cdef double y_c = oct_center[1]
+    cdef double d_x = (x_p - x_c)
+    cdef double d_y = (y_p - y_c)
+    cdef numpy.ndarray[dtype = numpy.uint8_t, mode = "c", ndim = 1] l_ring = \
+         numpy.zeros((3, ), dtype = numpy.uint8)
+
+    if ((d_x >= 0.0) and (d_y >= 0.0)):
+        ind_quad = 0
+        l_ring[0] = 1 # Face
+        l_ring[1] = 3 # Node
+        l_ring[2] = 3 # Face
+    elif ((d_x < 0.0) and (d_y >= 0.0)):
+        ind_quad = 1
+        l_ring[0] = 0 # Face
+        l_ring[1] = 2 # Node
+        l_ring[2] = 3 # Face
+    elif ((d_x <= 0.0) and (d_y < 0.0)):
+        ind_quad = 2
+        l_ring[0] = 0 # Face
+        l_ring[1] = 0 # Node
+        l_ring[2] = 2 # Face
+    else:
+        ind_quad = 3
+        l_ring[0] = 1 # Face
+        l_ring[1] = 1 # Node
+        l_ring[2] = 2 # Face
+
+    return l_ring.tolist()
+
+
 def apply_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
                                     ndim = 2] l_points     , # logical points
                       numpy.ndarray[dtype = numpy.float64_t, \
