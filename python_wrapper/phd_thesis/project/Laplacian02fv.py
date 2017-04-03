@@ -2343,26 +2343,45 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 t_indices_inv = [set(), set()]
                 t_nodes = []
                 h_inter = stencil[i][0]
-                for j in xrange(0, 2):
-                    k = 1
-                    apply_bil_mapping(stencils[i][k : k + dimension],
-                                      c_alpha                       ,
-                                      c_beta                        ,
-                                      t_center                      ,
+                c_inter = [(stencils[i][1] + stencils[i][3] / 2.0), (stencils[i][2] + stencils[i][4] / 2.0)]
+                apply_bil_mapping(c_inter ,
+                                  c_alpha ,
+                                  c_beta  ,
+                                  t_center,
+                                  dim = 2)
+                apply_bil_mapping_inv(t_center    ,
+                                      b_alpha     ,
+                                      b_beta      ,
+                                      t_center_inv,
                                       dim = 2)
-                    apply_bil_mapping_inv(t_center    ,
-                                          b_alpha     ,
-                                          b_beta      ,
-                                          t_center_inv,
+                local_idx = get_point_owner_idx((t_center_inv[0][0],
+                                                 t_center_inv[0][1],
+                                                 t_center_inv[0][2]))
+                global_idx = local_idx + o_ranges[0]
+                # The MPI process containing the mapped node continue to do the
+                # check for its neighbours.
+                if ((global_idx >= ids_octree_contained[0]) and
+                    (global_idx <= ids_octree_contained[1])):
+                    k = 1
+                    for j in xrange(0, 2):
+                        apply_bil_mapping(stencils[i][k : k + dimension],
+                                          c_alpha                       ,
+                                          c_beta                        ,
+                                          t_center                      ,
                                           dim = 2)
-                    local_idx = get_point_owner_idx((t_center_inv[0][0],
-                                                     t_center_inv[0][1],
-                                                     t_center_inv[0][2]))
-                    global_idx = local_idx + o_ranges[0]
-                    # The MPI process containing the mapped node continue to do the
-                    # check for its neighbours.
-                    if ((global_idx >= ids_octree_contained[0]) and
-                        (global_idx <= ids_octree_contained[1])):
+                        apply_bil_mapping_inv(t_center    ,
+                                              b_alpha     ,
+                                              b_beta      ,
+                                              t_center_inv,
+                                              dim = 2)
+                        #local_idx = get_point_owner_idx((t_center_inv[0][0],
+                        #                                 t_center_inv[0][1],
+                        #                                 t_center_inv[0][2]))
+                        #global_idx = local_idx + o_ranges[0]
+                        ## The MPI process containing the mapped node continue to do the
+                        ## check for its neighbours.
+                        #if ((global_idx >= ids_octree_contained[0]) and
+                        #    (global_idx <= ids_octree_contained[1])):
                         t_nodes.append(t_center_inv)
                         displ = 5 + (8 * j)
                         step = 2
@@ -2401,20 +2420,28 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                also_numpy_center = True)
                                     t_centers_inv[j].append(n_oct_center)
                                     t_indices_inv[j].add(global_idx)
-                    k += 2
-                
-                l_s_coeffs = map(b_c,
-                                 zip([pair[0] for pair in t_centers_inv],
-                                     [n_node for n_node in t_nodes_inv]))
-                # TODO map this funtion for each node
-                n_coeffs     , \
-                coeffs_node_1, \
-                coeffs_node_0  =  self.get_interface_coefficients(#TODO         ,
-                                                                  dimension     ,
-                                                                  t_nodes_inv   ,
-                                                                  [t_centers_inv[i][0],
-                                                                   t_centers_inv[i][-1]],
-                                                                  l_s_coeffs)
+                        k += 2
+                    # TODO: if there are just two owners at the end, add linear interpolation in bilinear_coefficients...
+                    l_s_coeffs = map(b_c,
+                                     zip([pair[0] for pair in n_cs_n_is]     ,
+                                         [n_node for n_node in n_nodes_inter]))
+
+                    n_coeffs     , \
+                    coeffs_node_1, \
+                    coeffs_node_0  =  self.get_interface_coefficients(#TODO: do not pass intersection, but instead intersection dimension stencils[i][0]
+                                                                      dimension     ,
+                                                                      t_nodes_inv   ,
+                                                                      [t_centers_inv[i][0], # Center of the background owner of the original center mapped into bg.
+                                                                       t_centers_inv[i][-1]], # Original foreground center
+                                                                      l_s_coeffs)
+                    coeffs = [n_coeffs[0], n_coeffs[1], coeffs_node_0, coeffs_node_1]
+                    columns = [t_indices_inv[0][0], t_indices[0][-1], t_indices_inv[0], t_indices_inv[1]
+                    row = keys[i][1] 
+                    
+                    apply_rest_prol_ops(row    ,
+                                        columns,
+                                        coeffs ,
+                                        neigh_centers)
                 # TODO: coeffs = [n_coeffs[i][0] * t_centers_inv[i][0],
                 #                 n_coeffs[i][1] * t_centers_inv[i][-1],
                 #                 coeffs_node_1 * t_centers_inv[1]     ,
