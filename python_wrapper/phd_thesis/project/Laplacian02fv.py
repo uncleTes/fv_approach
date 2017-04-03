@@ -458,131 +458,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    # Checking boundary conditions for foreground grids.
-    def check_foreground_boundaries(self):
-        """Method which check boundaries and, for the foreground ones, store the
-           values needed later for the restriction/prolongation communication."""
-
-        grid = self._proc_g
-        n_oct = self._n_oct
-        octree = self._octree
-        nfaces = octree.get_n_faces()
-        is_background = False if (grid) else True
-        o_ranges = self.get_ranges()
-        dimension = self._dim
-        # Current transformation matrix's dictionary.
-        alpha = self.get_trans(grid)[1]
-        beta = self.get_trans(grid)[2]
-        # Transformed background.
-        t_background = numpy.array([self._t_background])
-        # Centers of octants on the boundary.
-        #
-        # Numbers between 0 and 3 (included) which represent the indices of the
-        # faces or nodes on the boundary.
-        #
-        # Masked indices of the octants on the boundary.
-        # Numbers between 1 and 2 (included) indicating if the \"b_f_o_n\" indi-
-        # ces referred to an edge (1) or a node (2) on the boundary. It is a
-        # list of codimensions.
-        #
-        # List containing the edge size of the octants on the boundary.
-        b_centers, \
-        b_f_o_n  , \
-        b_indices, \
-        b_codim  , \
-        b_h = ([] for i in range(0, 5))
-
-        # Code hoisting.
-        mask_octant = self.mask_octant
-        get_octant = octree.get_octant
-        get_center = octree.get_center
-        get_bound = octree.get_bound
-        get_area = octree.get_area
-        apply_bil_mapping = utilities.apply_bil_mapping
-        is_point_inside_polygon = utilities.is_point_inside_polygon
-        # TODO: try to parallelize this for avoiding data dependencies.
-        if (grid):
-            for octant in xrange(0, n_oct):
-                py_oct = get_octant(octant)
-                # \"get_area\" is always of codimension 1, so in 2D with quadtrees,
-                # it returns the size of the edge.
-                h = get_area(py_oct       ,
-                             is_ptr = True,
-                             is_inter = False)
-                # Global index of the current local octant \"octant\".
-                g_octant = o_ranges[0] + octant
-                m_g_octant = mask_octant(g_octant)
-                center = get_center(octant)[: dimension]
-
-                # Lambda function.
-                g_b = lambda x : get_bound(py_oct, x)
-
-                for face in xrange(0, nfaces):
-                    # If we have an edge on the boundary.
-                    if (g_b(face)):
-                        b_indices.append(m_g_octant)
-                        b_f_o_n.append(face)
-                        b_centers.append(center)
-                        b_codim.append(1)
-                        b_h.append(h)
-            c_neighs, \
-            n_c_neighs  = self.neighbour_centers(b_centers,
-                                                 b_codim  ,
-                                                 b_f_o_n  ,
-                                                 b_h      ,
-                                                 # Return also \"numpy\" data.
-                                                 r_a_n_d = True)
-            l_c_neighs = len(c_neighs)
-            t_center = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
-            for i in xrange(0, l_c_neighs):
-                # TODO: I think that this assignment can be deleted.
-                check = False
-                # Check if the \"ghost\" points outside the foreground grids are
-                # inside the background one.
-                numpy_center = n_c_neighs[i]
-                apply_bil_mapping(numpy_center,
-                                  alpha       ,
-                                  beta        ,
-                                  t_center    ,
-                                  dim = 2)
-                check = is_point_inside_polygon(t_center    ,
-                                                t_background)
-                if (check):
-                    if (0 <= b_f_o_n[i] < 2):
-                        n_axis = 0
-                    elif (2 <= b_f_o_n[i] < 4):
-                        n_axis = 1
-                    else:
-                        n_axis = 2
-                    # Can't use list as dictionary's keys.
-                    # http://stackoverflow.com/questions/7257588/why-cant-i-use-a-list-as-a-dict-key-in-python
-                    # https://wiki.python.org/moin/DictionaryKeys
-                    key = (grid        , # Grid to which the index belongs to
-                           b_indices[i], # Masked global index of the boundary
-                                         # octant
-                           n_axis)       # \"0\" if face is parallel to y (so
-                                         # normal axis is parallel to x), other-
-                                         # wise \"1\".
-                    l_stencil = 21 if (dimension == 2) else 31
-                    stencil = [-1] * l_stencil
-                    # We store the center of the cells ghost outside the boun-
-                    # dary of the borders of the foreground grids.
-                    for j in xrange(0, dimension):
-                        stencil[j] = numpy_center[j]
-                    # We store the center of the cells on the boundary of the
-                    # borders of the foreground grids.
-                    for j in xrange(dimension, (dimension * 2)):
-                        stencil[j] = b_centers[i][j]
-                    self._edl.update({key : stencil})
-
-        msg = "Checked boundaries"
-        extra_msg = "of grid \"" + str(self._proc_g) + "\""
-        self.log_msg(msg   ,
-                     "info",
-                     extra_msg)
-    # --------------------------------------------------------------------------
-
-    # --------------------------------------------------------------------------
     # Apply mask to the octants, not being considering the octants of the
     # background grid covered by the ones of the foreground meshes.
     def mask_octant(self,
@@ -791,13 +666,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 self._p_o_f_g[g_octant] = n_polygon
                 # Moved \"h\" from the \"key\" to the \"stencil\", preferring
                 # not to use float into dict keys.
-                key = (n_polygon + 1, # Foreground grid to which the node be-
+                key_0 = n_polygon + 1 # Foreground grid to which the node be-
                                       # longs to (\"+ 1\" because foreground
                                       # grids starts from 1, globally)
-                       g_octant     , # Global index (not yet masked)
-                       0            , # Useless fields, used to pair with the
-                       0            , # \"key\" for foreground grids.
-                       0)
+                key_1 = g_octant      # Global index (not yet masked)
+                key_2 = 0             # Useless field
+
+                key = (key_0,
+                       key_1,
+                       key_2,
+                       key_2,
+                       key_2,
+                       key_2,
+                       key_2)
+
                 # If the octant is covered by the foreground grids, we need to
                 # store info of the stencil it belongs to to push on the rela-
                 # tive rows of the matrix, the right indices of the octants of
@@ -808,7 +690,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # coefficients to multiply approximation (being in a case of a
                 # possible jump of 1 level between elements, we have to store
                 # two possible neighbours for each face of the current octant).
-                l_stencil = 18 if (dimension == 2) else 19
+                l_stencil = 21 if (dimension == 2) else 31
                 stencil = [-1] * l_stencil
                 for i in xrange(dimension):
                     stencil[i] = center[i]
@@ -821,7 +703,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 d_count += 1
                 h_s.append(h)
             # \"stencil\"'s index.
-            s_i = 2 if (dimension == 2) else 3
+            s_i = dimension
             # Number of neighbours (Being the possibility of a jump between oc-
             # tants, we can have a minimum of 4 and a maximum of 8 neighbours on
             # the faces.
@@ -845,11 +727,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     n_neighbours = n_neighbours + n_neighs
                 else:
                     if (not is_background):
-                        # Adding an imaginary neighbour...why it is explained later,
-                        # encountering the following two lines of code:
-                        # \"d_count += (4 * n_neighbours)\"
-                        # \"o_count += (4 * n_neighbours)\"
-                        n_neighbours = n_neighbours + 1
                         # Extern \"ghost\" octant for foreground grids will be
                         # approximated by just its background owner.
                         o_count += 1
@@ -1056,33 +933,43 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 [i_o_i_n, i_o_o_n]    ,
                 o_ghost]
 
-    def get_interface_coefficients(self          ,
-                                   inter         ,  # pointer to the intersection
-                                   dimension     ,  # 2D/3D
-                                   nodes_inter   ,  # Coordinates of the nodes
-                                                    # of the intersection
-                                   owners_centers,  # Centers of the owners of
-                                                    # the intersection
-                                   l_s_coeffs):     # Least square coefficients.
+    def get_interface_coefficients(self            ,
+                                   inter           ,  # pointer to the intersection
+                                   dimension       ,  # 2D/3D
+                                   nodes_inter     ,  # Coordinates of the nodes
+                                                      # of the intersection
+                                   owners_centers  ,  # Centers of the owners of
+                                                      # the intersection
+                                   l_s_coeffs      ,  # Least square coefficients
+                                   use_inter = True,
+                                   h_given = 0     ,  # If \"use_inter\" is False,
+                                                      # then we will use \"h_given\"
+                                                      # to evaluate the coeffs
+                                   n_axis_given = 0,  # Same explication as for
+                                   n_value_given = 0) # \"h_given\".
         octree = self._octree
         grid = self._proc_g
-        c_t_dict = self.get_trans(grid)[0]
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
-        is_bound_inter = octree.get_bound(inter,
-                                          0    ,
-                                          True)
-        # Normal to the intersection, and its numpy version.
-        normal_inter, \
-        n_normal_inter = octree.get_normal(inter,
-                                           True) # We want also a \"numpy\"
-                                                 # version
-        n_axis = numpy.nonzero(n_normal_inter)[0][0]
-        n_value = n_normal_inter[n_axis]
-        # evaluating length of the intersection.
-        h = octree.get_area(inter        ,
-                            is_ptr = True,
-                            is_inter = True)
+        is_bound_inter = True
+        n_axis = n_axis_given
+        n_value = n_value_given
+        h = h_given
+        if (use_inter):
+            is_bound_inter = octree.get_bound(inter,
+                                              0    ,
+                                              True)
+            # Normal to the intersection, and its numpy version.
+            normal_inter, \
+            n_normal_inter = octree.get_normal(inter,
+                                               True) # We want also a \"numpy\"
+                                                     # version
+            n_axis = numpy.nonzero(n_normal_inter)[0][0]
+            n_value = n_normal_inter[n_axis]
+            # evaluating length of the intersection.
+            h = octree.get_area(inter        ,
+                                is_ptr = True,
+                                is_inter = True)
         h_inv = (1.0 / h)
 
         d_nodes_x    , \
@@ -1146,6 +1033,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         mult_node_1 = 1.0
         mult_node_0 = mult_node_1
+        # If the nodes are not on the background boundary, we have evaluated
+        # bilinear interpolation to interpolate the nodes, indeed. On the coun-
+        # trary, being on the background grid, it will have the exact value of
+        # the solution on that node, so there will not be the interpolation
+        # coefficients..
         if (l_s_coeffs[1].size):
             mult_node_1 = l_s_coeffs[1]
         if (l_s_coeffs[0].size):
@@ -1242,7 +1134,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Index finer owner intersection.
         i_finer_o_inter = octree.get_owners(inter)[finer_o_inter]
         t_background = numpy.array([self._t_background])
-        t_foreground = numpy.array(self._t_foregrounds[0][grid])
+        t_foreground = numpy.array([self._t_foregrounds[grid]])
         n_nodes = 2 if (dimension == 2) else 4
         nodes = octree.get_nodes(inter        ,
                                  dimension    ,
@@ -1268,13 +1160,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                               beta         ,
                               n_t_corner   ,
                               dim = 2)
+            # TODO: use a multiprocess trick to check \"on_b_boundary\" and
+            #       \"on_f_boundary\" simultaneously, because there is no pos-
+            #       sible race condition.
             on_b_boundary = is_on_b_boundary(n_t_corner)
             if (grid and (not on_b_boundary)):
                 on_f_boundary = is_on_f_boundary(n_t_corner)
+
             if (on_b_boundary):
                 l_owner = "b_boundary"
             elif (on_f_boundary):
                 if (not n_nodes_on_f_b):
+                    # if \"n_nodes_on_f_b\" will remain equal to 1,
+                    # \"nodes_on_f_b\" will indicate if it is the node 0 or the 1,
+                    # being on it. Otherwise, it will have no importance has value.
                     node_on_f_b = i
                 n_nodes_on_f_b += 1
                 l_owner = "f_boundary"
@@ -1389,11 +1288,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                      o_ranges[0],
                                                      x[1]       ,
                                                      True       ,
-                                                     x[2])
+                                                     x[2]       ,
+                                                     x[3])
 
-        i_c = lambda x : inter_coeffs(x[0],
-                                      x[1],
-                                      x[2])
         b_c = lambda x: bil_coeffs(x[0],
                                    x[1])
 
@@ -1517,6 +1414,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                           # py\" data.
                                                           r_a_n_d = True)
                     rings = octree.get_intersection_local_rings(inter)
+
+                    are_nodes_on_f_b = [False, False]
+                    # Two nodes in 2D.
+                    for k in xrange(0, 2):
+                        if (n_nodes_on_f_b):
+                            if (n_nodes_on_f_b == 2):
+                                are_nodes_on_f_b[k] = True
+                            else:
+                                if (node_on_f_b == k):
+                                    are_nodes_on_f_b[k] = True
+
                     # Neighbour centers neighbours indices: it is a list of tuple,
                     # and in each tuple are contained the lists of centers and in-
                     # dices of each local owner of the nodes.
@@ -1525,7 +1433,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     n_cs_n_is = map(f_r_n,
                                     zip(l_o_nodes_inter,
                                         rings          ,
-                                        nodes_inter))
+                                        nodes_inter    ,
+                                        are_nodes_on_f_b))
                     # Least square coefficients.
                     # TODO: use \"multiprocessing\" shared memory to map function on
                     #       local threads.
@@ -2495,12 +2404,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    def new_find_right_neighbours(self                        ,
-                                  current_octant              ,
-                                  start_octant                ,
-                                  inter_ring                  ,
-                                  with_node = False           ,
-                                  node = None):
+    def new_find_right_neighbours(self             ,
+                                  current_octant   ,
+                                  start_octant     ,
+                                  inter_ring       ,
+                                  with_node = False,
+                                  node = None      ,
+                                  is_node_on_f_b = False):
         if (current_octant == "b_boundary"):
             # A \"numpy\" empty array (size == 0) of shape (2, 0).
             n_e_array = numpy.array([[], []])
@@ -2604,7 +2514,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # ...we need to evaluate boundary values (background) or not to
             # consider the indices and centers found (foreground).
             else:
-                if (grid):
+                if (grid and is_node_on_f_b):
                     border_center, \
                     numpy_border_center = neighbour_centers(c_c      ,
                                                             codim    ,
@@ -2630,167 +2540,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         centers.append(c_c)
 
         indices.append(c_m_index)
-
-        numpy_centers = numpy.array(centers)
-
-        return (numpy_centers, indices)
-    # --------------------------------------------------------------------------
-
-    # TODO: Find a more generic algortihm: try least squares.
-    # --------------------------------------------------------------------------
-    # Returns the right neighbours for an octant, being them of edges or nodes.
-    def find_right_neighbours(self                        ,
-                              current_octant              ,
-                              start_octant                ,
-                              is_background = False       ,
-                              also_outside_boundary = True,
-                              with_node = False           ,
-                              node = 0):
-        """Method which compute the right 4 neighbours for the octant
-           \"current_octant\", considering first the label \"location\" to
-           indicate in what directions go to choose the neighborhood.
-
-           Arguments:
-                current_octant (int) : local index of the current octant.
-                start_octant (int) : global index of the first contained octant
-                                     in the process.
-                is_background (bool) : indicates if we are or not on the
-                                       background grid. On this choice depends
-                                       how the indices of the neighbours will
-                                       be evaluated.
-                also_outside_boundary (bool): add or not also extern boundary
-                                              neighbours at the neighbours list.
-
-           Returns:
-                (centers, indices) (tuple of lists) : tuple containing the lists
-                                                      of centers and indices of
-                                                      the neighbours."""
-
-        if (current_octant == "boundary"):
-            # A \"numpy\" empty array (size == 0) of shape (2, 0).
-            n_e_array = numpy.array([[], []])
-            return (n_e_array, n_e_array)
-
-        octree = self._octree
-        py_oct = octree.get_octant(current_octant)
-        centers = []
-        indices = []
-        grid = self._proc_g
-        dimension = self._dim
-        nfaces = octree.get_n_faces()
-        nnodes = octree.get_n_nodes()
-        faces_nodes = octree.get_face_node()
-        c_t_dict = self.get_trans(grid)[0]
-        t_background = self._t_background
-        # Ghosts' deplacement.
-        g_d = 0
-        for i in xrange(0, grid):
-            g_d = g_d + self._oct_f_g[i]
-        # Current center.
-        c_c = octree.get_center(current_octant)[: dimension]
-        h = octree.get_area(current_octant)
-
-        #centers.append(c_c)
-
-        index = current_octant
-        m_index = self.mask_octant(index + start_octant)
-
-        #indices.append(m_index)
-
-        neighs, ghosts = ([] for i in range(0, 2))
-
-        #Code hoisting.
-        find_neighbours = octree.find_neighbours
-        mask_octant = self.mask_octant
-        get_center = octree.get_center
-        get_ghost_global_idx = octree.get_ghost_global_idx
-        get_ghost_octant = octree.get_ghost_octant
-        neighbour_centers = self.neighbour_centers
-        apply_persp_trans = utilities.apply_persp_trans
-        is_point_inside_polygon = utilities.is_point_inside_polygon
-        # Lambda function.
-        f_n = lambda x, y : find_neighbours(current_octant,
-                                            x             ,
-                                            y             ,
-                                            neighs        ,
-                                            ghosts)
-
-        for i in xrange(0, nfaces):
-            # Codimension = 1, looping just on the faces.
-            codim = 1
-            # Index of current face or node.
-            face_node = i
-
-            (neighs, ghosts) = f_n(face_node, codim)
-            n_neighs = len(neighs)
-            # Check if it is really a neighbour of edge or node. If not,
-            # it means that we are near the boundary if we are on the back-
-            # ground, or on an outside area if we are on the foreground, so...
-            if (neighs):
-                # Distance center node.
-                d_c_n = 0.0
-                for j in xrange(0, n_neighs):
-                    # Neighbour is into the same process, so is local.
-                    if (not ghosts[j]):
-                        by_octant = False
-                        index = neighs[j]
-                        m_index = mask_octant(index + start_octant)
-                        py_ghost_oct = index
-                    else:
-                        by_octant = True
-                        # In this case, the quas(/oc)tree is no more local into
-                        # the current process, so we have to find it globally.
-                        index = get_ghost_global_idx(neighs[j])
-                        # \".index\" give us the \"self._global_ghosts\" index
-                        # that contains the index of the global ghost quad(/oc)-
-                        # tree previously found and stored in \"index\".
-                        py_ghost_oct = get_ghost_octant(neighs[j])
-                        m_index = mask_octant(index + g_d)
-                    if (m_index != -1):
-                        cell_center = get_center(py_ghost_oct,
-                                                 by_octant)[: dimension]
-                        if (with_node):
-                            # Temporary distance.
-                            t_d = numpy.linalg.norm(numpy.array(cell_center) - \
-                                                    numpy.array(node[: dimension]))
-                            # \"j\" == 0...first neighbour.
-                            if (not j):
-                                d_c_n = t_d
-                                centers.append(cell_center)
-                                indices.append(m_index)
-                            # Second neighbour case.
-                            else:
-                                if (t_d < d_c_n):
-                                    d_c_n = t_d
-                                    centers[-1] = cell_center
-                                    indices[-1] = m_index
-                        else:
-                            centers.append(cell_center)
-                            indices.append(m_index)
-            # ...we need to evaluate boundary values (background) or not to
-            # consider the indices and centers found (foreground).
-            else:
-                if (also_outside_boundary):
-                    to_consider = True
-
-                    border_center, \
-                    numpy_border_center = neighbour_centers(c_c      ,
-                                                            codim    ,
-                                                            face_node,
-                                                            h        ,
-                                                            r_a_n_d = True)
-
-                    if (not is_background):
-                        t_center =  apply_persp_trans(dimension          ,
-                                                      numpy_border_center,
-                                                      c_t_dict)[: dimension]
-                        check = is_point_inside_polygon(t_center    ,
-                                                        t_background)
-                        to_consider = (not check)
-
-                    if (to_consider):
-                        centers.append(border_center)
-                        indices.append("outside_bg")
 
         numpy_centers = numpy.array(centers)
 
@@ -2844,44 +2593,84 @@ class Laplacian(BaseClass2D.BaseClass2D):
         node_0_interpolated = n_cs_n_is[0][0].size
         c_indices.extend(r_indices)
         if (grid and n_nodes_on_f_b):
-            key = (grid                                        ,
-                   r_indices[0]                                ,
-                   r_indices[1] if (n_nodes_on_f_b == 1) else \
-                   n_cs_n_is[0][1][-2]                         ,
-                   n_nodes_on_f_b                              ,
-                   0 if (n_nodes_on_f_b == 1) else n_cs_n_is[1][1][-2])
-                   #n_axis      ,
-                   #value_n_axis)
+            key_0 = grid                # Grid on which we are
+            key_1 = r_indices[0]        # First index of the owners of the inter-
+                                        # section
+            key_2 = r_indices[1] if (n_nodes_on_f_b == 1) else \
+                    n_cs_n_is[0][1][-2] # Or the second index of the owners of
+                                        # the intersection, or the index of the
+                                        # second to last of the neighbours of the
+                                        # first node of the intersection (that,
+                                        # if the intersection is not on the corner,
+                                        # it will be inside the foregrounds)
+            key_3 = n_nodes_on_f_b      # How many nodes on the foreground boundary
+                                        # for the current intersection
+            key_4 = 0 if (n_nodes_on_f_b == 1) else \
+                    n_cs_n_is[0][1][-2] # Or a useless field, or see the explication                                        # for \"key_2\", but or the second node of
+                                        # the intersection
+            key_5 = 0 if (n_nodes_on_f_b == 1) else \
+                    n_axis              # useless field, or normal axis
+            key_6 = 0 if (n_nodes_on_f_b == 1) else \
+                    n_value             # useless field, or value of the normal axis
+            key = (key_0,
+                   key_1,
+                   key_2,
+                   key_3,
+                   key_4,
+                   key_5,
+                   key_6)
             l_stencil = 21 if (dimension == 2) else 31
             stencil = [-1] * l_stencil
-            if (n_nodes_on_f_b == 1):
+            # Only one node is on the foreground boundary...
+            if (key_3 == 1):
+                # Saving the coefficient of the corresponding node.
                 stencil[0] = coeffs_node[node_on_f_b]
                 j = 1
+                # Saving the coordinates of the node in question.
                 stencil[j : j + dimension] = nodes_inter[node_on_f_b]
                 j = j + dimension
                 for i in xrange(0, n_cs_n_is[node_on_f_b][0].size):
+                    # Storing all the coordinates of the neighbours in the ring
+                    # of the node.
                     stencil[j : j + dimension] = n_cs_n_is[node_on_f_b][0][i]
                     j += dimension
+                # If the node on the boundary is the second (so, the node number
+                # 1), we will have to compute new bilinear coefficients with the
+                # octants on the background, so for the moment we will not store
+                # the old interpolation...
                 if (node_on_f_b):
                     node_1_interpolated = False
+                # ...and the same speech is on also for the node 0.
                 else:
                     node_0_interpolated = False
+            # All the two of them are on the foreground boundaries.
             else:
                 h = octree.get_area(inter        ,
                                     is_ptr = True,
                                     is_inter = True)
+                # Saving the size of the intersection because we will need it to
+                # ri-evaluate, other than the bilinear coefficients, also the
+                # interface coefficients.
                 stencil[0] = h
                 j = 1
                 for i in xrange(0, 2):
+                    # Saving coordinates of both nodes.
                     stencil[j : j + dimension] = nodes_inter[i]
                     j += dimension
+                # \"k\" is the displacement after two nodes (\"dimension * 2\")
+                # and  \"h\" (\" + 1\").
                 k = (dimension * 2) + 1
                 for i in xrange(0, 2):
-                    for j in xrange(0, n_cs_n_is[i][0].size):
+                    # Saving all the coordinates of the rings of the nodes.
+                    for j in xrange(0, n_cs_n_is[i][0].shape[0]):
                         stencil[k : k + dimension] = n_cs_n_is[i][0][j]
                         k += dimension
-                node_1_interpolated = False
+                # Old bilinear interpolation will not be used neither for the first
+                # node, nor for the second.
                 node_0_interpolated = False
+                node_1_interpolated = False
+                # the only index for the rows and for the columns will be filled
+                # with \"-1\", to lets PETSc does nothing with it.
                 r_indices = [-1] * len(r_indices)
                 c_indices = [-1] * len(c_indices)
 
@@ -2942,10 +2731,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                        p_g_index    , \
                        0            , \
                        0            , \
+                       0            , \
+                       0            , \
                        0)
 
                 stencil = self._edl.get(key)
-                displ = 2 if (dimension == 2) else 3
+                displ = dimension
                 step = 2
                 # Sometimes \"stencil\" is equal to \"None\" because
                 # there are values of \"p_g_index\" which correspond to
@@ -2958,6 +2749,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     for k in xrange(displ, len(stencil), step):
                         if (stencil[k] == n_p_g_index):
                             stencil[k + 1] = value_to_store
+                            # TODO: add a \"break\"?
             # We are on a boundary intersection; here normal is always
             # directed outside, so the owner is the one with the outer
             # normal.
@@ -2972,18 +2764,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     n_normal_inter,
                                     labels        ,
                                     value_to_store)
-                else:
-                    key = (grid    ,
-                           m_octant,
-                           n_axis)
-                    stencil = self._edl.get(key)
-                    # The \"if\" clause is necessary because interface
-                    # could be on the boundary of the background, where
-                    # the exterior neighbour is not saved previously in
-                    # \"self._edl\" because it is outside the transfor-
-                    # med background.
-                    if (stencil):
-                        stencil[(2 * dimension) + 1] = value_to_store
+                #else:
+                #    key = (grid    ,
+                #           m_octant,
+                #           n_axis)
+                #    stencil = self._edl.get(key)
+                #    # The \"if\" clause is necessary because interface
+                #    # could be on the boundary of the background, where
+                #    # the exterior neighbour is not saved previously in
+                #    # \"self._edl\" because it is outside the transfor-
+                #    # med background.
+                #    if (stencil):
+                #        stencil[(2 * dimension) + 1] = value_to_store
 
             values = (n_t_array * mult).tolist()
         self._b_mat.setValues(r_indices, # Row
@@ -3028,7 +2820,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             mult = -1.0
 
         for i in xrange(0, n_nodes):
-            foreground_too = ((n_nodes_on_f_b == 1) and (node_on_f_b != i))
             # Number of least square coefficients.
             n_l_s_coeffs = l_s_coeffs[i].size
             # The node \"i\" of the interface is on the background boundary.
@@ -3044,13 +2835,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     n_index = n_cs_n_is[i][1][j]
                     # Ghost boundary octant for foreground grid are outside the
                     # background, so an exact solution has to be found.
-                    # TODO: I think that here we will not be never, because here
-                    #       rings of nodes of the foreground grids not on the
-                    #       boundaries are inside the foreground grids, and so
-                    #       inside the background one, and so this condition
-                    #       will be never satisfied. Check so if this thought is
-                    #       correct.
-                    if (foreground_too and (n_index == "outside_bg")):
+                    if (grid and (n_index == "outside_bg")):
                         # In this way, PETSc will not insert anything in the cor-
                         # responding indices equal to \"-1\". And of course will
                         # not cause problems not being no more indices signed as
@@ -3058,8 +2843,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         n_cs_n_is[i][1][j] = -1
                         e_sol = nsolution((n_cs_n_is[i][0][j][0],
                                            n_cs_n_is[i][0][j][1]))
-                        # TODO: check if multipling for \"l_s_coeffs[i][j]\" is
-                        #       or not correct.
                         e_sol_coeff = coeffs_nodes[i][j] * l_s_coeffs[i][j]
                         e_sol = mult * e_sol * e_sol_coeff
                         values_rhs.append(e_sol)

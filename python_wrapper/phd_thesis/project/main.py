@@ -444,6 +444,9 @@ def compute(comm_dictionary     ,
     laplacian.init_sol()
     # Not penalized centers.
     n_p_cs = numpy.array(laplacian.not_pen_centers)
+    # TODO: change implementation of \"exact_sol\" and \"exact_2nd_der\" to
+    #       do not copy anymore into the inner \numpy\" array of zeros, but to
+    #       pass directly the values evaluated.
     e_sol = utilities.exact_sol(n_p_cs,
                                 alpha ,
                                 beta)
@@ -452,8 +455,6 @@ def compute(comm_dictionary     ,
                                         beta)
     laplacian.init_rhs()
     laplacian.init_mat((d_nnz, o_nnz))
-    if (n_grids > 1):
-        laplacian.check_foreground_boundaries()
     laplacian.fill_mat_and_rhs()
     # \"Numpy\" determinants.
     dets = numpy.linalg.det(utilities.jacobians_bil_mapping(n_p_cs, alpha, beta))
