@@ -2411,147 +2411,22 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # the check for the other neighbours.
                 if ((global_idx >= ids_octree_contained[0]) and
                     (global_idx <= ids_octree_contained[1])):
-                    displ = 1 + (2 * dimension)
-                    step = dimension
-                    for j in xrange(displ, l_s, step):
-                        k = 0 if (j <= displ + (4 * dimension) else 1
-                        if ((j == displ) or (j == displ + (4 * dimension) + 1)):
-                            oct_center, \
-                            n_oct_center  = get_center(global_idx       ,
-                                                       by_octant = False,
-                                                       also_numpy_center = True)
-                            t_centers_inv[k].append(oct_center)
-                            t_indices_inv[k].append(global_idx)
-                             
-
-                if ((global_idx >= ids_octree_contained[0]) and
-                    (global_idx <= ids_octree_contained[1])):
-                    k = 1
-                    for j in xrange(0, 2):
-                        apply_bil_mapping(stencils[i][k : k + dimension],
-                                          c_alpha                       ,
-                                          c_beta                        ,
-                                          t_center                      ,
-                                          dim = 2)
-                        apply_bil_mapping_inv(t_center    ,
-                                              b_alpha     ,
-                                              b_beta      ,
-                                              t_center_inv,
-                                              dim = 2)
-                        #local_idx = get_point_owner_idx((t_center_inv[0][0],
-                        #                                 t_center_inv[0][1],
-                        #                                 t_center_inv[0][2]))
-                        #global_idx = local_idx + o_ranges[0]
-                        ## The MPI process containing the mapped node continue to do the
-                        ## check for its neighbours.
-                        #if ((global_idx >= ids_octree_contained[0]) and
-                        #    (global_idx <= ids_octree_contained[1])):
-                        t_nodes.append(t_center_inv)
-                        displ = 5 + (8 * j)
-                        step = 2
-                        for q in xrange(displ, ls - (8 * (1 - j)), step):
-                            apply_bil_mapping(stencils[i][j : j + dimension],
-                                              c_alpha                       ,
-                                              c_beta                        ,
-                                              t_center                      ,
-                                              dim = 2)
-                            is_in_fg = utilities.is_point_inside_polygons(t_center,
-                                                                          t_foregrounds)
-                            if (is_in_fg):
-                                t_centers_inv[j].append(stencil[i][j : j + dimension])
-                                # Third neighbour.
-                                if (displ == 5 + (8*j) + 4):
-                                    t_indices_inv[j].add(key[i][2] if (not j) else
-                                                         key[i][4])
-                                # Fourth neighbour.
-                                else:
-                                    t_indices_inv[j].add(key[i][1])
-                            else:
-                                apply_bil_mapping_inv(t_center    ,
-                                                      b_alpha     ,
-                                                      b_beta      ,
-                                                      t_center_inv,
-                                                      dim = 2)
-                                local_idx = get_point_owner_idx((t_center_inv[0][0],
-                                                                 t_center_inv[0][1],
-                                                                 t_center_inv[0][2]))
-                                global_idx = local_idx + o_ranges[0]
-                                if ((global_idx >= ids_octree_contained[0]) and
-                                    (global_idx <= ids_octree_contained[1])):
-                                    oct_center, \
-                                    n_oct_center  = get_center(global_idx       ,
-                                                               by_octant = False,
-                                                               also_numpy_center = True)
-                                    t_centers_inv[j].append(n_oct_center)
-                                    t_indices_inv[j].add(global_idx)
-                        k += 2
-                    # TODO: if there are just two owners at the end, add linear interpolation in bilinear_coefficients...
-                    l_s_coeffs = map(b_c,
-                                     zip([pair[0] for pair in n_cs_n_is]     ,
-                                         [n_node for n_node in n_nodes_inter]))
-
-                    n_coeffs     , \
-                    coeffs_node_1, \
-                    coeffs_node_0  =  self.get_interface_coefficients(#TODO: do not pass intersection, but instead intersection dimension stencils[i][0]
-                                                                      dimension     ,
-                                                                      t_nodes_inv   ,
-                                                                      [t_centers_inv[i][0], # Center of the background owner of the original center mapped into bg.
-                                                                       t_centers_inv[i][-1]], # Original foreground center
-                                                                      l_s_coeffs)
-                    coeffs = [n_coeffs[0], n_coeffs[1], coeffs_node_0, coeffs_node_1]
-                    columns = [t_indices_inv[0][0], t_indices[0][-1], t_indices_inv[0], t_indices_inv[1]
-                    row = keys[i][1] 
-                    
-                    apply_rest_prol_ops(row    ,
-                                        columns,
-                                        coeffs ,
+                    node_0 = [stencils[i][1 : 1 + dimension]
+                    node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
+                    c_in = [t_centers_inv[0][0], t_centers_inv[0][1], t_centers_inv[0][2]]
+                    c_out = stencils[i][11 : 11 + dimension]
+                    n_coeffs = get_interface_coefficients_1_order(0                ,
+                                                                  dimension        ,
+                                                                  [node_0, node_1] ,
+                                                                  [c_in, c_out]    ,
+                                                                  use_inter = False,
+                                                                  h_given = h_inter,
+                                                                  keys[i][5]       ,
+                                                                  keys[i][6])
+                    apply_rest_prol_ops(keys[i][1]             ,
+                                        [global_idx, keys[i][1],
+                                        n_coeffs               ,
                                         neigh_centers)
-                # TODO: coeffs = [n_coeffs[i][0] * t_centers_inv[i][0],
-                #                 n_coeffs[i][1] * t_centers_inv[i][-1],
-                #                 coeffs_node_1 * t_centers_inv[1]     ,
-                #                 coeffs_node_0 * t_centers_inv[0]     ],
-                # insert elements with apply_rest_prol_ops 
-        for i in xrange(0, n_o_centers):
-            f_t_dict = self.get_trans(int(keys[i][0]))
-            numpy_o_center = narray(o_centers[i])
-            t_o_centers[i] = apply_persp_trans(dimension     ,
-                                               numpy_o_center,
-                                               f_t_dict)
-            numpy_t_o_center = narray(t_o_centers[i])
-            t_o_centers[i] = apply_persp_trans_inv(dimension       ,
-                                                   numpy_t_o_center,
-                                                   c_t_adj_dict)
-        # Here we need to pass \"center[0:2]\" to the function \"get_point_ow-
-        # ner_dx\", while in the previous version of \"PABLitO\" we passed all
-        # the array \"center\". I think that it is due to the change of type of
-        # the input arguments from \"dvector\" to \"darray\".
-        local_idxs = numpy.array([octree.get_point_owner_idx((center[0],
-                                                              center[1],
-                                                              center[2] if    \
-                                                              (dimension == 3)\
-                                                              else 0)) for    \
-                                  center in t_o_centers])
-        global_idxs = local_idxs + o_ranges[0]
-        idxs = numpy.where(numpy.logical_and((global_idxs >=
-                                              ids_octree_contained[0]),
-                                             (global_idxs <=
-                                              ids_octree_contained[1])))
-        numpy_t_o_centers = [numpy.array(t_o_center) for t_o_center in \
-                             t_o_centers]
-        for idx in idxs[0]:
-            neigh_centers, neigh_indices = ([] for i in range(0, 2))
-            (neigh_centers,
-             neigh_indices)  = find_right_neighbours(local_idxs[idx],
-                                                     o_ranges[0]    ,
-                                                     True)
-            coeffs = least_squares(neigh_centers,
-                                   numpy_t_o_centers[idx])
-
-            coeffs = [coeff * values_to_multiply[idx] for coeff in coeffs]
-            apply_rest_prol_ops(int(keys[idx][1]),
-                                neigh_indices    ,
-                                coeffs           ,
-                                neigh_centers)
 
         msg = "Updated restriction blocks"
         self.log_msg(msg   ,
