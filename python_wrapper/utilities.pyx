@@ -441,7 +441,7 @@ def check_oct_corners(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] numpy_cor
     # \"shape\" = (1, )).
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] n_t_corner =   \
-         numpy.zeros(shape = (3, 1),            \
+         numpy.zeros(shape = (1, 3),            \
                      dtype = numpy.float64)
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] numpy_corner = \

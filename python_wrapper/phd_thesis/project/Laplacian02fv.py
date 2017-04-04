@@ -533,7 +533,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                       True)[: dimension]
 
             if ((n_grids > 1) and (is_background)):
-                t_foregrounds = numpy.array(self._t_foregrounds)
+                t_foregrounds = numpy.array([self._t_foregrounds])
                 # Current transformation matrix's dictionary.
                 alpha = self.get_trans(0)[1]
                 beta = self.get_trans(0)[2]
@@ -610,6 +610,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         nfaces = octree.get_n_faces()
         dimension = self._dim
         is_background = True if (not grid) else False
+        t_foregrounds = numpy.array([self._t_foregrounds])
         # Lists containing number of non zero elements for diagonal and non
         # diagonal part of the coefficients matrix, for row.
         d_nnz, o_nnz = ([] for i in range(0, 2))
@@ -1030,7 +1031,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                       # then we will use \"h_given\"
                                                       # to evaluate the coeffs
                                    n_axis_given = 0,  # Same explication as for
-                                   n_value_given = 0) # \"h_given\".
+                                   n_value_given = 0): # \"h_given\".
         octree = self._octree
         grid = self._proc_g
         alpha = self.get_trans(grid)[1]
@@ -1218,7 +1219,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Index finer owner intersection.
         i_finer_o_inter = octree.get_owners(inter)[finer_o_inter]
         t_background = numpy.array([self._t_background])
-        t_foreground = numpy.array([self._t_foregrounds[grid]])
+        t_foreground = numpy.array([self._t_foregrounds[grid - 1]])
         n_nodes = 2 if (dimension == 2) else 4
         nodes = octree.get_nodes(inter        ,
                                  dimension    ,
@@ -1253,15 +1254,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
             if (on_b_boundary):
                 l_owner = "b_boundary"
-            elif (on_f_boundary):
-                if (not n_nodes_on_f_b):
-                    # if \"n_nodes_on_f_b\" will remain equal to 1,
-                    # \"nodes_on_f_b\" will indicate if it is the node 0 or the 1,
-                    # being on it. Otherwise, it will have no importance has value.
-                    node_on_f_b = i
-                n_nodes_on_f_b += 1
-                l_owner = "f_boundary"
             else:
+                if (on_f_boundary):
+                    if (not n_nodes_on_f_b):
+                        node_on_f_b = i
+                    n_nodes_on_f_b += 1
                 # We will not have a case of a ghost owner, because the current
                 # function is runned only if the intersection is owned by the
                 # current process.
@@ -2355,7 +2352,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                     displ = 2
                     coeffs = b_c(numpy.array(t_centers_inv),
-                                 numpy.array(stencils[i][displ : displ + dimension])
+                                 numpy.array(stencils[i][displ : displ + dimension]))
                     coeffs = coeffs * stencils[i][1]
                     # Inner normal.
                     apply_rest_prol_ops(keys[i][1]            ,
@@ -2411,7 +2408,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # the check for the other neighbours.
                 if ((global_idx >= ids_octree_contained[0]) and
                     (global_idx <= ids_octree_contained[1])):
-                    node_0 = [stencils[i][1 : 1 + dimension]
+                    node_0 = stencils[i][1 : 1 + dimension]
                     node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
                     c_in = [t_centers_inv[0][0], t_centers_inv[0][1], t_centers_inv[0][2]]
                     c_out = stencils[i][11 : 11 + dimension]
@@ -2421,10 +2418,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                   [c_in, c_out]    ,
                                                                   use_inter = False,
                                                                   h_given = h_inter,
-                                                                  keys[i][5]       ,
-                                                                  keys[i][6])
+                                                                  n_axis_given = keys[i][5],
+                                                                  n_value_given = keys[i][6])
                     apply_rest_prol_ops(keys[i][1]             ,
-                                        [global_idx, keys[i][1],
+                                        [global_idx, keys[i][1]],
                                         n_coeffs               ,
                                         neigh_centers)
 
@@ -2445,7 +2442,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # A \"numpy\" empty array (size == 0) of shape (2, 0).
             n_e_array = numpy.array([[], []])
             return (n_e_array, n_e_array)
-
         octree = self._octree
         py_oct = octree.get_octant(current_octant)
         centers = []
@@ -2616,7 +2612,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                  # version
         # Normal's axis, indicating the non-zero component of the normal.
         n_axis = numpy.nonzero(n_normal_inter)[0][0]
-        value_n_axis = n_normal_inter[n_axis]
+        n_value = n_normal_inter[n_axis]
         # We are addding the indices of the interpolation done for the nodes of
         # the intersection, only if they are not on the background boundary.
         node_1_interpolated = n_cs_n_is[1][0].size
@@ -2636,7 +2632,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             key_3 = n_nodes_on_f_b      # How many nodes on the foreground boundary
                                         # for the current intersection
             key_4 = 0 if (n_nodes_on_f_b == 1) else \
-                    n_cs_n_is[0][1][-2] # Or a useless field, or see the explication
+                    n_cs_n_is[1][1][-2] # Or a useless field, or see the explication
                                         # for \"key_2\", but or the second node of
                                         # the intersection
             key_5 = n_axis              # useless field, or normal axis
@@ -2657,12 +2653,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (key_3 == 1):
                 stencil[0] = h
                 # Saving the coefficient of the corresponding node.
-                stencil[1] = coeffs_node[node_on_f_b]
+                stencil[1] = coeffs_nodes[node_on_f_b]
                 j = 2
                 # Saving the coordinates of the node in question.
                 stencil[j : j + dimension] = nodes_inter[node_on_f_b]
                 j = j + dimension
-                for i in xrange(0, n_cs_n_is[node_on_f_b][0].size):
+                for i in xrange(0, n_cs_n_is[node_on_f_b][0].shape[0]):
                     # Storing all the coordinates of the neighbours in the ring
                     # of the node.
                     stencil[j : j + dimension] = n_cs_n_is[node_on_f_b][0][i]
