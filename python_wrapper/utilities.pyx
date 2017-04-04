@@ -656,6 +656,30 @@ def get_points_local_ring(numpy.ndarray[dtype = numpy.float64_t, \
 
     return l_ring.tolist()
 
+def neigh_inter_center(numpy.ndarray[dtype = numpy.float64_t,
+                                     ndim = 2] point        ,
+                       double h                             ,
+                       int n_axis                           ,
+                       int n_value                          ,
+                       int dimension = 2):
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] n_point =      \
+         numpy.zeros((1, dimension)            ,\
+                     dtype = numpy.float64)
+    numpy.copyto(n_point, point)
+
+    if (n_axis == 1):
+        if (n_value == 1):
+            n_point[0][1] = n_point[0][1] + h
+        else:
+            n_point[0][1] = n_point[0][1] - h
+    else:
+        if (n_value == 1):
+            n_point[0][0] = n_point[0][0] + h
+        else:
+            n_point[0] = n_point[0] - h
+
+    return n_point
 
 def apply_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
                                     ndim = 2] l_points     , # logical points
