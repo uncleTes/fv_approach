@@ -950,7 +950,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_bound_inter = True
         n_axis = n_axis_given
         n_value = n_value_given
-        n_normal_inter = numpy.zeros((3, ))
+        n_normal_inter = numpy.zeros((3, ),
+                                     dtype = numpy.int64)
         n_normal_inter[n_axis] = n_value
         h = h_given
         if (use_inter):
@@ -1040,6 +1041,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_bound_inter = True
         n_axis = n_axis_given
         n_value = n_value_given
+        n_normal_inter = numpy.zeros((3, ),
+                                     dtype = numpy.int64)
+        n_normal_inter[n_axis] = n_value
         h = h_given
         if (use_inter):
             is_bound_inter = octree.get_bound(inter,
@@ -1217,6 +1221,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         n_nodes_on_f_b = 0
         # Node on the foreground boundary.
         node_on_f_b = 0
+        are_nodes_on_f_b = [False, False]
         # Index finer owner intersection.
         i_finer_o_inter = octree.get_owners(inter)[finer_o_inter]
         t_background = numpy.array([self._t_background])
@@ -1236,30 +1241,35 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Local indices of the octants owners of the nodes of the
         # intersection.
         l_owners = [0] * n_nodes
-        n_t_corner = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
+        #\"Numpy\" transformed node.
+        n_t_node = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
         for i in xrange(0, n_nodes):
             on_f_boundary = False
             node = (nodes[i][0], nodes[i][1], nodes[i][2])
             n_node = numpy.array([node])
-            apply_bil_mapping(n_node       ,
-                              alpha        ,
-                              beta         ,
-                              n_t_corner   ,
+            apply_bil_mapping(n_node  ,
+                              alpha   ,
+                              beta    ,
+                              n_t_node,
                               dim = 2)
             # TODO: use a multiprocess trick to check \"on_b_boundary\" and
             #       \"on_f_boundary\" simultaneously, because there is no pos-
             #       sible race condition.
-            on_b_boundary = is_on_b_boundary(n_t_corner)
+            on_b_boundary = is_on_b_boundary(n_t_node)
             if (grid and (not on_b_boundary)):
-                on_f_boundary = is_on_f_boundary(n_t_corner)
+                on_f_boundary = is_on_f_boundary(n_t_node)
 
             if (on_b_boundary):
                 l_owner = "b_boundary"
             else:
                 if (on_f_boundary):
                     if (not n_nodes_on_f_b):
+                        # If both the nodes of the intersection are on the fore-
+                        # ground boundary, there is no more need to know which
+                        # of the two rely on it.
                         node_on_f_b = i
                     n_nodes_on_f_b += 1
+                    are_nodes_on_f_b[i] = True
                 # We will not have a case of a ghost owner, because the current
                 # function is runned only if the intersection is owned by the
                 # current process.
@@ -1270,13 +1280,23 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (r_a_n_d):
                 return (l_owners            ,
                         nodes               ,
+                        # Here \"array\" or \"asarray\" is the same thing,
+                        # a copy is always done.
                         numpy.asarray(nodes),
                         n_nodes_on_f_b      ,
-                        node_on_f_b)
+                        node_on_f_b         ,
+                        are_nodes_on_f_b)
 
-            return (l_owners, nodes, n_nodes_on_f_b, node_on_f_b)
+            return (l_owners      ,
+                    nodes         ,
+                    n_nodes_on_f_b,
+                    node_on_f_b   ,
+                    are_nodes_on_f_b)
 
-        return (l_owners, n_nodes_on_f_b, node_on_f_b)
+        return (l_owners      ,
+                n_nodes_on_f_b,
+                node_on_f_b   ,
+                are_nodes_on_f_b)
 
     # --------------------------------------------------------------------------
     # Initialize the monolithic matrix.
@@ -1360,6 +1380,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         fill_rhs = self.fill_rhs
         fill_mat = self.fill_mat
         bil_coeffs = utilities.bil_coeffs
+        get_finer = octree.get_finer
+        get_intersection_local_rings = octree.get_intersection_local_rings
         # Lambda functions.
         g_n = lambda x : get_nodes(x               ,
                                    dimension       ,
@@ -1403,7 +1425,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # cess. If yes, do everything; if not (ghost case), do nothing be-
             # cause everything will be done by the other process, real owner of
             # the intersection.
-            finer_o_inter = octree.get_finer(inter)
+            finer_o_inter = get_finer(inter)
             cur_proc_owner = True
             if (is_ghost_inter):
                 if (finer_o_inter):
@@ -1477,36 +1499,37 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #
                     # The coordinates of the nodes are given by \"nodes_inter\".
                     #
-                    # The coordinates of the nodes but in a \"numpy\" array are into
-                    # \"n_nodes_inter\".
+                    # The coordinates of the nodes but in a \"numpy\" array are
+                    # into \"n_nodes_inter\".
+                    #
+                    # How many nodes of the current intersection are on the
+                    # foreground boundary (for the foreground grids).
+                    #
+                    # index of the node in \"nodes_inter\" and \"n_nodes_inter\"
+                    # which give us the node on the foregound boundaries (this
+                    # field is useless if \"n_nodes_on_f_b\" is equal to 2.
                     l_o_nodes_inter, \
                     nodes_inter    , \
                     n_nodes_inter  , \
                     n_nodes_on_f_b , \
-                    node_on_f_b  = get_owners_nodes_inter(inter            ,
-                                                          l_o_norms_inter  ,
-                                                          o_ghost          ,
-                                                          # Return also coor-
-                                                          # dinates of the no-
-                                                          # des, and not just
-                                                          # local indices of the
-                                                          # owners.
-                                                          also_nodes = True,
-                                                          # Return also \"num-
-                                                          # py\" data.
-                                                          r_a_n_d = True)
-                    rings = octree.get_intersection_local_rings(inter)
-
-                    are_nodes_on_f_b = [False, False]
-                    # Two nodes in 2D.
-                    for k in xrange(0, 2):
-                        if (n_nodes_on_f_b):
-                            if (n_nodes_on_f_b == 2):
-                                are_nodes_on_f_b[k] = True
-                            else:
-                                if (node_on_f_b == k):
-                                    are_nodes_on_f_b[k] = True
-
+                    node_on_f_b    , \
+                    are_nodes_on_f_b  = get_owners_nodes_inter(inter            ,
+                                                               l_o_norms_inter  ,
+                                                               o_ghost          ,
+                                                               # Return also coor-
+                                                               # dinates of the no-
+                                                               # des, and not just
+                                                               # local indices of
+                                                               # the owners.
+                                                               also_nodes = True,
+                                                               # Return also \"num-
+                                                               # py\" data.
+                                                               r_a_n_d = True)
+                    # Getting the rings of neighbours for each node of the in-
+                    # tersection, excluding the owner of the intersection itself
+                    # that will be added later in the other function
+                    # \"new_find_right_neighbours\".
+                    rings = get_intersection_local_rings(inter)
                     # Neighbour centers neighbours indices: it is a list of tuple,
                     # and in each tuple are contained the lists of centers and in-
                     # dices of each local owner of the nodes.
@@ -1515,7 +1538,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     n_cs_n_is = map(f_r_n,
                                     zip(l_o_nodes_inter,
                                         rings          ,
-                                        nodes_inter    ,
+                                        n_nodes_inter  ,
                                         are_nodes_on_f_b))
                     # Least square coefficients.
                     # TODO: use \"multiprocessing\" shared memory to map function on
@@ -1524,9 +1547,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      zip([pair[0] for pair in n_cs_n_is]     ,
                                          [n_node for n_node in n_nodes_inter]))
 
-                    self.compute_function_on_nodes(inter      ,
-                                                   nodes_inter,
-                                                   n_cs_n_is  ,
+                    self.compute_function_on_nodes(inter        ,
+                                                   n_nodes_inter,
+                                                   n_cs_n_is    ,
                                                    l_s_coeffs)
 
                     n_coeffs     , \
@@ -2443,7 +2466,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   start_octant     ,
                                   inter_ring       ,
                                   with_node = False,
-                                  node = None      ,
+                                  n_node = None    ,
                                   is_node_on_f_b = False):
         if (current_octant == "b_boundary"):
             # A \"numpy\" empty array (size == 0) of shape (2, 0).
@@ -2456,9 +2479,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         grid = self._proc_g
         l_ring = 3
         dimension = self._dim
-        nfaces = octree.get_n_faces()
-        nnodes = octree.get_n_nodes()
-        faces_nodes = octree.get_face_node()
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
         t_background = numpy.array([self._t_background])
@@ -2493,7 +2513,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             ghosts)
 
         for i in xrange(0, l_ring):
-            # Codimension = 1, looping just on the faces.
+            # Codimension = 1, looping just on the faces, but the second element
+            # of the local ring will be the neighbour of node.
             codim = 2 if (i == 1) else 1
             # Index of current face or node.
             face_node = inter_ring[i]
@@ -2501,8 +2522,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             (neighs, ghosts) = f_n(face_node, codim)
             n_neighs = len(neighs)
             # Check if it is really a neighbour of edge or node. If not,
-            # it means that we are near the boundary if we are on the back-
-            # ground, or on an outside area if we are on the foreground, so...
+            # it means that we are near the boundary.
             if (neighs):
                 # Distance center node.
                 d_c_n = 0.0
@@ -2524,25 +2544,27 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         py_ghost_oct = get_ghost_octant(neighs[j])
                         m_index = mask_octant(index + g_d)
                     if (m_index != -1):
-                        cell_center = get_center(py_ghost_oct,
-                                                 by_octant)[: dimension]
+                        cell_center, \
+                        n_cell_center = get_center(py_ghost_oct,
+                                                   by_octant   ,
+                                                   True)
                         if (with_node):
                             # Temporary distance.
-                            t_d = numpy.linalg.norm(numpy.array(cell_center) - \
-                                                    numpy.array(node[: dimension]))
+                            t_d = numpy.linalg.norm(n_cell_center - \
+                                                    n_node)
                             # \"j\" == 0...first neighbour.
                             if (not j):
                                 d_c_n = t_d
-                                centers.append(cell_center)
+                                centers.append(cell_center[: dimension])
                                 indices.append(m_index)
                             # Second neighbour case.
                             else:
                                 if (t_d < d_c_n):
                                     d_c_n = t_d
-                                    centers[-1] = cell_center
+                                    centers[-1] = cell_center[: dimension]
                                     indices[-1] = m_index
                         else:
-                            centers.append(cell_center)
+                            centers.append(cell_center[: dimension])
                             indices.append(m_index)
             # ...we need to evaluate boundary values (background) or not to
             # consider the indices and centers found (foreground).
@@ -2554,21 +2576,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                             face_node,
                                                             h        ,
                                                             r_a_n_d = True)
+                    indices.append(-1)
+                    centers.append(border_center[: dimension])
+                    # TODO: for the moment, we do not consider this case. Think
+                    #       better about it.
+                    #t_center = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
+                    #apply_bil_mapping(numpy.array([numpy_border_center]),
+                    #                  alpha                             ,
+                    #                  beta                              ,
+                    #                  t_center                          ,
+                    #                  dim = 2)
+                    #check = is_point_inside_polygon(t_center    ,
+                    #                                t_background)
 
-                    t_center = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
-                    apply_bil_mapping(numpy.array([numpy_border_center]),
-                                      alpha                             ,
-                                      beta                              ,
-                                      t_center                          ,
-                                      dim = 2)
-                    check = is_point_inside_polygon(t_center    ,
-                                                    t_background)
-
-                    if (check):
-                        indices.append(-1)
-                    else:
-                        indices.append("outside_bg")
-                    centers.append(border_center)
+                    #if (check):
+                    #    indices.append(-1)
+                    #else:
+                    #    indices.append("outside_bg")
+                    #centers.append(border_center[: dimension])
 
         centers.append(c_c)
 
@@ -3006,10 +3031,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    def compute_function_on_nodes(self       ,
-                                  inter      ,
-                                  nodes_inter,
-                                  n_cs_n_is  ,
+    def compute_function_on_nodes(self         ,
+                                  inter        ,
+                                  n_nodes_inter,
+                                  n_cs_n_is    ,
                                   l_s_coeffs):
         octree = self._octree
         grid = self._proc_g
@@ -3021,7 +3046,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         alpha,
                                         beta ,
                                         dim = 2)
-        e_nsolution_nodes = nsolution(narray(nodes_inter))
+        e_nsolution_nodes = nsolution(n_nodes_inter)
         e_nsolution_node_0 = e_nsolution_nodes[0]
         e_nsolution_node_1 = e_nsolution_nodes[1]
         self._f_nodes_exact.append(e_nsolution_node_0)
