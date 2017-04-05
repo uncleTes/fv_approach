@@ -939,7 +939,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                            dimension       ,
                                            nodes_inter     ,
                                            owners_centers  ,
-                                           l_s_coeffs      ,
                                            use_inter = True,
                                            h_given = 0     ,
                                            n_axis_given = 0,
@@ -951,6 +950,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         is_bound_inter = True
         n_axis = n_axis_given
         n_value = n_value_given
+        n_normal_inter = numpy.zeros((3, ))
+        n_normal_inter[n_axis] = n_value
         h = h_given
         if (use_inter):
             is_bound_inter = octree.get_bound(inter,
@@ -1932,31 +1933,31 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._n_edg = None
         # TODO: check to see if is better to use int64 or uint64.
         if not is_background:
-            self._d_type_s = numpy.dtype('(1, 5)i8, (1, 21)f8') if \
+            self._d_type_s = numpy.dtype('(1, 7)i8, (1, 21)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 5)i8, (1, 31)f8')
-            blocks_length_s = [5, 21] if (dimension == 2) else [5, 31]
-            blocks_displacement_s = [0, 40]
+                             numpy.dtype('(1, 7)i8, (1, 31)f8')
+            blocks_length_s = [7, 21] if (dimension == 2) else [7, 31]
+            blocks_displacement_s = [0, 56]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 5)i8, (1, 21)f8') if \
+            self._d_type_r = numpy.dtype('(1, 7)i8, (1, 21)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 5)i8, (1, 31)f8')
-            blocks_length_r = [5, 21] if (dimension == 2) else [5, 31]
-            blocks_displacement_r = [0, 40]
+                             numpy.dtype('(1, 7)i8, (1, 31)f8')
+            blocks_length_r = [7, 21] if (dimension == 2) else [7, 31]
+            blocks_displacement_r = [0, 56]
         else:
-            self._d_type_s = numpy.dtype('(1, 5)i8, (1, 21)f8') if \
+            self._d_type_s = numpy.dtype('(1, 7)i8, (1, 21)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 5)i8, (1, 31)f8')
-            blocks_length_s = [5, 21] if (dimension == 2) else [5, 31]
-            blocks_displacement_s = [0, 40]
+                             numpy.dtype('(1, 7)i8, (1, 31)f8')
+            blocks_length_s = [7, 21] if (dimension == 2) else [7, 31]
+            blocks_displacement_s = [0, 56]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 5)i8, (1, 21)f8') if \
+            self._d_type_r = numpy.dtype('(1, 7)i8, (1, 21)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 5)i8, (1,31)f8')
-            blocks_length_r = [5, 21] if (dimension == 2) else [5, 31]
-            blocks_displacement_r = [0, 40]
+                             numpy.dtype('(1, 7)i8, (1,31)f8')
+            blocks_length_r = [7, 21] if (dimension == 2) else [7, 31]
+            blocks_displacement_r = [0, 56]
         # MPI data type to send.
         self._mpi_d_t_s = MPI.Datatype.Create_struct(blocks_length_s      ,
                                                      blocks_displacement_s,
@@ -2175,7 +2176,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         for idx in idxs[0]:
             oct_center, \
             n_oct_center  = get_center(idx              ,
-                                       by_octant = False,
+                                       ptr_octant = False,
                                        also_numpy_center = True)
             # \"t_centers_inv[idx]\" is a \"ndim\" = 2 (1, 3)\"numpy\" array,
             # that's why we are using the second fixed indices \"[0]\".
@@ -2204,7 +2205,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 apply_rest_prol_ops(row_index   ,
                                     n_cs_n_is[1],
                                     c_coeffs    ,
-                                    neigh_centers)
+                                    [])
 
         msg = "Updated prolongation blocks"
         self.log_msg(msg   ,
@@ -2256,12 +2257,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
         narray = numpy.array
         get_point_owner_idx = octree.get_point_owner_idx
         neigh_inter_center = utilities.neigh_inter_center
+        get_interface_coefficients_1_order = self.get_interface_coefficients_1_order
+        get_center = octree.get_center
+        bil_coeffs = utilities.bil_coeffs
+        b_c = lambda x: bil_coeffs(x[0],
+                                   x[1])
 
         t_center = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
         t_center_inv = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
         for i in xrange(0, l_l_edg):
             grid = keys[i][0]
-            t_foreground = narray([self._t_foregrounds(grid)])
+            t_foreground = narray([self._t_foregrounds[grid - 1]])
             # Current bilinear transformation \"alpha\" and \"beta\".
             c_alpha = self.get_trans(grid)[1]
             c_beta = self.get_trans(grid)[2]
@@ -2270,7 +2276,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 h_inter = stencils[i][0]
                 t_centers_inv = []
                 t_indices_inv = set()
-                displ = 2 + (dimension * 4)
+                displ = 2 + (dimension * 3)
                 # Getting transformed coordinates of the third neighbour (the
                 #one  of the other face/intersection).
                 # \"Numpy\" face neighbour.
@@ -2293,7 +2299,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                       t_center,
                                       dim = 2)
                     stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
-
                 apply_bil_mapping_inv(t_center    ,
                                       b_alpha     ,
                                       b_beta      ,
@@ -2313,16 +2318,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         if (stencils[i][j] == -1):
                             break
                         # Yet evaluated before.
-                        if (j == (2 + (4 * dimension))):
+                        if (j == (2 + (3 * dimension))):
                             oct_center, \
                             n_oct_center  = get_center(global_idx       ,
-                                                       by_octant = False,
+                                                       ptr_octant = False,
                                                        also_numpy_center = True)
-                            t_centers_inv.append(oct_center)
-                            t_indices_inv.add(global_idx)
+                            if (global_idx not in t_indices_inv):
+                                t_centers_inv.append(n_oct_center[: dimension])
+                                t_indices_inv.add(global_idx)
                         # Other outside foreground neighbour.
                         elif (j == (2 + (2 * dimension))):
-                            apply_bil_mapping(stencils[i][j : j + dimension],
+                            apply_bil_mapping(numpy.array([stencils[i][j : j + dimension]]),
                                               c_alpha                       ,
                                               c_beta                        ,
                                               t_center                      ,
@@ -2340,30 +2346,31 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 (global_idx <= ids_octree_contained[1])):
                                 oct_center, \
                                 n_oct_center  = get_center(global_idx       ,
-                                                           by_octant = False,
+                                                           ptr_octant = False,
                                                            also_numpy_center = True)
-                                t_centers_inv.append(oct_center)
-                                t_indices_inv.add(global_idx)
+                                if (global_idx not in t_indices_inv):
+                                    t_centers_inv.append(n_oct_center[: dimension])
+                                    t_indices_inv.add(global_idx)
                         # Other inside foreground neighbours.
                         else:
-                            t_centers_inv.append(stencils[i][j : j + dimension])
+                            t_centers_inv.append(numpy.array(stencils[i][j : j + dimension]))
                             t_indices_inv.add(keys[i][1])
                             t_indices_inv.add(keys[i][2])
 
                     displ = 2
-                    coeffs = b_c(numpy.array(t_centers_inv),
-                                 numpy.array(stencils[i][displ : displ + dimension]))
+                    coeffs = b_c((numpy.array(t_centers_inv),
+                                 numpy.array(stencils[i][displ : displ + dimension])))
                     coeffs = coeffs * stencils[i][1]
                     # Inner normal.
                     apply_rest_prol_ops(keys[i][1]            ,
-                                        t_indices_inv         ,
+                                        list(t_indices_inv)   ,
                                         (coeffs * -1).tolist(),
-                                        neigh_centers)
+                                        [])
                     # Outer normal.
-                    apply_rest_prol_ops(keys[i][2]     ,
-                                        t_indices_inv  ,
+                    apply_rest_prol_ops(keys[i][2]         ,
+                                        list(t_indices_inv),
                                         coeffs.tolist(),
-                                        neigh_centers)
+                                        [])
             # Two nodes on foreground boundaries.
             if (keys[i][3] == 2):
                 t_centers_inv = [[], []]
@@ -2410,7 +2417,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     (global_idx <= ids_octree_contained[1])):
                     node_0 = stencils[i][1 : 1 + dimension]
                     node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
-                    c_in = [t_centers_inv[0][0], t_centers_inv[0][1], t_centers_inv[0][2]]
+                    c_in = [t_center_inv[0][0], t_center_inv[0][1], t_center_inv[0][2]]
                     c_out = stencils[i][11 : 11 + dimension]
                     n_coeffs = get_interface_coefficients_1_order(0                ,
                                                                   dimension        ,
@@ -2423,7 +2430,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     apply_rest_prol_ops(keys[i][1]             ,
                                         [global_idx, keys[i][1]],
                                         n_coeffs               ,
-                                        neigh_centers)
+                                        [])
 
         msg = "Updated restriction blocks"
         self.log_msg(msg   ,
@@ -2558,7 +2565,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                     t_background)
 
                     if (check):
-                        indices.append("outside_fg")
+                        indices.append(-1)
                     else:
                         indices.append("outside_bg")
                     centers.append(border_center)
@@ -2653,10 +2660,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (key_3 == 1):
                 stencil[0] = h
                 # Saving the coefficient of the corresponding node.
-                stencil[1] = coeffs_nodes[node_on_f_b]
+                coef_index = 2 if node_on_f_b else 3
+                stencil[1] = n_coeffs[coef_index]
                 j = 2
                 # Saving the coordinates of the node in question.
-                stencil[j : j + dimension] = nodes_inter[node_on_f_b]
+                stencil[j : j + dimension] = nodes_inter[node_on_f_b][: dimension]
                 j = j + dimension
                 for i in xrange(0, n_cs_n_is[node_on_f_b][0].shape[0]):
                     # Storing all the coordinates of the neighbours in the ring
@@ -2681,7 +2689,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 j = 1
                 for i in xrange(0, 2):
                     # Saving coordinates of both nodes.
-                    stencil[j : j + dimension] = nodes_inter[i]
+                    stencil[j : j + dimension] = nodes_inter[i][: dimension]
                     j += dimension
                 # \"k\" is the displacement after two nodes (\"dimension * 2\")
                 # and  \"h\" (\" + 1\").
@@ -2955,7 +2963,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                range(0, len(col_indices)) if j not in to_rhs]
                 co_values = [col_values[j] for j in
                               range(0, len(col_values)) if j not in to_rhs]
-
             self._b_mat.setValues(row_index  ,
                                   co_indices ,
                                   co_values  ,
