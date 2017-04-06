@@ -1550,7 +1550,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     self.compute_function_on_nodes(inter        ,
                                                    n_nodes_inter,
                                                    n_cs_n_is    ,
-                                                   l_s_coeffs)
+                                                   l_s_coeffs   ,
+                                                   are_nodes_on_f_b)
 
                     n_coeffs     , \
                     coeffs_node_1, \
@@ -3047,7 +3048,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   inter        ,
                                   n_nodes_inter,
                                   n_cs_n_is    ,
-                                  l_s_coeffs):
+                                  l_s_coeffs   ,
+                                  # For the moment, for nodes of the foreground
+                                  # grids which are on the foreground boundary,
+                                  # we use the same approach used for the back-
+                                  # ground ones, that is evaluating exact solution
+                                  # on the boundary.
+                                  # TODO: use also for the point on the foreground
+                                  # boundaries the interpolation with the points
+                                  # (correct and mapped on the background) found
+                                  # later.
+                                  are_nodes_on_f_b):
         octree = self._octree
         grid = self._proc_g
         alpha = self.get_trans(grid)[1]
@@ -3070,7 +3081,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._h_s_inter.append(h_inter)
         l_s_coeffs_s_0 = l_s_coeffs[0].shape[0]
         l_s_coeffs_s_1 = l_s_coeffs[1].shape[0]
-        if (l_s_coeffs[0].size == 0):
+        if ((l_s_coeffs[0].size == 0) or \
+            (are_nodes_on_f_b[0] == True)):
             self._f_nodes.append(e_nsolution_node_0)
         else:
             f_s = nsolution(n_cs_n_is[0][0])
@@ -3084,7 +3096,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  l_s_coeffs[0][2] * f_2 +
                                  ((l_s_coeffs[0][3] * f_3) if \
                                  (l_s_coeffs_s_0 == 4) else 0))
-        if (l_s_coeffs[1].size == 0):
+        if ((l_s_coeffs[1].size == 0) or \
+            (are_nodes_on_f_b[1] == True)):
             self._f_nodes.append(e_nsolution_node_1)
         else:
             f_s = nsolution(n_cs_n_is[1][0])
