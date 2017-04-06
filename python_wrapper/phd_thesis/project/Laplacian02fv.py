@@ -2543,29 +2543,28 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # tree previously found and stored in \"index\".
                         py_ghost_oct = get_ghost_octant(neighs[j])
                         m_index = mask_octant(index + g_d)
-                    if (m_index != -1):
-                        cell_center, \
-                        n_cell_center = get_center(py_ghost_oct,
-                                                   by_octant   ,
-                                                   True)
-                        if (with_node):
-                            # Temporary distance.
-                            t_d = numpy.linalg.norm(n_cell_center - \
-                                                    n_node)
-                            # \"j\" == 0...first neighbour.
-                            if (not j):
-                                d_c_n = t_d
-                                centers.append(cell_center[: dimension])
-                                indices.append(m_index)
-                            # Second neighbour case.
-                            else:
-                                if (t_d < d_c_n):
-                                    d_c_n = t_d
-                                    centers[-1] = cell_center[: dimension]
-                                    indices[-1] = m_index
-                        else:
+                    cell_center, \
+                    n_cell_center = get_center(py_ghost_oct,
+                                               by_octant   ,
+                                               True)
+                    if (with_node):
+                        # Temporary distance.
+                        t_d = numpy.linalg.norm(n_cell_center - \
+                                                n_node)
+                        # \"j\" == 0...first neighbour.
+                        if (not j):
+                            d_c_n = t_d
                             centers.append(cell_center[: dimension])
                             indices.append(m_index)
+                        # Second neighbour case.
+                        else:
+                            if (t_d < d_c_n):
+                                d_c_n = t_d
+                                centers[-1] = cell_center[: dimension]
+                                indices[-1] = m_index
+                    else:
+                        centers.append(cell_center[: dimension])
+                        indices.append(m_index)
             # ...we need to evaluate boundary values (background) or not to
             # consider the indices and centers found (foreground).
             else:
