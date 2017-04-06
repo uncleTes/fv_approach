@@ -1125,7 +1125,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         mult_node_0 = mult_node_1
         # If the nodes are not on the background boundary, we have evaluated
         # bilinear interpolation to interpolate the nodes, indeed. On the coun-
-        # trary, being on the background grid, it will have the exact value of
+        # trary, being on the background border, it will have the exact value of
         # the solution on that node, so there will not be the interpolation
         # coefficients..
         if (l_s_coeffs[1].size):
@@ -2570,6 +2570,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # consider the indices and centers found (foreground).
             else:
                 if (grid and is_node_on_f_b):
+                    # TODO: rewrite function \"neighbour_centers\", because it
+                    #       is not well done.
                     border_center, \
                     numpy_border_center = neighbour_centers(c_c      ,
                                                             codim    ,
@@ -2660,15 +2662,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         # second to last of the neighbours of the
                                         # first node of the intersection (that,
                                         # if the intersection is not on the corner,
-                                        # it will be inside the foregrounds)
+                                        # it will be inside the foregrounds; other-
+                                        # wise, it will be equal to \"-1\".)
             key_3 = n_nodes_on_f_b      # How many nodes on the foreground boundary
                                         # for the current intersection
             key_4 = 0 if (n_nodes_on_f_b == 1) else \
                     n_cs_n_is[1][1][-2] # Or a useless field, or see the explication
-                                        # for \"key_2\", but or the second node of
+                                        # for \"key_2\", but for the second node of
                                         # the intersection
-            key_5 = n_axis              # useless field, or normal axis
-            key_6 = n_value             # useless field, or value of the normal axis
+            key_5 = n_axis              # Normal axis
+            key_6 = n_value             # Value of the normal axis
             key = (key_0,
                    key_1,
                    key_2,
@@ -2689,13 +2692,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 stencil[1] = n_coeffs[coef_index]
                 j = 2
                 # Saving the coordinates of the node in question.
-                stencil[j : j + dimension] = nodes_inter[node_on_f_b][: dimension]
+                stencil[j : j + dimension] = \
+                    nodes_inter[node_on_f_b][: dimension]
                 j = j + dimension
-                for i in xrange(0, n_cs_n_is[node_on_f_b][0].shape[0]):
+                # Number of nodes in the ring.
+                n_n_r =  n_cs_n_is[node_on_f_b][0].shape[0]
+                for i in xrange(0, n_n_r):
                     # Storing all the coordinates of the neighbours in the ring
                     # of the node.
-                    stencil[j : j + dimension] = n_cs_n_is[node_on_f_b][0][i]
-                    j += dimension
+                    stencil[j : j + dimension] = \
+                        n_cs_n_is[node_on_f_b][0][i][: dimension]
+                    j = j + dimension
                 # If the node on the boundary is the second (so, the node number
                 # 1), we will have to compute new bilinear coefficients with the
                 # octants on the background, so for the moment we will not store
@@ -2712,24 +2719,25 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # interface coefficients.
                 stencil[0] = h
                 j = 1
-                for i in xrange(0, 2):
+                n_nodes = 2 if (dimension == 2) else 4
+                for i in xrange(0, n_nodes):
                     # Saving coordinates of both nodes.
-                    stencil[j : j + dimension] = nodes_inter[i][: dimension]
-                    j += dimension
-                # \"k\" is the displacement after two nodes (\"dimension * 2\")
-                # and  \"h\" (\" + 1\").
-                k = (dimension * 2) + 1
-                for i in xrange(0, 2):
-                    # Saving all the coordinates of the rings of the nodes.
-                    for j in xrange(0, n_cs_n_is[i][0].shape[0]):
-                        stencil[k : k + dimension] = n_cs_n_is[i][0][j]
-                        k += dimension
+                    stencil[j : j + dimension] = \
+                        nodes_inter[i][: dimension]
+                    j = j + dimension
+                # Saving all the coordinates of the rings of the nodes.
+                for i in xrange(0, n_nodes):
+                    # Number of nodes in the ring.
+                    n_n_r =  n_cs_n_is[i][0].shape[0]
+                    for k in xrange(0, n_n_r):
+                        stencil[j : j + dimension] = n_cs_n_is[i][0][k]
+                        j = j + dimension
                 # Old bilinear interpolation will not be used neither for the first
                 # node, nor for the second.
                 node_0_interpolated = False
                 node_1_interpolated = False
                 # the only index for the rows and for the columns will be filled
-                # with \"-1\", to lets PETSc does nothing with it.
+                # with \"-1\", to lets \"PETSc\" does nothing with it.
                 r_indices = [-1] * len(r_indices)
                 c_indices = [-1] * len(c_indices)
 
@@ -2797,6 +2805,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 stencil = self._edl.get(key)
                 displ = dimension
                 step = 2
+                l_stencil = 21 if (dimension == 2) else 31
                 # Sometimes \"stencil\" is equal to \"None\" because
                 # there are values of \"p_g_index\" which correspond to
                 # ghost octant not included in the local octree, and in
@@ -2805,7 +2814,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #       the function \"fill_mat_and_rhs\", this \"if\" is no
                 #       more useful.
                 if (stencil):
-                    for k in xrange(displ, len(stencil), step):
+                    for k in xrange(displ, l_stencil, step):
                         if (stencil[k] == n_p_g_index):
                             stencil[k + 1] = value_to_store
                             break
@@ -2862,14 +2871,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
         values_rhs = []
+        n_values = 0
 
         insert_mode = PETSc.InsertMode.ADD_VALUES
 
         solution = utilities.exact_sol
         narray = numpy.array
-        nsolution = lambda x : solution(narray([[x[0], x[1]]]),
-                                        alpha                 ,
-                                        beta                  ,
+        nsolution = lambda x : solution(x    ,
+                                        alpha,
+                                        beta ,
                                         dim = 2)
         # If the first octant owner of the intersection has the inner normal,
         # then the values should be subtracted, so added to the rhs. Viceversa
@@ -2878,16 +2888,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
         if (labels[0]):
             mult = -1.0
 
+        e_sols = nsolution(n_nodes_inter)
+
         for i in xrange(0, n_nodes):
             # Number of least square coefficients.
             n_l_s_coeffs = l_s_coeffs[i].size
+            # The node \"i\" of the interface is not on the background boundary.
+            if (n_l_s_coeffs):
+                continue
             # The node \"i\" of the interface is on the background boundary.
-            if (n_l_s_coeffs == 0):
-                e_sol = nsolution((n_nodes_inter[i][0],
-                                   n_nodes_inter[i][1]))
-                e_sol_coeff = coeffs_nodes[i]
-                e_sol = mult * e_sol * e_sol_coeff
-                values_rhs.append(e_sol)
+            e_sol = e_sols[i]
+            e_sol_coeff = coeffs_nodes[i]
+            e_sol = mult * e_sol * e_sol_coeff
+            values_rhs.append(e_sol)
+            n_values = n_values + 1
             # TODO: for the moment, we do not consider this case. Think better
             #       about it.
             #else:
@@ -2908,8 +2922,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             #            e_sol = mult * e_sol * e_sol_coeff
             #            values_rhs.append(e_sol)
 
-        if (values_rhs):
-            n_values = len(values_rhs)
+        if (n_values):
             indices_rhs = [r_indices[0]] * n_values
 
             if (n_owners == 2):
