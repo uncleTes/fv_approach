@@ -2217,19 +2217,30 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # \"create_mask\".
             displ = 2 if (dimension == 2) else 3
             step = 2
+            row_indices = []
+            col_indices = []
+            col_values = []
             for i in xrange(displ, len(stencils[idx]), step):
                 row_index = stencils[idx][i]
-
                 if (row_index == -1):
                     break
 
+                row_indices.append(int(row_index))
                 value_to_multiply = stencils[idx][i + 1]
-                # Currenti coefficients.
+                # Current coefficients.
                 c_coeffs = (coeffs * value_to_multiply).tolist()
-                apply_rest_prol_ops(row_index   ,
-                                    n_cs_n_is[1],
-                                    c_coeffs    ,
-                                    [])
+                col_values.append(c_coeffs)
+                #col_indices.append(n_cs_n_is[1])
+                #apply_rest_prol_ops([row_index] ,
+                #                    n_cs_n_is[1],
+                #                    c_coeffs)
+            col_indices.extend(n_cs_n_is[1])
+            print(row_indices)
+            print(col_indices)
+            print(col_values)
+            apply_rest_prol_ops(row_indices,
+                                col_indices,
+                                col_values)
 
         msg = "Updated prolongation blocks"
         self.log_msg(msg   ,
