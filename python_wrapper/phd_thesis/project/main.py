@@ -358,30 +358,30 @@ def set_octree(comm_l,
 
     n_octs = pablo.get_num_octants()
 
-    for octant in xrange(0, n_octs):
-        center  = pablo.get_center(octant)[: dimension]
-        # Refinement condition on \"x\".
-        ref_cond_x = (center[0] < 0.5)
-        #ref_cond_x = False
-        ref_cond_x_02 = (center[0] > 0.5)
-        #ref_cond_x = True
-        #ref_cond_x = 0
-        ref_cond_x_03 = (numpy.abs(center[0] - 0.5) <= 0.1)
-        # Refinement condition on \"y\".
-        ref_cond_y = (center[1] < 0.5)
-        ref_cond_y_02 = (center[1] > 0.5)
-        ref_cond_y_03 = (numpy.abs(center[1] - 0.5) <= 0.1)
-        ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
-                                   numpy.square(center[1] - 0.5)) <= 0.5)
-        # Refinement condition on \"y\".
-        # TODO: for 3D cases, implement this condition.
-        ref_cond_z = True if (dimension == 2) else \
-                     True
-        #if ((ref_cond_x and ref_cond_y and ref_cond_z)):
-            #or (ref_cond_x_02 and ref_cond_y_02 and ref_cond_z)):
-        #if (ref_cond_x_03 and ref_cond_y_03):
-        if ref_cond_x_y:
-                pablo.set_marker(octant, 1)
+    #for octant in xrange(0, n_octs):
+    #    center  = pablo.get_center(octant)[: dimension]
+    #    # Refinement condition on \"x\".
+    #    ref_cond_x = (center[0] < 0.5)
+    #    #ref_cond_x = False
+    #    ref_cond_x_02 = (center[0] > 0.5)
+    #    #ref_cond_x = True
+    #    #ref_cond_x = 0
+    #    ref_cond_x_03 = (numpy.abs(center[0] - 0.5) <= 0.1)
+    #    # Refinement condition on \"y\".
+    #    ref_cond_y = (center[1] < 0.5)
+    #    ref_cond_y_02 = (center[1] > 0.5)
+    #    ref_cond_y_03 = (numpy.abs(center[1] - 0.5) <= 0.1)
+    #    ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
+    #                               numpy.square(center[1] - 0.5)) <= 0.5)
+    #    # Refinement condition on \"y\".
+    #    # TODO: for 3D cases, implement this condition.
+    #    ref_cond_z = True if (dimension == 2) else \
+    #                 True
+    #    #if ((ref_cond_x and ref_cond_y and ref_cond_z)):
+    #        #or (ref_cond_x_02 and ref_cond_y_02 and ref_cond_z)):
+    #    #if (ref_cond_x_03 and ref_cond_y_03):
+    #    if ref_cond_x_y:
+    #            pablo.set_marker(octant, 1)
 
     pablo.adapt()
     pablo.load_balance()
@@ -495,9 +495,10 @@ def compute(comm_dictionary     ,
     e_sol = utilities.exact_sol(centers,
                                 alpha  ,
                                 beta)
+    print(laplacian.residual.getArray().shape)
     data_to_save = numpy.array([e_sol                     ,
-                                interpolate_sol.getArray(),
-                                laplacian.residual.getArray()])
+                                interpolate_sol.getArray()])#,
+                                #laplacian.residual.getArray()])
 
     return (data_to_save, t_coeffs, alpha, beta)
 # ------------------------------------------------------------------------------
@@ -631,6 +632,7 @@ def main():
                                                      proc_grid           ,
                                                      centers             ,
                                                      logger)
+    print(data_to_save.shape)
 
     #(geo_nodes, ghost_geo_nodes) = pablo.apply_persp_trans(dimension  ,
     #                                                       trans_coeff, 
