@@ -2176,15 +2176,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   c_beta      ,
                                   t_center_inv,
                                   dim = 2)
-            t_centers_inv[i] = t_center_inv
+            t_centers_inv[i] = t_center_inv[0]
         # Vectorized functions are just syntactic sugar:
         # http://stackoverflow.com/questions/7701429/efficient-evaluation-of-a-function-at-every-cell-of-a-numpy-array
         # http://stackoverflow.com/questions/8079061/function-application-over-numpys-matrix-row-column
         # http://stackoverflow.com/questions/6824122/mapping-a-numpy-array-in-place
         # http://stackoverflow.com/questions/9792925/how-to-speed-up-enumerate-for-numpy-array-how-to-enumerate-over-numpy-array-ef
-        local_idxs = numpy.array([octree.get_point_owner_idx((center[0][0],
-                                                              center[0][1],
-                                                              center[0][2] if  \
+        local_idxs = numpy.array([octree.get_point_owner_idx((center[0],
+                                                              center[1],
+                                                              center[2] if  \
                                                               (dimension == 3) \
                                                               else 0)) for
                                   center in t_centers_inv])
@@ -2204,14 +2204,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        also_numpy_center = True)
             # \"t_centers_inv[idx]\" is a \"ndim\" = 2 (1, 3)\"numpy\" array,
             # that's why we are using the second fixed indices \"[0]\".
-            oct_ring = get_points_local_ring(t_centers_inv[idx][0],
+            oct_ring = get_points_local_ring(t_centers_inv[idx],
                                              n_oct_center)
             # Neighbour centers neighbour indices.
             n_cs_n_is = f_r_n((local_idxs[idx],
                                oct_ring       ,
-                               t_centers_inv[idx][0]))
+                               t_centers_inv[idx]))
             coeffs = b_c(n_cs_n_is[0],
-                         t_centers_inv[idx][0])
+                         t_centers_inv[idx])
 
             # Checkout how the \"stencil\" is created in the function
             # \"create_mask\".
