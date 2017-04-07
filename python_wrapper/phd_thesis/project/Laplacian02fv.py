@@ -2151,7 +2151,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_bil_mapping_inv = utilities.apply_bil_mapping_inv
         find_right_neighbours = self.new_find_right_neighbours
         b_c = utilities.bil_coeffs
-        apply_rest_prol_ops = self.apply_rest_prol_ops
+        apply_rest_prol_ops = self.new_apply_rest_prol_ops
         narray = numpy.array
         get_center = octree.get_center
         get_points_local_ring = utilities.get_points_local_ring
@@ -2277,7 +2277,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_bil_mapping_inv = utilities.apply_bil_mapping_inv
         find_right_neighbours = self.new_find_right_neighbours
         least_squares = utilities.bil_coeffs
-        apply_rest_prol_ops = self.apply_rest_prol_ops
+        apply_rest_prol_ops = self.new_apply_rest_prol_ops
         narray = numpy.array
         get_point_owner_idx = octree.get_point_owner_idx
         neigh_inter_center = utilities.neigh_inter_center
@@ -2386,15 +2386,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  numpy.array(stencils[i][displ : displ + dimension])))
                     coeffs = coeffs * stencils[i][1]
                     # Inner normal.
-                    apply_rest_prol_ops(keys[i][1]            ,
+                    apply_rest_prol_ops([keys[i][1]]          ,
                                         list(t_indices_inv)   ,
-                                        (coeffs * -1).tolist(),
-                                        [])
+                                        (coeffs * -1).tolist())
                     # Outer normal.
-                    apply_rest_prol_ops(keys[i][2]         ,
+                    apply_rest_prol_ops([keys[i][2]]       ,
                                         list(t_indices_inv),
-                                        coeffs.tolist(),
-                                        [])
+                                        coeffs.tolist())
             # Two nodes on foreground boundaries.
             if (keys[i][3] == 2):
                 t_centers_inv = [[], []]
@@ -2451,10 +2449,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                   h_given = h_inter,
                                                                   n_axis_given = keys[i][5],
                                                                   n_value_given = keys[i][6])
-                    apply_rest_prol_ops(keys[i][1]             ,
+                    apply_rest_prol_ops([keys[i][1]]            ,
                                         [global_idx, keys[i][1]],
-                                        n_coeffs               ,
-                                        [])
+                                        n_coeffs)
 
         msg = "Updated restriction blocks"
         self.log_msg(msg   ,
@@ -2935,6 +2932,31 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 values_rhs ,
                                 insert_mode)
     # --------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
+    # Apply restriction/prolongation operators.
+    def new_apply_rest_prol_ops(self,
+                                row_indices,
+                                col_indices,
+                                col_values):
+        """Method which applies the right coefficients at the right neighbours
+           in the prolongaion and restriction blocks.
+
+           Arguments:
+                row_indices (list) : indices of the rows where to apply the
+                                     coefficients.
+                col_indices (list) : indices of the columns where to apply the
+                                     coefficients.
+                col_values (list) : elements to insert into \"col_indices\"."""
+        insert_mode = PETSc.InsertMode.ADD_VALUES
+        self._b_mat.setValuesBlocked(row_indices,
+                                     col_indices,
+                                     col_values ,
+                                     insert_mode)
+
+        msg = "Applied prolongation and restriction operators."
+        self.log_msg(msg   ,
+                     "info")
 
     # --------------------------------------------------------------------------
     # Apply restriction/prolongation operators.
