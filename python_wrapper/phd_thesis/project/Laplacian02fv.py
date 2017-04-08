@@ -2960,10 +2960,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      coefficients.
                 col_values (list) : elements to insert into \"col_indices\"."""
         insert_mode = PETSc.InsertMode.ADD_VALUES
-        self._b_mat.setValuesBlocked(row_indices,
-                                     col_indices,
-                                     col_values ,
-                                     insert_mode)
+        self._b_mat.setValues(row_indices,
+                              col_indices,
+                              col_values ,
+                              insert_mode)
 
         msg = "Applied prolongation and restriction operators."
         self.log_msg(msg   ,
