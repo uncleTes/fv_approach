@@ -2398,7 +2398,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             t_indices_inv.add(keys[i][1])
                             t_indices_inv.add(keys[i][2])
                     # \"h\" + \"n_coeffs[node_on_f_b]\" (2).
-
                     displ = 2
                     # Coordinates of the node on the foreground boundary.
                     cs_n = stencils[i][displ : displ + dimension]
@@ -2468,9 +2467,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # the check for the other neighbours.
                 if ((global_idx >= ids_octree_contained[0]) and
                     (global_idx <= ids_octree_contained[1])):
+                    oct_center, \
+                    n_oct_center  = get_center(global_idx       ,
+                                               ptr_octant = False,
+                                               also_numpy_center = True)
                     node_0 = stencils[i][1 : 1 + dimension]
                     node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
-                    c_in = [t_center_inv[0][0], t_center_inv[0][1], t_center_inv[0][2]]
+                    c_in = oct_center
                     c_out = stencils[i][11 : 11 + dimension]
                     n_coeffs = get_interface_coefficients_1_order(0                ,
                                                                   dimension        ,
