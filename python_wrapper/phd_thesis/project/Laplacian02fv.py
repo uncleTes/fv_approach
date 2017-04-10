@@ -2427,7 +2427,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 t_indices_inv = [set(), set()]
                 t_nodes = []
                 h_inter = stencils[i][0]
-                displ = 2 + (dimension * 2)
+                # \"h\" (1), plus the coordinates of the nodes on the foreground
+                # boundary (\" + (dimension * 2)\"), that's the explanation for
+                # \"displ\".
+                displ = 1 + (dimension * 2)
                 # Getting transformed coordinates of the first neighbour (the one
                 # of the face/intersection), that will be the same for both the
                 # nodes of the intersection.
