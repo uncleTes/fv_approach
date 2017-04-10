@@ -2230,14 +2230,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Current coefficients.
                 c_coeffs = (coeffs * value_to_multiply).tolist()
                 col_values.append(c_coeffs)
-                #col_indices.append(n_cs_n_is[1])
-                #apply_rest_prol_ops([row_index] ,
-                #                    n_cs_n_is[1],
-                #                    c_coeffs)
             col_indices.extend(n_cs_n_is[1])
-            print(row_indices)
-            print(col_indices)
-            print(col_values)
             apply_rest_prol_ops(row_indices,
                                 col_indices,
                                 col_values)
@@ -2263,7 +2256,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         octree = self._octree
         comm_l = self._comm
-        time_rest_prol = 0
         dimension = self._dim
         proc_grid = self._proc_g
 
@@ -2311,9 +2303,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 h_inter = stencils[i][0]
                 t_centers_inv = []
                 t_indices_inv = set()
+                # \"h\" + \"n_coeffs[node_on_f_b]\" (2) + the coordinates of the
+                # node on the foreground boundary  + the first two ring neighbours
+                # (of face and of node) (\"(+ dimension * 3)\"); that's the di-
+                # splacement \"displ\".
                 displ = 2 + (dimension * 3)
                 # Getting transformed coordinates of the third neighbour (the
-                #one  of the other face/intersection).
+                # one  of the other face/intersection).
                 # \"Numpy\" face neighbour.
                 n_f_n = narray([stencils[i][displ : displ + dimension]])
                 apply_bil_mapping(n_f_n   ,
@@ -2347,12 +2343,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # check for its neighbours.
                 if ((global_idx >= ids_octree_contained[0]) and
                     (global_idx <= ids_octree_contained[1])):
+                    # \"h\" + \"n_coeffs[node_on_f_b]\" (2) + the coordinates
+                    # of the node on the foreground boundary (\"+ dimension\");
+                    # that's the displacement \"displ\".
                     displ = 2 + dimension
                     step = dimension
                     for j in xrange(displ, l_s, step):
                         if (stencils[i][j] == -1):
                             break
-                        # Yet evaluated before.
+                        # Yet evaluated before: the ring neighbour of the other
+                        # face (not the one of the intersection, the one after the
+                        # neighbour of node).
                         if (j == (2 + (3 * dimension))):
                             oct_center, \
                             n_oct_center  = get_center(global_idx       ,
@@ -2361,7 +2362,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             if (global_idx not in t_indices_inv):
                                 t_centers_inv.append(n_oct_center[: dimension])
                                 t_indices_inv.add(global_idx)
-                        # Other outside foreground neighbour.
+                        # Other outside foreground neighbour (the one of node).
                         elif (j == (2 + (2 * dimension))):
                             apply_bil_mapping(numpy.array([stencils[i][j : j + dimension]]),
                                               c_alpha                       ,
@@ -2386,11 +2387,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 if (global_idx not in t_indices_inv):
                                     t_centers_inv.append(n_oct_center[: dimension])
                                     t_indices_inv.add(global_idx)
-                        # Other inside foreground neighbours.
+                        # Other neighbour inside foreground neighbours.
                         else:
                             t_centers_inv.append(numpy.array(stencils[i][j : j + dimension]))
                             t_indices_inv.add(keys[i][1])
                             t_indices_inv.add(keys[i][2])
+                    # \"h\" + \"n_coeffs[node_on_f_b]\" (2).
 
                     displ = 2
                     coeffs = b_c((numpy.array(t_centers_inv),
@@ -2703,7 +2705,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 stencil[j : j + dimension] = \
                     nodes_inter[node_on_f_b][: dimension]
                 j = j + dimension
-                # Number of nodes in the ring.
+                # Number of nodes in the ring (here, should be always equal to
+                # 4).
                 n_n_r =  n_cs_n_is[node_on_f_b][0].shape[0]
                 for i in xrange(0, n_n_r):
                     # Storing all the coordinates of the neighbours in the ring
