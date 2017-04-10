@@ -2294,7 +2294,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         t_center_inv = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
         for i in xrange(0, l_l_edg):
             grid = keys[i][0]
-            t_foreground = narray([self._t_foregrounds[grid - 1]])
+            t_foreground = self._t_foregrounds[grid - 1]
+            n_t_foreground = narray([t_foreground])
             # Current bilinear transformation \"alpha\" and \"beta\".
             c_alpha = self.get_trans(grid)[1]
             c_beta = self.get_trans(grid)[2]
@@ -2318,7 +2319,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   t_center,
                                   dim = 2)
                 is_in_fg = utilities.is_point_inside_polygon(t_center,
-                                                             t_foreground)
+                                                             n_t_foreground)
                 if (is_in_fg):
                     n_f_n = neigh_inter_center(n_f_n     ,
                                                h_inter   ,
@@ -2364,10 +2365,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 t_indices_inv.add(global_idx)
                         # Other outside foreground neighbour (the one of node).
                         elif (j == (2 + (2 * dimension))):
-                            apply_bil_mapping(numpy.array([stencils[i][j : j + dimension]]),
-                                              c_alpha                       ,
-                                              c_beta                        ,
-                                              t_center                      ,
+                            # \"Numpy\" node neighbour.
+                            n_n_n = narray([stencils[i][j : j + dimension]])
+                            apply_bil_mapping(n_n_n   ,
+                                              c_alpha ,
+                                              c_beta  ,
+                                              t_center,
                                               dim = 2)
                             apply_bil_mapping_inv(t_center    ,
                                                   b_alpha     ,
@@ -2389,25 +2392,37 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     t_indices_inv.add(global_idx)
                         # Other neighbour inside foreground neighbours.
                         else:
-                            t_centers_inv.append(numpy.array(stencils[i][j : j + dimension]))
+                            # \"Numpy\" node in foreground grid.
+                            n_n_f_g = narray(stencils[i][j : j + dimension])
+                            t_centers_inv.append(n_n_f_g)
                             t_indices_inv.add(keys[i][1])
                             t_indices_inv.add(keys[i][2])
                     # \"h\" + \"n_coeffs[node_on_f_b]\" (2).
 
                     displ = 2
-                    coeffs = b_c((numpy.array(t_centers_inv),
-                                 numpy.array(stencils[i][displ : displ + dimension])))
-                    coeffs = coeffs * stencils[i][1]
-                    # Inner normal.
-                    apply_rest_prol_ops([keys[i][1]]          ,
-                                        list(t_indices_inv)   ,
-                                        (coeffs * -1).tolist())
+                    # Coordinates of the node on the foreground boundary.
+                    cs_n = stencils[i][displ : displ + dimension]
+                    # \"Numpy\" coordinates of the node on the foreground boun-
+                    # dary.
+                    n_cs_n = narray(cs_n)
+                    coeffs = b_c((narray(t_centers_inv),
+                                  n_cs_n))
                     # Outer normal.
-                    apply_rest_prol_ops([keys[i][2]]       ,
-                                        list(t_indices_inv),
-                                        coeffs.tolist())
+                    o_n_coeffs = coeffs * stencils[i][1]
+                    # Inner normal.
+                    i_n_coeffs = o_n_coeffs * -1.0
+                    col_values = []
+                    col_values.append(i_n_coeffs.tolist())
+                    col_values.append(o_n_coeffs.tolist())
+                    row_indices = []
+                    row_indices.append(keys[i][1])
+                    row_indices.append(keys[i][2])
+                    col_indices = list(t_indices_inv)
+                    apply_rest_prol_ops(row_indices,
+                                        col_indices,
+                                        col_values)
             # Two nodes on foreground boundaries.
-            if (keys[i][3] == 2):
+            elif (keys[i][3] == 2):
                 t_centers_inv = [[], []]
                 t_indices_inv = [set(), set()]
                 t_nodes = []
@@ -2424,7 +2439,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   t_center,
                                   dim = 2)
                 is_in_fg = utilities.is_point_inside_polygon(t_center,
-                                                             t_foreground)
+                                                             n_t_foreground)
                 if (is_in_fg):
                     n_f_n = neigh_inter_center(n_f_n     ,
                                                h_inter   ,
