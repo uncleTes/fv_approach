@@ -221,7 +221,8 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
     def get_point_owner_idx(self, 
                             point):
         cdef darray3 ar_point
-        n_coordinates = len(point)
+        cdef int n_coordinates = 3
+        cdef size_t i
 
         for i in xrange(0, n_coordinates):
             ar_point[i] = point[i]
