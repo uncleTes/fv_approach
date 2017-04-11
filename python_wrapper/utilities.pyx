@@ -637,20 +637,21 @@ def get_points_local_ring(numpy.ndarray[dtype = numpy.float64_t, \
     cdef double y_c = oct_center[1]
     cdef double d_x = (x_p - x_c)
     cdef double d_y = (y_p - y_c)
+    cdef double tol = 1.0e-15
     cdef numpy.ndarray[dtype = numpy.uint8_t, mode = "c", ndim = 1] l_ring = \
          numpy.zeros((3, ), dtype = numpy.uint8)
 
-    if ((d_x >= 0.0) and (d_y >= 0.0)):
+    if ((d_x >= tol) and (d_y >= tol)):
         ind_quad = 0
         l_ring[0] = 1 # Face
         l_ring[1] = 3 # Node
         l_ring[2] = 3 # Face
-    elif ((d_x < 0.0) and (d_y >= 0.0)):
+    elif ((d_x < tol) and (d_y > tol)):
         ind_quad = 1
         l_ring[0] = 0 # Face
         l_ring[1] = 2 # Node
         l_ring[2] = 3 # Face
-    elif ((d_x <= 0.0) and (d_y < 0.0)):
+    elif ((d_x <= tol) and (d_y < tol)):
         ind_quad = 2
         l_ring[0] = 0 # Face
         l_ring[1] = 0 # Node
