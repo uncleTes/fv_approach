@@ -2251,6 +2251,75 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
+    def check_bg_bad_diamond_point(self                ,
+                                   stencil             ,
+                                   displ               ,
+                                   grid                ,
+                                   o_ranges            ,
+                                   ids_octree_contained,
+                                   n_t_foreground      ,
+                                   h_inter             ,
+                                   n_axis              ,
+                                   n_value             ,
+                                   dimension = 2):
+        octree = self._octree
+        c_alpha = self.get_trans(grid)[1]
+        c_beta = self.get_trans(grid)[2]
+        b_alpha = self.get_trans(0)[1]
+        b_beta = self.get_trans(0)[2]
+        t_center = numpy.zeros(shape = (1, 3), \
+                               dtype = numpy.float64)
+        t_center_inv = numpy.zeros(shape = (1, 3), \
+                                   dtype = numpy.float64)
+        bad_diamond_point = False
+
+        apply_bil_mapping = utilities.apply_bil_mapping
+        apply_bil_mapping_inv = utilities.apply_bil_mapping_inv
+        get_point_owner_idx = octree.get_point_owner_idx
+        get_center = octree.get_center
+        is_point_inside_polygon = utilities.is_point_inside_polygon
+        neigh_inter_center = utilities.neigh_inter_center
+        narray = numpy.array
+
+        # \"Numpy\" face neighbour.
+        n_f_n = narray([stencil[displ : displ + dimension]])
+        apply_bil_mapping(n_f_n   ,
+                          c_alpha ,
+                          c_beta  ,
+                          t_center,
+                          dim = 2)
+        apply_bil_mapping_inv(t_center    ,
+                              b_alpha     ,
+                              b_beta      ,
+                              t_center_inv,
+                              dim = 2)
+        uint32_max = numpy.iinfo(numpy.uint32).max
+        local_idx = get_point_owner_idx(t_center_inv[0])
+        global_idx = local_idx
+        if (local_idx != uint32_max):
+            global_idx += o_ranges[0]
+            oct_center, \
+            n_oct_center  = get_center(local_idx         ,
+                                       ptr_octant = False,
+                                       also_numpy_center = True)
+            t_center_inv[0] = n_oct_center
+            apply_bil_mapping(t_center_inv,
+                              c_alpha     ,
+                              c_beta      ,
+                              t_center    ,
+                              dim = 2)
+            is_in_fg = utilities.is_point_inside_polygon(t_center,
+                                                         n_t_foreground)
+            if (is_in_fg):
+                bad_diamond_point = True
+                n_f_n = neigh_inter_center(n_f_n  ,
+                                           h_inter,
+                                           n_axis ,
+                                           n_value)
+        return (bad_diamond_point, n_f_n)
+    # --------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------
     # Sub_method of \"update_values\".
     def update_bg_grids(self                ,
                         o_ranges            ,
