@@ -2304,8 +2304,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        also_numpy_center = True)
             t_center_inv[0] = n_oct_center
             apply_bil_mapping(t_center_inv,
-                              c_alpha     ,
-                              c_beta      ,
+                              b_alpha     ,
+                              b_beta      ,
                               t_center    ,
                               dim = 2)
             is_in_fg = utilities.is_point_inside_polygon(t_center,
