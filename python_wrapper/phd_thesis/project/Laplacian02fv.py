@@ -2100,7 +2100,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # Sub_method of \"update_values\".
     def update_fg_grids(self                ,
                         o_ranges            ,
-                        ids_octree_contained):
+                        ids_octree_contained,
+                        # Reconstruction order.
+                        rec_ord = 1):
         """Method which update the non diagonal blocks relative to the
            foreground grids.
 
@@ -2143,8 +2145,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 range(0, l_l_edg)]).reshape(l_l_edg, l_s)
         centers = [(stencils[i][0 : dimension]) for i in range(0, l_l_edg)]
         n_centers = len(centers)
-        t_centers = [None] * n_centers
-        t_centers_inv = [None] * n_centers
+        t_centers_inv = []
+        uint32_max = numpy.iinfo(numpy.uint32).max
+        local_idxs = numpy.zeros(shape = (n_centers, ), \
+                                 dtype = numpy.uint32)
+        global_idxs = numpy.zeros(shape = (n_centers, ), \
+                                  dtype = numpy.uint32)
+        t_center = numpy.zeros(shape = (1, 3), \
+                               dtype = numpy.float64)
+        t_center_inv = numpy.zeros(shape = (1, 3), \
+                                   dtype = numpy.float64)
 
         # Code hoisting.
         apply_bil_mapping = utilities.apply_bil_mapping
@@ -2152,8 +2162,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         find_right_neighbours = self.new_find_right_neighbours
         b_c = utilities.bil_coeffs
         apply_rest_prol_ops = self.new_apply_rest_prol_ops
+        mask_octant = self.mask_octant
         narray = numpy.array
         get_center = octree.get_center
+        get_point_owner_idx = octree.get_point_owner_idx
         get_points_local_ring = utilities.get_points_local_ring
 
         # Lambda function.
@@ -2163,34 +2175,22 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                  True       ,
                                                  x[2])
 
-        t_center = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
-        t_center_inv = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
         for i in xrange(0, n_centers):
-            apply_bil_mapping(numpy.array([centers[i]]),
-                              b_alpha                  ,
-                              b_beta                   ,
-                              t_center                 ,
+            apply_bil_mapping(narray([centers[i]]),
+                              b_alpha             ,
+                              b_beta              ,
+                              t_center            ,
                               dim = 2)
             apply_bil_mapping_inv(t_center    ,
                                   c_alpha     ,
                                   c_beta      ,
                                   t_center_inv,
                                   dim = 2)
-            t_centers_inv[i] = t_center_inv[0]
-        # Vectorized functions are just syntactic sugar:
-        # http://stackoverflow.com/questions/7701429/efficient-evaluation-of-a-function-at-every-cell-of-a-numpy-array
-        # http://stackoverflow.com/questions/8079061/function-application-over-numpys-matrix-row-column
-        # http://stackoverflow.com/questions/6824122/mapping-a-numpy-array-in-place
-        # http://stackoverflow.com/questions/9792925/how-to-speed-up-enumerate-for-numpy-array-how-to-enumerate-over-numpy-array-ef
-        local_idxs = numpy.array([octree.get_point_owner_idx((center[0],
-                                                              center[1],
-                                                              center[2] if  \
-                                                              (dimension == 3) \
-                                                              else 0)) for
-                                  center in t_centers_inv])
-        global_idxs = local_idxs + o_ranges[0]
-        # \"numpy.where\" returns indices of the elements which satisfy the
-        # conditions.
+            t_centers_inv.append(t_center_inv[0])
+            local_idxs[i] = get_point_owner_idx(t_center_inv[0])
+            global_idxs[i] = get_point_owner_idx(t_center_inv[0])
+            if (local_idxs[i] != uint32_max):
+                global_idxs[i] += o_ranges[0]
         idxs = numpy.where(numpy.logical_and((global_idxs >=
                                               ids_octree_contained[0]),
                                              (global_idxs <=
@@ -2199,23 +2199,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # to use the index notation.
         for idx in idxs[0]:
             oct_center, \
-            n_oct_center  = get_center(idx              ,
+            n_oct_center  = get_center(local_idxs[idx]   ,
                                        ptr_octant = False,
                                        also_numpy_center = True)
-            # \"t_centers_inv[idx]\" is a \"ndim\" = 2 (1, 3)\"numpy\" array,
-            # that's why we are using the second fixed indices \"[0]\".
-            oct_ring = get_points_local_ring(t_centers_inv[idx],
-                                             n_oct_center)
-            # Neighbour centers neighbour indices.
-            n_cs_n_is = f_r_n((local_idxs[idx],
-                               oct_ring       ,
-                               t_centers_inv[idx]))
-            coeffs = b_c(n_cs_n_is[0],
-                         t_centers_inv[idx])
+            if (rec_ord == 2):
+                # TODO: check correctness of the ring and of the indices found
+                #       (understand if \"n_cs_n_is[1]\" has to be masked or not).
+                oct_ring = get_points_local_ring(t_centers_inv[idx],
+                                                 n_oct_center)
+                # Neighbour centers neighbour indices.
+                n_cs_n_is = f_r_n((local_idxs[idx],
+                                   oct_ring       ,
+                                   t_centers_inv[idx]))
+                coeffs = b_c(n_cs_n_is[0],
+                             t_centers_inv[idx])
 
             # Checkout how the \"stencil\" is created in the function
             # \"create_mask\".
-            displ = 2 if (dimension == 2) else 3
+            displ = dimension
             step = 2
             row_indices = []
             col_indices = []
@@ -2225,15 +2226,25 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (row_index == -1):
                     break
 
-                row_indices.append(int(row_index))
+                # Masked row index (in function \"create_mask\", they are not
+                # still masked).
+                m_row_index = self._ngn[int(row_index)]
+                row_indices.append(m_row_index)
                 value_to_multiply = stencils[idx][i + 1]
                 # Current coefficients.
-                c_coeffs = (coeffs * value_to_multiply).tolist()
+                c_coeffs = value_to_multiply
+                if (rec_ord == 2):
+                    c_coeffs = (coeffs * value_to_multiply).tolist()
                 col_values.append(c_coeffs)
-            col_indices.extend(n_cs_n_is[1])
-            apply_rest_prol_ops(row_indices,
-                                col_indices,
-                                col_values)
+            if (rec_ord == 2):
+                col_indices.extend(n_cs_n_is[1])
+            else:
+                col_index = mask_octant(global_idxs[idx])
+                col_indices.append(col_index)
+            if (row_indices):
+                apply_rest_prol_ops(row_indices,
+                                    col_indices,
+                                    col_values)
 
         msg = "Updated prolongation blocks"
         self.log_msg(msg   ,
