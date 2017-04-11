@@ -495,7 +495,7 @@ def compute(comm_dictionary     ,
     e_sol = utilities.exact_sol(centers,
                                 alpha  ,
                                 beta)
-    print(laplacian.residual.getArray().shape)
+    #print(laplacian.residual.getArray().shape)
     data_to_save = numpy.array([e_sol                     ,
                                 interpolate_sol.getArray()])#,
                                 #laplacian.residual.getArray()])
@@ -632,7 +632,7 @@ def main():
                                                      proc_grid           ,
                                                      centers             ,
                                                      logger)
-    print(data_to_save.shape)
+    #print(data_to_save.shape)
 
     #(geo_nodes, ghost_geo_nodes) = pablo.apply_persp_trans(dimension  ,
     #                                                       trans_coeff, 
