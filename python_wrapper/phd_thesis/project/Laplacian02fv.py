@@ -2232,18 +2232,30 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 value_to_multiply = stencils[idx][i + 1]
                 # Current coefficients.
                 c_coeffs = value_to_multiply
+                nsolution = utilities.exact_sol(narray([[stencils[idx][0],
+                                                         stencils[idx][1]]]),
+                                                       b_alpha              ,
+                                                       b_beta               ,
+                                                       dim = 2              ,
+                                                       apply_mapping = True)
+                c_coeffs = c_coeffs * nsolution * -1.0
                 if (rec_ord == 2):
                     c_coeffs = (coeffs * value_to_multiply).tolist()
                 col_values.append(c_coeffs)
             if (rec_ord == 2):
                 col_indices.extend(n_cs_n_is[1])
             else:
-                col_index = mask_octant(global_idxs[idx])
+                #col_index = mask_octant(global_idxs[idx])
+                col_index = mask_octant(keys[idx][1])
                 col_indices.append(col_index)
             if (row_indices):
-                apply_rest_prol_ops(row_indices,
-                                    col_indices,
-                                    col_values)
+                insert_mode = PETSc.InsertMode.ADD_VALUES
+                self._rhs.setValues(row_indices,
+                                    col_values ,
+                                    insert_mode)
+                #apply_rest_prol_ops(row_indices,
+                #                    col_indices,
+                #                    col_values)
 
         msg = "Updated prolongation blocks"
         self.log_msg(msg   ,
