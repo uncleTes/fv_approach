@@ -2323,7 +2323,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # Sub_method of \"update_values\".
     def update_bg_grids(self                ,
                         o_ranges            ,
-                        ids_octree_contained):
+                        ids_octree_contained,
+                        # Reconstruction order.
+                        rec_ord = 1):
         """Method which update the non diagonal blocks relative to the
            backgrounds grids.
 
@@ -2366,6 +2368,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_interface_coefficients_1_order = self.get_interface_coefficients_1_order
         get_center = octree.get_center
         bil_coeffs = utilities.bil_coeffs
+        check_bg_bad_diamond_point = self.check_bg_bad_diamond_point
+        mask_octant = self.mask_octant
         b_c = lambda x: bil_coeffs(x[0],
                                    x[1])
 
@@ -2388,6 +2392,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # (of face and of node) (\"(+ dimension * 3)\"); that's the di-
                 # splacement \"displ\".
                 displ = 2 + (dimension * 3)
+                is_bad_point, \
+                n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                                                   displ               ,
+                                                   grid                ,
+                                                   o_ranges            ,
+                                                   ids_octree_contained,
+                                                   n_t_foreground      ,
+                                                   h_inter             ,
+                                                   keys[i][5]          ,
+                                                   keys[i][6]          ,
+                                                   dimension)
+                if (is_bad_point):
+                    print("bongo")
+                    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
                 # Getting transformed coordinates of the third neighbour (the
                 # one  of the other face/intersection).
                 # \"Numpy\" face neighbour.
@@ -2397,32 +2415,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   c_beta  ,
                                   t_center,
                                   dim = 2)
-                is_in_fg = utilities.is_point_inside_polygon(t_center,
-                                                             n_t_foreground)
-                if (is_in_fg):
-                    n_f_n = neigh_inter_center(n_f_n     ,
-                                               h_inter   ,
-                                               keys[i][5],
-                                               keys[i][6])
-                    apply_bil_mapping(n_f_n   ,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      t_center,
-                                      dim = 2)
-                    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
                 apply_bil_mapping_inv(t_center    ,
                                       b_alpha     ,
                                       b_beta      ,
                                       t_center_inv,
                                       dim = 2)
-                local_idx = get_point_owner_idx((t_center_inv[0][0],
-                                                 t_center_inv[0][1],
-                                                 t_center_inv[0][2]))
-                global_idx = local_idx + o_ranges[0]
-                # The MPI process containing the mapped node continue to do the
-                # check for its neighbours.
-                if ((global_idx >= ids_octree_contained[0]) and
-                    (global_idx <= ids_octree_contained[1])):
+                uint32_max = numpy.iinfo(numpy.uint32).max
+                local_idx = get_point_owner_idx(t_center_inv[0])
+                global_idx = local_idx
+                if (local_idx != uint32_max):
+                    global_idx += o_ranges[0]
+                    # The MPI process containing the mapped node continue to do the
+                    # check for its neighbours.
                     # \"h\" + \"n_coeffs[node_on_f_b]\" (2) + the coordinates
                     # of the node on the foreground boundary (\"+ dimension\");
                     # that's the displacement \"displ\".
@@ -2436,39 +2440,44 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # neighbour of node).
                         if (j == (2 + (3 * dimension))):
                             oct_center, \
-                            n_oct_center  = get_center(global_idx       ,
+                            n_oct_center  = get_center(local_idx         ,
                                                        ptr_octant = False,
                                                        also_numpy_center = True)
-                            if (global_idx not in t_indices_inv):
+                            m_global_idx = mask_octant(global_idx)
+                            if (m_global_idx not in t_indices_inv):
                                 t_centers_inv.append(n_oct_center[: dimension])
-                                t_indices_inv.add(global_idx)
+                                t_indices_inv.add(m_global_idx)
                         # Other outside foreground neighbour (the one of node).
                         elif (j == (2 + (2 * dimension))):
-                            # \"Numpy\" node neighbour.
-                            n_n_n = narray([stencils[i][j : j + dimension]])
-                            apply_bil_mapping(n_n_n   ,
-                                              c_alpha ,
-                                              c_beta  ,
-                                              t_center,
-                                              dim = 2)
-                            apply_bil_mapping_inv(t_center    ,
-                                                  b_alpha     ,
-                                                  b_beta      ,
-                                                  t_center_inv,
-                                                  dim = 2)
-                            local_idx = get_point_owner_idx((t_center_inv[0][0],
-                                                             t_center_inv[0][1],
-                                                             t_center_inv[0][2]))
-                            global_idx = local_idx + o_ranges[0]
-                            if ((global_idx >= ids_octree_contained[0]) and
-                                (global_idx <= ids_octree_contained[1])):
-                                oct_center, \
-                                n_oct_center  = get_center(global_idx       ,
-                                                           ptr_octant = False,
-                                                           also_numpy_center = True)
-                                if (global_idx not in t_indices_inv):
-                                    t_centers_inv.append(n_oct_center[: dimension])
-                                    t_indices_inv.add(global_idx)
+                            # For the moment, we consider just a plane to inter-
+                            # polate.
+                            pass
+                            ## \"Numpy\" node neighbour.
+                            #n_n_n = narray([stencils[i][j : j + dimension]])
+                            #apply_bil_mapping(n_n_n   ,
+                            #                  c_alpha ,
+                            #                  c_beta  ,
+                            #                  t_center,
+                            #                  dim = 2)
+                            #apply_bil_mapping_inv(t_center    ,
+                            #                      b_alpha     ,
+                            #                      b_beta      ,
+                            #                      t_center_inv,
+                            #                      dim = 2)
+                            #local_idx = get_point_owner_idx((t_center_inv[0][0],
+                            #                                 t_center_inv[0][1],
+                            #                                 t_center_inv[0][2]))
+                            #global_idx = local_idx + o_ranges[0]
+                            #if ((global_idx >= ids_octree_contained[0]) and
+                            #    (global_idx <= ids_octree_contained[1])):
+                            #    oct_center, \
+                            #    n_oct_center  = get_center(global_idx       ,
+                            #                               ptr_octant = False,
+                            #                               also_numpy_center = True)
+                            #    m_global_idx = self.mask_octant(global_idx)
+                            #    if (m_global_idx not in t_indices_inv):
+                            #        t_centers_inv.append(n_oct_center[: dimension])
+                            #        t_indices_inv.add(m_global_idx)
                         # Other neighbour inside foreground neighbours.
                         else:
                             # \"Numpy\" node in foreground grid.
@@ -2485,9 +2494,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     n_cs_n = narray(cs_n)
                     coeffs = b_c((narray(t_centers_inv),
                                   n_cs_n))
-                    # Outer normal.
+                    # Outer normal coeffs.
                     o_n_coeffs = coeffs * stencils[i][1]
-                    # Inner normal.
+                    # Inner normal coeffs.
                     i_n_coeffs = o_n_coeffs * -1.0
                     col_values = []
                     col_values.append(i_n_coeffs.tolist())
@@ -2509,6 +2518,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # boundary (\" + (dimension * 2)\"), that's the explanation for
                 # \"displ\".
                 displ = 1 + (dimension * 2)
+                is_bad_point, \
+                n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                                                   displ               ,
+                                                   grid                ,
+                                                   o_ranges            ,
+                                                   ids_octree_contained,
+                                                   n_t_foreground      ,
+                                                   h_inter             ,
+                                                   keys[i][5]          ,
+                                                   keys[i][6]          ,
+                                                   dimension)
+                if (is_bad_point):
+                    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
                 # Getting transformed coordinates of the first neighbour (the one
                 # of the face/intersection), that will be the same for both the
                 # nodes of the intersection.
@@ -2519,35 +2541,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   c_beta  ,
                                   t_center,
                                   dim = 2)
-                is_in_fg = utilities.is_point_inside_polygon(t_center,
-                                                             n_t_foreground)
-                if (is_in_fg):
-                    n_f_n = neigh_inter_center(n_f_n     ,
-                                               h_inter   ,
-                                               keys[i][5],
-                                               keys[i][6])
-                    apply_bil_mapping(n_f_n   ,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      t_center,
-                                      dim = 2)
-                    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
-
                 apply_bil_mapping_inv(t_center    ,
                                       b_alpha     ,
                                       b_beta      ,
                                       t_center_inv,
                                       dim = 2)
-                local_idx = get_point_owner_idx((t_center_inv[0][0],
-                                                 t_center_inv[0][1],
-                                                 t_center_inv[0][2]))
-                global_idx = local_idx + o_ranges[0]
-                # The MPI process containing the mapped neighbour continue to do
-                # the check for the other neighbours.
-                if ((global_idx >= ids_octree_contained[0]) and
-                    (global_idx <= ids_octree_contained[1])):
+                uint32_max = numpy.iinfo(numpy.uint32).max
+                local_idx = get_point_owner_idx(t_center_inv[0])
+                global_idx = local_idx
+                if (local_idx != uint32_max):
+                    global_idx += o_ranges[0]
+                    # The MPI process containing the mapped neighbour continue to do
+                    # the check for the other neighbours.
                     oct_center, \
-                    n_oct_center  = get_center(global_idx       ,
+                    n_oct_center  = get_center(local_idx         ,
                                                ptr_octant = False,
                                                also_numpy_center = True)
                     node_0 = stencils[i][1 : 1 + dimension]
@@ -2562,8 +2569,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                   h_given = h_inter,
                                                                   n_axis_given = keys[i][5],
                                                                   n_value_given = keys[i][6])
+                    m_global_idx = mask_octant(global_idx)
                     apply_rest_prol_ops([keys[i][1]]            ,
-                                        [global_idx, keys[i][1]],
+                                        [m_global_idx, keys[i][1]],
                                         n_coeffs)
 
         msg = "Updated restriction blocks"
