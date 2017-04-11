@@ -2188,7 +2188,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   dim = 2)
             t_centers_inv.append(t_center_inv[0])
             local_idxs[i] = get_point_owner_idx(t_center_inv[0])
-            global_idxs[i] = get_point_owner_idx(t_center_inv[0])
+            global_idxs[i] = local_idxs[i]
             if (local_idxs[i] != uint32_max):
                 global_idxs[i] += o_ranges[0]
         idxs = numpy.where(numpy.logical_and((global_idxs >=
