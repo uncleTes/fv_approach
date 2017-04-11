@@ -381,9 +381,11 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
     npower = numpy.power
     nadd = numpy.add
     # sin((x - 0.5)^2 + (y - 0.5)^2).
+    #numpy.copyto(sol,
+    #             nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
+    #                       npower(nadd(p_points[:, 1], -0.5), 2))))
     numpy.copyto(sol,
-                 nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
-                           npower(nadd(p_points[:, 1], -0.5), 2))))
+                 nadd(p_points[:, 0], p_points[:, 1]))
 
     return sol
 
@@ -393,6 +395,10 @@ def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
                   numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta     ,
                   int dim = 2):
     cdef int n_points = l_points.shape[0]
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] sol =          \
+         numpy.zeros(n_points                 , \
+                     dtype = numpy.float64)
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] p_points =     \
          numpy.zeros((n_points, dim)          , \
@@ -411,20 +417,21 @@ def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
     # 4 * cos((x - 0.5)^2 + (y - 0.5)^2) -
     # 4 * sin((x - 0.5)^2 + (y - 0.5)^2) *
     # ((x - 0.5)^2 + (y - 0.5)^2).
-    return nadd(nmul(4.0,
-                     ncos(nadd(npower(nadd(p_points[:, 0], -0.5),
-                                      2),
-                               npower(nadd(p_points[:, 1], -0.5),
-                                      2)))),
-                nmul(nmul(-4.0,
-                          nsin(nadd(npower(nadd(p_points[:, 0], -0.5),
-                                           2),
-                                    npower(nadd(p_points[:, 1], -0.5),
-                                           2)))),
-                     nadd(npower(nadd(p_points[:, 0], -0.5),
-                                 2),
-                          npower(nadd(p_points[:, 1], -0.5),
-                                 2))))
+    #return nadd(nmul(4.0,
+    #                 ncos(nadd(npower(nadd(p_points[:, 0], -0.5),
+    #                                  2),
+    #                           npower(nadd(p_points[:, 1], -0.5),
+    #                                  2)))),
+    #            nmul(nmul(-4.0,
+    #                      nsin(nadd(npower(nadd(p_points[:, 0], -0.5),
+    #                                       2),
+    #                                npower(nadd(p_points[:, 1], -0.5),
+    #                                       2)))),
+    #                 nadd(npower(nadd(p_points[:, 0], -0.5),
+    #                             2),
+    #                      npower(nadd(p_points[:, 1], -0.5),
+    #                             2))))
+    return sol
 
 def check_oct_corners(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] numpy_corners,
                       numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha        ,
