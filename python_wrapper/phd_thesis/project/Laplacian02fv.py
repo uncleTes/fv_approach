@@ -625,11 +625,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
         centers = [octree.get_center(octant)[: dimension] for octant in octants]
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
-        if (is_background):
-            # Penalized octants foreground grids. It is a dictionary to store
-            # global (locally on the background) octants and the foreground grid
-            # which cover them.
-            self._p_o_f_g = {}
 
         # Code hoisting.
         get_nodes = octree.get_nodes
@@ -664,7 +659,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               t_foregrounds)
             if (is_penalized):
                 self._nln[octant] = -1
-                self._p_o_f_g[g_octant] = n_polygon
+                self._p_o_f_g[octant] = n_polygon
                 # Moved \"h\" from the \"key\" to the \"stencil\", preferring
                 # not to use float into dict keys.
                 key_0 = n_polygon + 1 # Foreground grid to which the node be-
@@ -700,6 +695,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 self._edl.update({key : stencil})
             else:
                 self._nln[octant] = new_oct_count
+                self._p_o_f_g[octant] = -1
                 new_oct_count += 1
                 d_count += 1
                 h_s.append(h)
@@ -830,6 +826,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         comm_w.Allgather(l_displ,
                          [displs, 1, MPI.INT64_T])
+
+        comm_w.Allgatherv(to_send,
+                          [to_receive, self._s_counts, displs, MPI.INT64_T])
+        if (is_background):
+            to_send = self._p_o_f_g
+        to_receive = self._g_p_o_f_g
 
         comm_w.Allgatherv(to_send,
                           [to_receive, self._s_counts, displs, MPI.INT64_T])
@@ -1478,7 +1480,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # If an intersection owner is penalized (it should be just for
                     # background grid)...
                     if (m_g_octant == -1):
-                        n_polygon = self._p_o_f_g[g_o_norms_inter[j]]
+                        n_polygon = self._g_p_o_f_g[g_o_norms_inter[j]]
                     # ...else...
                     else:
                         r_indices.append(m_g_octant)
@@ -1945,9 +1947,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # New local numeration.
         self._nln = numpy.empty(n_oct,
                                 dtype = numpy.int64)
+        # Penalized octants foreground grids.
+        self._p_o_f_g = numpy.empty(n_oct,
+                                    dtype = numpy.int64)
         # New global numeration.
         self._ngn = numpy.empty(N_oct_bg_g,
                                 dtype = numpy.int64)
+        # Global penalized octants foreground grids.
+        self._g_p_o_f_g = numpy.empty(N_oct_bg_g,
+                                      dtype = numpy.int64)
         self._centers_not_penalized = []
 
         # Numpy edl.
