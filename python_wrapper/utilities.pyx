@@ -372,6 +372,10 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
                        ndim = 2] p_points =     \
          numpy.zeros((n_points, dim)          , \
                      dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] one =          \
+         numpy.ones(n_points                 , \
+                     dtype = numpy.float64)
     if (apply_mapping):
         apply_bil_mapping(l_points,
                           alpha   ,
@@ -391,6 +395,7 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
     #             nadd(p_points[:, 0], p_points[:, 1]))
 
     return sol
+    #return one
 
 # TODO: extend to 3D.
 def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
