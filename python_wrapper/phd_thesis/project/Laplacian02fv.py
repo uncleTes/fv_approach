@@ -2142,6 +2142,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         list_edg = [list_edg[i] for i in xrange(0, l_l_edg) if
                     int(list_edg[i][0].item(0)) == grid]
         # Length list edg (new).
+        # TODO: add a control if there are no element covered by a certain grid of
+        #       foreground (if there are too few octants in general, for example
+        #       the case I am running with refs 3, 3, 3).
         l_l_edg = len(list_edg)
         # Length key.
         l_k = list_edg[0][0].size
