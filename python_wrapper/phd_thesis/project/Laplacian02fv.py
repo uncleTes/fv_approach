@@ -2256,8 +2256,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (rec_ord == 2):
                 col_indices.extend(n_cs_n_is[1])
             else:
-                #col_index = mask_octant(global_idxs[idx])
-                col_index = mask_octant(keys[idx][1])
+                col_index = mask_octant(global_idxs[idx])
                 col_indices.append(col_index)
             if (row_indices):
                 insert_mode = PETSc.InsertMode.ADD_VALUES
@@ -2427,7 +2426,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                    keys[i][6]          ,
                                                    dimension)
                 if (is_bad_point):
-                    print("bongo")
                     stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
                 # Getting transformed coordinates of the third neighbour (the
                 # one  of the other face/intersection).
