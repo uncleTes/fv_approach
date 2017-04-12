@@ -212,12 +212,12 @@ def is_point_inside_polygons(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] po
                              int dimension = 2):
     cdef bool inside = False
     cdef size_t i
-    cdef int n_polys = polygons.shape[0]
+    cdef int n_polys = polygons[0].shape[0]
     cdef int no_poly = -1
 
     for i in xrange(n_polys):
-        inside = is_point_inside_polygon(point      ,
-                                         polygons[i],
+        inside = is_point_inside_polygon(point                        ,
+                                         numpy.array([polygons[0][i]]),
                                          dimension)
         if (inside):
             return (inside, i)
@@ -267,7 +267,6 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poi
     #                                        polygon[2], polygon[3],
     #                                        polygon[6], polygon[7]),
     #                   dtype = numpy.float64)
-
     for face in xrange(0, n_faces):
         if (face < 2):
             x = 0
