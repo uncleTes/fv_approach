@@ -2461,35 +2461,43 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 t_indices_inv.add(m_global_idx)
                         # Other outside foreground neighbour (the one of node).
                         elif (j == (2 + (2 * dimension))):
-                            # For the moment, we consider just a plane to inter-
-                            # polate.
-                            pass
-                            ## \"Numpy\" node neighbour.
-                            #n_n_n = narray([stencils[i][j : j + dimension]])
-                            #apply_bil_mapping(n_n_n   ,
-                            #                  c_alpha ,
-                            #                  c_beta  ,
-                            #                  t_center,
-                            #                  dim = 2)
-                            #apply_bil_mapping_inv(t_center    ,
-                            #                      b_alpha     ,
-                            #                      b_beta      ,
-                            #                      t_center_inv,
-                            #                      dim = 2)
-                            #local_idx = get_point_owner_idx((t_center_inv[0][0],
-                            #                                 t_center_inv[0][1],
-                            #                                 t_center_inv[0][2]))
-                            #global_idx = local_idx + o_ranges[0]
-                            #if ((global_idx >= ids_octree_contained[0]) and
-                            #    (global_idx <= ids_octree_contained[1])):
-                            #    oct_center, \
-                            #    n_oct_center  = get_center(global_idx       ,
-                            #                               ptr_octant = False,
-                            #                               also_numpy_center = True)
-                            #    m_global_idx = self.mask_octant(global_idx)
-                            #    if (m_global_idx not in t_indices_inv):
-                            #        t_centers_inv.append(n_oct_center[: dimension])
-                            #        t_indices_inv.add(m_global_idx)
+                            is_bad_point, \
+                            n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                                                               displ               ,
+                                                               grid                ,
+                                                               o_ranges            ,
+                                                               ids_octree_contained,
+                                                               n_t_foreground      ,
+                                                               h_inter             ,
+                                                               keys[i][5]          ,
+                                                               keys[i][6]          ,
+                                                               dimension)
+                            if (is_bad_point):
+                                stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
+                            # \"Numpy\" node neighbour.
+                            n_n_n = narray([stencils[i][j : j + dimension]])
+                            apply_bil_mapping(n_n_n   ,
+                                              c_alpha ,
+                                              c_beta  ,
+                                              t_center,
+                                              dim = 2)
+                            apply_bil_mapping_inv(t_center    ,
+                                                  b_alpha     ,
+                                                  b_beta      ,
+                                                  t_center_inv,
+                                                  dim = 2)
+                            n_n_local_idx = get_point_owner_idx(t_center_inv[0])
+                            n_n_global_idx = local_idx
+                            if (n_n_local_idx != uint32_max):
+                                n_n_global_idx += o_ranges[0]
+                                oct_center, \
+                                n_oct_center  = get_center(n_n_local_idx         ,
+                                                           ptr_octant = False,
+                                                           also_numpy_center = True)
+                                n_n_m_global_idx = mask_octant(n_n_global_idx)
+                                if (n_n_m_global_idx not in t_indices_inv):
+                                    t_centers_inv.append(n_oct_center[: dimension])
+                                    t_indices_inv.add(n_n_m_global_idx)
                         # Other neighbour inside foreground neighbours.
                         else:
                             # \"Numpy\" node in foreground grid.
