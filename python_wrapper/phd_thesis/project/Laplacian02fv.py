@@ -1678,7 +1678,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # Interpolating the solution is necessary to be able to use the \"vtm\"
     # typology of files. For the moment, the value interpolated is substituted
     # by the fixed value \"0.0\".
-    def reset_partially_solution(self):
+    def reset_partially_array(self,
+                              array_to_reset = "sol"):
         """Function which creates a \"new\" solution array, pushing in the
            octants covered by foreground meshes the values interpolated from the
            neighbours around them.
@@ -1696,24 +1697,32 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Octree's ids contained.
         ids_octree_contained = xrange(o_ranges[0],
                                       up_id_octree)
-        # Resetted solution.
-        res_sol = self.init_array("resetted partially solution",
+        if (array_to_reset == "sol"):
+            array_name = "solution"
+            to_reset = self._sol
+        elif (array_to_reset == "res"):
+            array_name = "residual"
+            to_reset = self._residual
+        # Resetted array.
+        res_arr = self.init_array("resetted partially " + \
+                                  str(array_name),
                                   petsc_size = False)
 
         for i in ids_octree_contained:
-            sol_index = self.mask_octant(i)
-            if (sol_index != -1):
-                sol_value = self._sol.getValue(sol_index)
-                res_sol.setValue(i, sol_value)
+            arr_index = self.mask_octant(i)
+            if (arr_index != -1):
+                arr_value = to_reset.getValue(arr_index)
+                res_arr.setValue(i, arr_value)
 
-        res_sol.assemblyBegin()
-        res_sol.assemblyEnd()
+        res_arr.assemblyBegin()
+        res_arr.assemblyEnd()
 
-        msg = "Resetted partially solution"
+        msg = "Resetted partially " + \
+              str(array_name)
         self.log_msg(msg   ,
                      "info")
 
-        return res_sol
+        return res_arr
     # --------------------------------------------------------------------------
 
     def add_rhs(self,

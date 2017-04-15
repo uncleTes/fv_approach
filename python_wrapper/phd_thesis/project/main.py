@@ -492,14 +492,15 @@ def compute(comm_dictionary     ,
                                  "%d " % comm_w.Get_rank()              ,
                                  "(%e, %e)" % (norm_inf, norm_L2))
     print(msg)
-    interpolate_sol = laplacian.reset_partially_solution()
+    interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
                                 alpha  ,
                                 beta)
+    interpolate_res = laplacian.reset_partially_array(array_to_reset = "res")
     #print(laplacian.residual.getArray().shape)
     data_to_save = numpy.array([e_sol                     ,
-                                interpolate_sol.getArray()])#,
-                                #laplacian.residual.getArray()])
+                                interpolate_sol.getArray(),
+                                interpolate_res.getArray()])
 
     return (data_to_save, t_coeffs, alpha, beta)
 # ------------------------------------------------------------------------------
