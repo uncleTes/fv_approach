@@ -610,7 +610,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         nfaces = octree.get_n_faces()
         dimension = self._dim
         is_background = True if (not grid) else False
-        t_foregrounds = numpy.array([self._t_foregrounds])
+        if (n_grids > 1):
+            t_foregrounds = numpy.array([self._t_foregrounds])
         # Lists containing number of non zero elements for diagonal and non
         # diagonal part of the coefficients matrix, for row.
         d_nnz, o_nnz = ([] for i in range(0, 2))
@@ -1216,6 +1217,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         tot_oct = self._tot_oct
         dimension = self._dim
         grid = self._proc_g
+        n_grids = self._n_grids
         finer_o_inter = octree.get_finer(inter)
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
@@ -1227,7 +1229,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Index finer owner intersection.
         i_finer_o_inter = octree.get_owners(inter)[finer_o_inter]
         t_background = numpy.array([self._t_background])
-        t_foreground = numpy.array([self._t_foregrounds[grid - 1]])
+        if (n_grids > 1):
+            t_foreground = numpy.array([self._t_foregrounds[grid - 1]])
         n_nodes = 2 if (dimension == 2) else 4
         nodes = octree.get_nodes(inter        ,
                                  dimension    ,
@@ -1238,8 +1241,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Is on background boundary.
         is_on_b_boundary = lambda x : is_point_on_lines(x,
                                                         t_background)
-        is_on_f_boundary = lambda x : is_point_on_lines(x,
-                                                        t_foreground)
+        if (n_grids > 1):
+            is_on_f_boundary = lambda x : is_point_on_lines(x,
+                                                            t_foreground)
         # Local indices of the octants owners of the nodes of the
         # intersection.
         l_owners = [0] * n_nodes
@@ -1258,6 +1262,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             #       \"on_f_boundary\" simultaneously, because there is no pos-
             #       sible race condition.
             on_b_boundary = is_on_b_boundary(n_t_node)
+            on_f_boundary = False
             if (grid and (not on_b_boundary)):
                 on_f_boundary = is_on_f_boundary(n_t_node)
 
@@ -1339,6 +1344,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         f_bound = self._f_bound
         grid = self._proc_g
+        n_grids = self._n_grids
 
         # Ghosts' deplacement.
         g_d = 0
@@ -1350,7 +1356,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         octree = self._octree
         tot_oct = self._tot_oct
         is_background = False if (grid) else True
-        t_foregrounds = numpy.array(self._t_foregrounds)
+        if (n_grids > 1):
+            t_foregrounds = numpy.array(self._t_foregrounds)
 
         n_oct = self._n_oct
         nfaces = octree.get_n_faces()
@@ -2034,7 +2041,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         rank_w = self._rank_w
         rank_l = self._rank
         is_background = True
-        if grid:
+        if (grid):
             is_background = False
         if (n_grids > 1):
             o_ranges = self.get_ranges()
@@ -2099,7 +2106,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 self.update_fg_grids(o_ranges,
                                      ids_octree_contained)
             else:
-                if (self._n_grids > 1):
+                if (n_grids > 1):
                     self.update_bg_grids(o_ranges,
                                          ids_octree_contained)
 
@@ -2435,7 +2442,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                    keys[i][6]          ,
                                                    dimension)
                 if (is_bad_point):
-                    print("cacca")
                     stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
                 # Getting transformed coordinates of the third neighbour (the
                 # one  of the other face/intersection).
