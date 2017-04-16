@@ -401,10 +401,11 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
                      npower(nadd(p_points[:, 1], -0.5), 2)))
 
 # TODO: extend to 3D.
-def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
-                  numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha    ,
-                  numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta     ,
-                  int dim = 2):
+def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
+                  numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha   ,
+                  numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta    ,
+                  int dim = 2                                              ,
+                  bool apply_mapping = True):
     cdef int n_points = l_points.shape[0]
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 1] sol =          \
@@ -415,11 +416,15 @@ def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
          numpy.zeros((n_points, dim)          , \
                      dtype = numpy.float64)
 
-    apply_bil_mapping(l_points,
-                      alpha   ,
-                      beta    ,
-                      p_points,
-                      dim)
+    if (apply_mapping):
+        apply_bil_mapping(l_points,
+                          alpha   ,
+                          beta    ,
+                          p_points,
+                          dim)
+    else:
+        numpy.copyto(p_points, l_points)
+
     nsin = numpy.sin
     ncos = numpy.cos
     npower = numpy.power
