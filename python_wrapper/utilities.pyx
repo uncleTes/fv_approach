@@ -357,10 +357,10 @@ def is_point_on_lines(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point    
 
     return on_lines
 # TODO: extend to 3D.
-def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
-              numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha    ,
-              numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta     ,
-              int dim = 2                                               ,
+def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
+              numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha   ,
+              numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta    ,
+              int dim = 2                                              ,
               bool apply_mapping = True):
     cdef int n_points = l_points.shape[0]
     cdef numpy.ndarray[dtype = numpy.float64_t, \
@@ -375,6 +375,7 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
                        ndim = 1] one =          \
          numpy.ones(n_points                 , \
                      dtype = numpy.float64)
+
     if (apply_mapping):
         apply_bil_mapping(l_points,
                           alpha   ,
@@ -383,18 +384,21 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
                           dim)
     else:
         numpy.copyto(p_points, l_points)
+
     nsin = numpy.sin
     npower = numpy.power
     nadd = numpy.add
     # sin((x - 0.5)^2 + (y - 0.5)^2).
-    numpy.copyto(sol,
-                 nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
-                           npower(nadd(p_points[:, 1], -0.5), 2))))
+    #numpy.copyto(sol,
+    #             nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
+    #                       npower(nadd(p_points[:, 1], -0.5), 2))))
     #numpy.copyto(sol,
     #             nadd(p_points[:, 0], p_points[:, 1]))
 
-    return sol
+    #return sol
     #return one
+    return nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
+                     npower(nadd(p_points[:, 1], -0.5), 2)))
 
 # TODO: extend to 3D.
 def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points ,
