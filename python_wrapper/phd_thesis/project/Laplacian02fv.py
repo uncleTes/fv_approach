@@ -3234,7 +3234,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def evaluate_norms(self          ,
                        exact_solution,
                        solution      ,
-                       h_s):
+                       h_s           ,
+                       l2 = False):
         """Function which evals the infinite and L2 norms of the error.
 
            Arguments:
@@ -3250,16 +3251,23 @@ class Laplacian(BaseClass2D.BaseClass2D):
         norm_inf = numpy.linalg.norm(numpy_difference,
                                      # Type of norm we want to evaluate.
                                      numpy.inf)
-        norm_L2 = numpy.linalg.norm(numpy_difference * h_s,
-                                    2)
+        if (l2):
+            norm_X2 = numpy.linalg.norm(numpy_difference,
+                                        2)
+            norm_X2_name = "l2"
+        else:
+            norm_X2 = numpy.linalg.norm(numpy_difference * h_s,
+                                        2)
+            norm_X2_name = "L2"
 
         msg = "Evaluated norms"
-        extra_msg = "with (norm_inf, norm_L2) = " + str((norm_inf, norm_L2))
+        extra_msg = "with (norm_inf, " + str(norm_X2_name) + ") = " + \
+                    str((norm_inf, norm_X2))
         self.log_msg(msg   ,
                      "info",
                      extra_msg)
 
-        return (norm_inf, norm_L2)
+        return (norm_inf, norm_X2)
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
