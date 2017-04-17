@@ -488,9 +488,18 @@ def compute(comm_dictionary     ,
     norm_L2 = laplacian.evaluate_norms(laplacian.f_nodes      ,
                                        laplacian.f_nodes_exact,
                                        laplacian.h_s_inter)
-    msg = utilities.join_strings("Function on nodes (inf, L2): process ",
-                                 "%d " % comm_w.Get_rank()              ,
+    msg = utilities.join_strings("Function on internal nodes (inf, L2): process ",
+                                 "%d " % comm_w.Get_rank()                       ,
                                  "(%e, %e)" % (norm_inf, norm_L2))
+    print(msg)
+    norm_inf, \
+    norm_l2 = laplacian.evaluate_norms(laplacian.f_on_bord      ,
+                                       laplacian.f_exact_on_bord,
+                                       laplacian.h_s_inter      ,
+                                       l2 = True)
+    msg = utilities.join_strings("Function approximation on border (inf, l2): ",
+                                 "process %d " % comm_w.Get_rank()             ,
+                                 "(%e, %e)" % (norm_inf, norm_l2))
     print(msg)
     interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
