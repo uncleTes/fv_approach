@@ -1409,6 +1409,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         self._f_nodes = []
         self._f_nodes_exact = []
+        self._f_on_borders_exact = []
+        self._f_on_borders = []
         self._h_s_inter = []
 
         for i in xrange(0, ninters):
@@ -2147,6 +2149,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Current bilinear transformation \"alpha\" and \"beta\".
         c_alpha = self.get_trans(grid)[1]
         c_beta = self.get_trans(grid)[2]
+        ex_sols = []
 
         #start = time.time()
         list_edg = list(self._n_edg)
@@ -2194,6 +2197,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         get_center = octree.get_center
         get_point_owner_idx = octree.get_point_owner_idx
         get_points_local_ring = utilities.get_points_local_ring
+        solution = utilities.exact_sol
 
         # Lambda function.
         f_r_n = lambda x : find_right_neighbours(x[0]       ,
@@ -2208,6 +2212,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                               b_beta              ,
                               t_center            ,
                               dim = 2)
+            ex_sol = solution(t_center,
+                              b_alpha ,
+                              b_beta  ,
+                              dim = 3 ,
+                              apply_mapping = False)
+            ex_sols.append(ex_sol)
             apply_bil_mapping_inv(t_center    ,
                                   c_alpha     ,
                                   c_beta      ,
@@ -2229,6 +2239,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_oct_center  = get_center(local_idxs[idx]   ,
                                        ptr_octant = False,
                                        also_numpy_center = True)
+            self._f_on_borders_exact.append(ex_sols[idx])
+            rec_sol = solution(narray([n_oct_center]),
+                               c_alpha               ,
+                               c_beta                ,
+                               dim = 2               ,
+                               apply_mapping = True)
+            self._f_on_borders.append(rec_sol)
             if (rec_ord == 2):
                 # TODO: check correctness of the ring and of the indices found
                 #       (understand if \"n_cs_n_is[1]\" has to be masked or not).
@@ -2408,6 +2425,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         bil_coeffs = utilities.bil_coeffs
         check_bg_bad_diamond_point = self.check_bg_bad_diamond_point
         mask_octant = self.mask_octant
+        solution = utilities.exact_sol
         b_c = lambda x: bil_coeffs(x[0],
                                    x[1])
 
@@ -2595,6 +2613,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 local_idx = get_point_owner_idx(t_center_inv[0])
                 global_idx = local_idx
                 if (local_idx != uint32_max):
+                    ex_sol = solution(t_center,
+                                      c_alpha ,
+                                      c_beta  ,
+                                      dim = 3 ,
+                                      apply_mapping = False)
+                    self._f_on_borders_exact.append(ex_sol)
                     global_idx += o_ranges[0]
                     # The MPI process containing the mapped neighbour continue to do
                     # the check for the other neighbours.
@@ -2602,6 +2626,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     n_oct_center  = get_center(local_idx         ,
                                                ptr_octant = False,
                                                also_numpy_center = True)
+                    rec_sol = solution(narray([n_oct_center]),
+                                       b_alpha               ,
+                                       b_beta                ,
+                                       dim = 2               ,
+                                       apply_mapping = True)
+                    self._f_on_borders.append(rec_sol)
                     node_0 = stencils[i][1 : 1 + dimension]
                     node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
                     c_in = oct_center
@@ -3357,6 +3387,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
     @property
     def f_nodes_exact(self):
         return numpy.array(self._f_nodes_exact)
+
+    @property
+    def f_on_bord(self):
+        return numpy.array(self._f_on_borders)
+
+    @property
+    def f_exact_on_bord(self):
+        return numpy.array(self._f_on_borders_exact)
 
     @property
     def h_s_inter(self):
