@@ -2194,6 +2194,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_rest_prol_ops = self.new_apply_rest_prol_ops
         mask_octant = self.mask_octant
         narray = numpy.array
+        ncopy = numpy.copy
         get_center = octree.get_center
         get_point_owner_idx = octree.get_point_owner_idx
         get_points_local_ring = utilities.get_points_local_ring
@@ -2223,7 +2224,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   c_beta      ,
                                   t_center_inv,
                                   dim = 2)
-            t_centers_inv.append(t_center_inv[0])
+            # \"Numpy\" copy \"t_center_inv\".
+            n_c_t_c_i = ncopy(t_center_inv[0])
+            t_centers_inv.append(n_c_t_c_i)
             local_idxs[i] = get_point_owner_idx(t_center_inv[0])
             global_idxs[i] = local_idxs[i]
             if (local_idxs[i] != uint32_max):
@@ -2418,6 +2421,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         least_squares = utilities.bil_coeffs
         apply_rest_prol_ops = self.new_apply_rest_prol_ops
         narray = numpy.array
+        ncopy = numpy.copy
         get_point_owner_idx = octree.get_point_owner_idx
         neigh_inter_center = utilities.neigh_inter_center
         get_interface_coefficients_1_order = self.get_interface_coefficients_1_order
