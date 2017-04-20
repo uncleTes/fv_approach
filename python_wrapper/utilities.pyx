@@ -242,6 +242,13 @@ def is_point_inside_polygon(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poi
     cdef bool inside = False
     cdef double i_x, i_y, j_x, j_y
 
+    inside = is_point_on_lines(point  ,
+                               polygon,
+                               dimension)
+
+    if (inside):
+        return inside
+
     #faces = [polygon] if (dimension == 2) else \
     #        [[polygon[0], polygon[1], polygon[2], polygon[3]],
     #         [polygon[4], polygon[5], polygon[6], polygon[7]],
