@@ -2686,7 +2686,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                   n_axis_given = keys[i][5],
                                                                   n_value_given = keys[i][6])
                     m_global_idx = mask_octant(global_idx)
-                    apply_rest_prol_ops([keys[i][1]]            ,
+                    apply_rest_prol_ops([keys[i][1]]              ,
                                         [m_global_idx, keys[i][1]],
                                         n_coeffs)
 
@@ -2965,7 +2965,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # Number of nodes in the ring.
                     n_n_r =  n_cs_n_is[i][0].shape[0]
                     for k in xrange(0, n_n_r):
-                        stencil[j : j + dimension] = n_cs_n_is[i][0][k]
+                        stencil[j : j + dimension] = n_cs_n_is[i][0][k][: dimension]
                         j = j + dimension
                 # Old bilinear interpolation will not be used neither for the first
                 # node, nor for the second.
