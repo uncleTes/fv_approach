@@ -1023,22 +1023,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         return n_coeffs
 
-    def get_interface_coefficients(self            ,
-                                   inter           ,  # pointer to the intersection
-                                   dimension       ,  # 2D/3D
-                                   nodes_inter     ,  # Coordinates of the nodes
-                                                      # of the intersection
-                                   owners_centers  ,  # Centers of the owners of
-                                                      # the intersection
-                                   l_s_coeffs      ,  # Least square coefficients
-                                   use_inter = True,
-                                   h_given = 0     ,  # If \"use_inter\" is False,
-                                                      # then we will use \"h_given\"
-                                                      # to evaluate the coeffs
-                                   n_axis_given = 0,  # Same explication as for
-                                   n_value_given = 0): # \"h_given\".
+    def get_interface_coefficients(self             ,
+                                   inter            ,  # pointer to the intersection
+                                   dimension        ,  # 2D/3D
+                                   nodes_inter      ,  # Coordinates of the nodes
+                                                       # of the intersection
+                                   owners_centers   ,  # Centers of the owners of
+                                                       # the intersection
+                                   l_s_coeffs       ,  # Least square coefficients
+                                   use_inter = True ,
+                                   h_given = 0      ,  # If \"use_inter\" is False,
+                                                       # then we use \"h_given\"
+                                                       # to evaluate the coeffs
+                                   n_axis_given = 0 ,  # Same explication as for
+                                   n_value_given = 0,  # \"h_given\".
+                                   grid = -1):
         octree = self._octree
-        grid = self._proc_g
+        if (grid == -1):
+            grid = self._proc_g
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
         is_bound_inter = True
@@ -2640,8 +2642,27 @@ class Laplacian(BaseClass2D.BaseClass2D):
             elif (keys[i][3] == 2):
                 t_centers_inv = [[], []]
                 t_indices_inv = [set(), set()]
-                t_nodes = []
+                t_nodes_inv = []
                 h_inter = stencils[i][0]
+                displ = 1
+                for j in xrange(0, 2):
+                    # Transformed node inverse.
+                    t_n_i = narray([stencils[i][displ : displ + dimension]])
+                    apply_bil_mapping(n_i     ,
+                                      c_alpha ,
+                                      c_beta  ,
+                                      t_center,
+                                      dim = 2)
+                    apply_bil_mapping_inv(t_center    ,
+                                          b_alpha     ,
+                                          b_beta      ,
+                                          t_center_inv,
+                                          dim = 2)
+                    # \"Numpy\" copy transformed node inverse.
+                    n_c_t_n_i = ncopy(t_center_inv[0])
+                    t_nodes_inv.append(n_c_t_c_i)
+                    displ += dimension
+
                 # \"h\" (1), plus the coordinates of the nodes on the foreground
                 # boundary (\" + (dimension * 2)\"), that's the explanation for
                 # \"displ\".
@@ -2686,45 +2707,127 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     self._h_s_inter_on_board.append(h_inter)
                     self._f_on_borders_exact.append(ex_sol[0])
                     global_idx += o_ranges[0]
+                    m_global_idx = mask_octant(global_idx)
                     # The MPI process containing the mapped neighbour continue to do
                     # the check for the other neighbours.
                     oct_center, \
                     n_oct_center  = get_center(local_idx         ,
                                                ptr_octant = False,
                                                also_numpy_center = True)
-                    rec_sol = solution(narray([n_oct_center]),
-                                       b_alpha               ,
-                                       b_beta                ,
-                                       dim = 2               ,
-                                       apply_mapping = True)
-                    self._f_on_borders.append(rec_sol[0])
-                    node_0 = stencils[i][1 : 1 + dimension]
-                    node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
-                    c_in = n_oct_center[: dimension]
-                    c_out = narray([stencils[i][11 : 11 + dimension]])
-                    apply_bil_mapping(c_out   ,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      t_center,
-                                      dim = 2)
-                    apply_bil_mapping_inv(t_center    ,
-                                          b_alpha     ,
-                                          b_beta      ,
-                                          t_center_inv,
-                                          dim = 2)
-                    n_coeffs = get_interface_coefficients_1_order(0                ,
-                                                                  dimension        ,
-                                                                  [node_0, node_1] ,
-                                                                  [c_in, t_center_inv[0][: dimension]],
-                                                                  grid             ,
-                                                                  use_inter = False,
-                                                                  h_given = h_inter,
-                                                                  n_axis_given = keys[i][5],
-                                                                  n_value_given = keys[i][6])
-                    m_global_idx = mask_octant(global_idx)
-                    apply_rest_prol_ops([keys[i][1]]              ,
-                                        [m_global_idx, keys[i][1]],
-                                        n_coeffs)
+                    t_indices_inv[0].add(m_global_idx)
+                    t_indices_inv[1].add(m_global_idx)
+                    t_centers_inv[0].append(n_oct_center[: dimension])
+                    t_centers_inv[1].append(n_oct_center[: dimension])
+                    for j in xrange(0, 2):
+                        for k in xrange(0, 3):
+                            displ = displ + dimension
+                            n_f_n = narray([stencils[i][displ : displ + dimension]])
+                            apply_bil_mapping(n_f_n   ,
+                                              c_alpha ,
+                                              c_beta  ,
+                                              t_center,
+                                              dim = 2)
+                            apply_bil_mapping_inv(t_center    ,
+                                                  b_alpha     ,
+                                                  b_beta      ,
+                                                  t_center_inv,
+                                                  dim = 2)
+                            # \"0\" is the neighbours of node, so the second in
+                            # the ring, because the neighbour of intersection was
+                            # yet considered before.
+                            is_outside = ((not k) or (keys[2 + (j * 2)] == -1))
+                            if (is_outside):
+                                uint32_max = numpy.iinfo(numpy.uint32).max
+                                # Inner \"local_idx\"
+                                in_local_idx = get_point_owner_idx(t_center_inv[0])
+                                in_global_idx = in_local_idx
+                                if (in_local_idx != uint32_max):
+                                    in_global_idx += o_ranges[0]
+                                    in_m_global_idx = mask_octant(in_global_idx)
+                                    if (in_m_global_idx not in t_indices_inv[j]):
+                                        # The MPI process containing the mapped neighbour continue to do
+                                        # the check for the other neighbours.
+                                        oct_center, \
+                                        n_oct_center  = get_center(in_local_idx         ,
+                                                                   ptr_octant = False,
+                                                                   also_numpy_center = True)
+                            else:
+                                if (k == 2):
+                                    in_m_global_idx = keys[i][1]
+                                else:
+                                    in_m_global_idx = keys[i][2 + (j * 2)]
+                                n_oct_center = ncopy(t_center_inv[0])
+
+                            t_indices_inv[j].add(in_m_global_idx)
+                            t_centers_inv[j].append(n_oct_center[: dimension])
+
+                    l_s_coeffs = map(b_c,
+                                     zip([narray(pair[0]) for pair in t_centers_inv],
+                                         [n_node for n_node in t_nodes_inv]))
+                    nodes_inter = t_nodes_inv
+                    owners_centers = [t_centers_inv[0][0], t_centers_inv[0][-1]]
+                    n_coeffs     , \
+                    coeffs_node_1, \
+                    coeffs_node_0  =  self.get_interface_coefficients(inter         ,
+                                                                      dimension     ,
+                                                                      nodes_inter   ,
+                                                                      owners_centers,
+                                                                      l_s_coeffs)
+                    coeffs_nodes = (coeffs_node_0,
+                                    coeffs_node_1)
+                    columns = []
+                    values = []
+                    values.append(n_coeffs[0])
+                    values.append(n_coeffs[1])
+                    values.extend(coeffs_nodes[0])
+                    values.extend(coeffs_nodes[1])
+                    columns.append(t_indices_inv[0][0])
+                    columns.append(t_indices_inv[0][-1])
+                    columns.extend(list(t_indices_inv[0]))
+                    columns.extend(list(t_indices_inv[1]))
+                    apply_rest_prol_ops([keys[i][1]],
+                                        columns     ,
+                                        values)
+                    rec_centers = []
+                    rec_centers.append(t_centers_inv[0][0])
+                    rec_centers.append(t_centers_inv[0][-1])
+                    rec_centers.extend(t_centers_inv[0])
+                    rec_centers.extend(t_centers_inv[1])
+                    rec_sols = solution(narray([rec_centers]),
+                                        b_alpha              ,
+                                        b_beta               ,
+                                        dim = 2              ,
+                                        apply_mapping = True)
+                    rec_sol = 0
+                        for i in xrange(0, len(rec_sols):
+                            rec_sol += rec_sols[i] * values[i]
+                    self._f_on_borders.append(rec_sol)
+                    #node_0 = stencils[i][1 : 1 + dimension]
+                    #node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
+                    #c_in = n_oct_center[: dimension]
+                    #c_out = narray([stencils[i][11 : 11 + dimension]])
+                    #apply_bil_mapping(c_out   ,
+                    #                  c_alpha ,
+                    #                  c_beta  ,
+                    #                  t_center,
+                    #                  dim = 2)
+                    #apply_bil_mapping_inv(t_center    ,
+                    #                      b_alpha     ,
+                    #                      b_beta      ,
+                    #                      t_center_inv,
+                    #                      dim = 2)
+                    #n_coeffs = get_interface_coefficients_1_order(0                ,
+                    #                                              dimension        ,
+                    #                                              [node_0, node_1] ,
+                    #                                              [c_in, t_center_inv[0][: dimension]],
+                    #                                              grid             ,
+                    #                                              use_inter = False,
+                    #                                              h_given = h_inter,
+                    #                                              n_axis_given = keys[i][5],
+                    #                                              n_value_given = keys[i][6])
+                    #apply_rest_prol_ops([keys[i][1]]              ,
+                    #                    [m_global_idx, keys[i][1]],
+                    #                    n_coeffs)
 
         msg = "Updated restriction blocks"
         self.log_msg(msg   ,
