@@ -2487,19 +2487,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # (of face and of node) (\"(+ dimension * 3)\"); that's the di-
                 # splacement \"displ\".
                 displ = 2 + (dimension * 3)
-                is_bad_point, \
-                n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
-                                                   displ               ,
-                                                   grid                ,
-                                                   o_ranges            ,
-                                                   ids_octree_contained,
-                                                   n_t_foreground      ,
-                                                   h_inter             ,
-                                                   keys[i][5]          ,
-                                                   keys[i][6]          ,
-                                                   dimension)
-                if (is_bad_point):
-                    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
+                # TODO: WRONG evaluation of the new point! correct!!!
+                #is_bad_point, \
+                #n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                #                                   displ               ,
+                #                                   grid                ,
+                #                                   o_ranges            ,
+                #                                   ids_octree_contained,
+                #                                   n_t_foreground      ,
+                #                                   h_inter             ,
+                #                                   keys[i][5]          ,
+                #                                   keys[i][6]          ,
+                #                                   dimension)
+                #if (is_bad_point):
+                #    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
                 # Getting transformed coordinates of the third neighbour (the
                 # one  of the other face/intersection).
                 # \"Numpy\" face neighbour.
@@ -2543,19 +2544,22 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 t_indices_inv.add(m_global_idx)
                         # Other outside foreground neighbour (the one of node).
                         elif (j == (2 + (2 * dimension))):
-                            is_bad_point, \
-                            n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
-                                                               displ               ,
-                                                               grid                ,
-                                                               o_ranges            ,
-                                                               ids_octree_contained,
-                                                               n_t_foreground      ,
-                                                               h_inter             ,
-                                                               keys[i][5]          ,
-                                                               keys[i][6]          ,
-                                                               dimension)
-                            if (is_bad_point):
-                                stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
+                            # TODO: WRONG! here the check has to be done on the
+                            #       node, so the \"x\" AND the \"y\" have to be
+                            #       modified.
+                            #is_bad_point, \
+                            #n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                            #                                   displ               ,
+                            #                                   grid                ,
+                            #                                   o_ranges            ,
+                            #                                   ids_octree_contained,
+                            #                                   n_t_foreground      ,
+                            #                                   h_inter             ,
+                            #                                   keys[i][5]          ,
+                            #                                   keys[i][6]          ,
+                            #                                   dimension)
+                            #if (is_bad_point):
+                            #    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
                             # \"Numpy\" node neighbour.
                             n_n_n = narray([stencils[i][j : j + dimension]])
                             apply_bil_mapping(n_n_n   ,
