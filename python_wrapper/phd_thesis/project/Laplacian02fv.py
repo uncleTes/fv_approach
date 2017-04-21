@@ -2658,7 +2658,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                    keys[i][6]          ,
                                                    dimension)
                 if (is_bad_point):
-                    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
+                    stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
                 # Getting transformed coordinates of the first neighbour (the one
                 # of the face/intersection), that will be the same for both the
                 # nodes of the intersection.
