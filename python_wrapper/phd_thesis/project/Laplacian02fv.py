@@ -2674,12 +2674,22 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     self._f_on_borders.append(rec_sol[0])
                     node_0 = stencils[i][1 : 1 + dimension]
                     node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
-                    c_in = oct_center
-                    c_out = stencils[i][11 : 11 + dimension]
+                    c_in = n_oct_center[: dimension]
+                    c_out = narray([stencils[i][11 : 11 + dimension]])
+                    apply_bil_mapping(c_out   ,
+                                      c_alpha ,
+                                      c_beta  ,
+                                      t_center,
+                                      dim = 2)
+                    apply_bil_mapping_inv(t_center    ,
+                                          b_alpha     ,
+                                          b_beta      ,
+                                          t_center_inv,
+                                          dim = 2)
                     n_coeffs = get_interface_coefficients_1_order(0                ,
                                                                   dimension        ,
                                                                   [node_0, node_1] ,
-                                                                  [c_in, c_out]    ,
+                                                                  [c_in, t_center_inv[0][: dimension]],
                                                                   grid             ,
                                                                   use_inter = False,
                                                                   h_given = h_inter,
