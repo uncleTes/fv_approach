@@ -2587,8 +2587,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # Other neighbour inside foreground neighbours.
                         else:
                             # \"Numpy\" node in foreground grid.
-                            n_n_f_g = narray(stencils[i][j : j + dimension])
-                            t_centers_inv.append(n_n_f_g)
+                            n_n_f_g = narray([stencils[i][j : j + dimension]])
+                            apply_bil_mapping(n_n_f_g ,
+                                              c_alpha ,
+                                              c_beta  ,
+                                              t_center,
+                                              dim = 2)
+                            apply_bil_mapping_inv(t_center    ,
+                                                  b_alpha     ,
+                                                  b_beta      ,
+                                                  t_center_inv,
+                                                  dim = 2)
+                            # \"Numpy\" copy \"t_center_inv\".
+                            n_c_t_c_i = ncopy(t_center_inv[0])
+                            t_centers_inv.append(n_c_t_c_i[: dimension])
                             t_indices_inv.add(keys[i][1])
                             t_indices_inv.add(keys[i][2])
                     # \"h\" + \"n_coeffs[node_on_f_b]\" (2).
@@ -2597,9 +2609,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     cs_n = stencils[i][displ : displ + dimension]
                     # \"Numpy\" coordinates of the node on the foreground boun-
                     # dary.
-                    n_cs_n = narray(cs_n)
+                    n_cs_n = narray([cs_n])
+                    apply_bil_mapping(n_cs_n  ,
+                                      c_alpha ,
+                                      c_beta  ,
+                                      t_center,
+                                      dim = 2)
+                    apply_bil_mapping_inv(t_center    ,
+                                          b_alpha     ,
+                                          b_beta      ,
+                                          t_center_inv,
+                                          dim = 2)
                     coeffs = b_c((narray(t_centers_inv),
-                                  n_cs_n))
+                                  t_center_inv[0][: dimension]))
                     # Outer normal coeffs.
                     o_n_coeffs = coeffs * stencils[i][1]
                     # Inner normal coeffs.
