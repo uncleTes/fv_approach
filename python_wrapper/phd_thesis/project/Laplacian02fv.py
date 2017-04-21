@@ -942,12 +942,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                            dimension       ,
                                            nodes_inter     ,
                                            owners_centers  ,
+                                           grid            ,
                                            use_inter = True,
                                            h_given = 0     ,
                                            n_axis_given = 0,
                                            n_value_given = 0):
         octree = self._octree
-        grid = self._proc_g
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
         is_bound_inter = True
@@ -2645,6 +2645,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                   dimension        ,
                                                                   [node_0, node_1] ,
                                                                   [c_in, c_out]    ,
+                                                                  grid             ,
                                                                   use_inter = False,
                                                                   h_given = h_inter,
                                                                   n_axis_given = keys[i][5],
