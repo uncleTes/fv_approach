@@ -2132,7 +2132,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         o_ranges            ,
                         ids_octree_contained,
                         # Reconstruction order.
-                        rec_ord = 1):
+                        rec_ord = 2):
         """Method which update the non diagonal blocks relative to the
            foreground grids.
 
@@ -2310,6 +2310,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #c_coeffs = c_coeffs * nsolution * -1.0
                 if (rec_ord == 2):
                     c_coeffs = (coeffs * value_to_multiply).tolist()
+                    #nsolutions = solution(n_cs_n_is[0],
+                    #                      c_alpha     ,
+                    #                      c_beta      ,
+                    #                      dim = 2     ,
+                    #                      apply_mapping = True)
+                    #n_sol_0 = nsolutions[0] * coeffs[0] * -1
+                    #n_sol_1 = nsolutions[1] * coeffs[1] * -1
+                    #n_sol_2 = nsolutions[2] * coeffs[2] * -1
+                    #n_sol_3 = 0.0
+                    #if (n_cs_n_is[0].shape[0] == 4):
+                    #    n_sol_3 = nsolutions[3] * coeffs[3] * -1
+                    #n_sol = n_sol_0 + n_sol_1 + n_sol_2 + n_sol_3
+                    #c_coeffs = n_sol
                 col_values.append(c_coeffs)
             if (rec_ord == 2):
                 col_indices.extend(n_cs_n_is[1])
