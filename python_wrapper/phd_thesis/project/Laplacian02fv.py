@@ -1924,6 +1924,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                           max_it = PETSc.DEFAULT) # Let's PETSc use DEAFULT
         ksp.setType("gmres")
         ksp.setFromOptions()
+        ksp.setInitialGuessNonzero(True)
         # Solve the system.
         #self._b_mat.view()
         ksp.solve(self._rhs,

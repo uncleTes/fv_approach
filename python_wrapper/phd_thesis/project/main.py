@@ -442,7 +442,6 @@ def compute(comm_dictionary     ,
     d_nnz, \
     o_nnz, \
     h_s = laplacian.create_mask()
-    laplacian.init_sol()
     # Not penalized centers.
     n_p_cs = numpy.array(laplacian.not_pen_centers)
     # TODO: change implementation of \"exact_sol\" and \"exact_2nd_der\" to
@@ -451,6 +450,9 @@ def compute(comm_dictionary     ,
     e_sol = utilities.exact_sol(n_p_cs,
                                 alpha ,
                                 beta)
+    # Initial guess equal to exact solution.
+    #laplacian.init_sol(e_sol)
+    laplacian.init_sol()
     e_2nd_der = utilities.exact_2nd_der(n_p_cs,
                                         alpha ,
                                         beta)
