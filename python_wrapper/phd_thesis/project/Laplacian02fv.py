@@ -2772,7 +2772,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                       dimension     ,
                                                                       nodes_inter   ,
                                                                       owners_centers,
-                                                                      l_s_coeffs)
+                                                                      l_s_coeffs    ,
+                                                                      grid = keys[i][0])
                     coeffs_nodes = (coeffs_node_0,
                                     coeffs_node_1)
                     columns = []
