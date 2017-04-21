@@ -1409,9 +1409,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         self._f_nodes = []
         self._f_nodes_exact = []
+        self._f_nodes_on_inter_borders = []
+        self._f_nodes_exact_on_inter_borders = []
         self._f_on_borders_exact = []
         self._f_on_borders = []
         self._h_s_inter = []
+        self._h_s_inter_on_board = []
 
         for i in xrange(0, ninters):
             # Rows indices for the \"PETSc\" matrix.
@@ -2219,7 +2222,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                               b_beta  ,
                               dim = 3 ,
                               apply_mapping = False)
-            ex_sols.append(ex_sol)
+            ex_sols.append(ex_sol[0])
             apply_bil_mapping_inv(t_center    ,
                                   c_alpha     ,
                                   c_beta      ,
@@ -2243,13 +2246,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_oct_center  = get_center(local_idxs[idx]   ,
                                        ptr_octant = False,
                                        also_numpy_center = True)
+            h = octree.get_area(local_idxs[idx])
+            # TODO: pass also \"h\" of the background octants to be sure of their
+            #       dimension carachteristic in case more complicated (here is just
+            #       two time the \"h\" of the foreground octants).
+            self._h_s_inter_on_board.append(h*2)
             self._f_on_borders_exact.append(ex_sols[idx])
-            rec_sol = solution(narray([n_oct_center]),
-                               c_alpha               ,
-                               c_beta                ,
-                               dim = 2               ,
-                               apply_mapping = True)
-            self._f_on_borders.append(rec_sol)
+            n_rec_sol = solution(narray([n_oct_center]),
+                                 c_alpha               ,
+                                 c_beta                ,
+                                 dim = 2               ,
+                                 apply_mapping = True)
+            rec_sol = n_rec_sol[0]
             if (rec_ord == 2):
                 # TODO: check correctness of the ring and of the indices found
                 #       (understand if \"n_cs_n_is[1]\" has to be masked or not).
@@ -2259,8 +2267,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 n_cs_n_is = f_r_n((local_idxs[idx],
                                    oct_ring       ,
                                    t_centers_inv[idx]))
+                rec_sols = solution(n_cs_n_is[0],
+                                    c_alpha     ,
+                                    c_beta      ,
+                                    dim = 2     ,
+                                    apply_mapping = True)
                 coeffs = b_c(n_cs_n_is[0],
                              t_centers_inv[idx])
+                rec_sol_0 = rec_sols[0] * coeffs[0]
+                rec_sol_1 = rec_sols[1] * coeffs[1]
+                rec_sol_2 = rec_sols[2] * coeffs[2]
+                rec_sol_3 = 0.0
+                if (n_cs_n_is[0].shape[0] == 4):
+                    rec_sol_3 = rec_sols[3] * coeffs[3]
+                rec_sol = rec_sol_0 + rec_sol_1 + rec_sol_2 + rec_sol_3
+            self._f_on_borders.append(rec_sol)
 
             # Checkout how the \"stencil\" is created in the function
             # \"create_mask\".
@@ -2623,7 +2644,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                       c_beta  ,
                                       dim = 3 ,
                                       apply_mapping = False)
-                    self._f_on_borders_exact.append(ex_sol)
+                    self._h_s_inter_on_board.append(h_inter)
+                    self._f_on_borders_exact.append(ex_sol[0])
                     global_idx += o_ranges[0]
                     # The MPI process containing the mapped neighbour continue to do
                     # the check for the other neighbours.
@@ -2636,7 +2658,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        b_beta                ,
                                        dim = 2               ,
                                        apply_mapping = True)
-                    self._f_on_borders.append(rec_sol)
+                    self._f_on_borders.append(rec_sol[0])
                     node_0 = stencils[i][1 : 1 + dimension]
                     node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
                     c_in = oct_center
@@ -3413,4 +3435,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     @property
     def h_s_inter(self):
         return numpy.array(self._h_s_inter)
+
+    @property
+    def h_s_inter_on_board(self):
+        return numpy.array(self._h_s_inter_on_board)
 

@@ -495,11 +495,11 @@ def compute(comm_dictionary     ,
                                  "(%e, %e)" % (norm_inf, norm_L2))
     print(msg)
     norm_inf, \
-    norm_l2 = laplacian.evaluate_norms(laplacian.f_on_bord      ,
-                                       laplacian.f_exact_on_bord,
-                                       laplacian.h_s_inter      ,
-                                       l2 = True)
-    msg = utilities.join_strings("Function approximation on border (inf, l2): ",
+    norm_l2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
+                                       laplacian.f_exact_on_bord   ,
+                                       laplacian.h_s_inter_on_board,
+                                       l2 = False)
+    msg = utilities.join_strings("Function approximation on border (inf, L2): ",
                                  "process %d " % comm_w.Get_rank()             ,
                                  "(%e, %e)" % (norm_inf, norm_l2))
     print(msg)
