@@ -1043,7 +1043,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             grid = self._proc_g
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
-        is_bound_inter = True
+        is_bound_inter = False
         n_axis = n_axis_given
         n_value = n_value_given
         n_normal_inter = numpy.zeros((3, ),
@@ -2470,9 +2470,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         b_c = lambda x: bil_coeffs(x[0],
                                    x[1])
 
-        t_center = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
-        t_center_inv = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
         for i in xrange(0, l_l_edg):
+            t_center = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
+            t_center_inv = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
             grid = keys[i][0]
             t_foreground = self._t_foregrounds[grid - 1]
             n_t_foreground = narray([t_foreground])
@@ -2648,7 +2648,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 for j in xrange(0, 2):
                     # Transformed node inverse.
                     t_n_i = narray([stencils[i][displ : displ + dimension]])
-                    apply_bil_mapping(n_i     ,
+                    apply_bil_mapping(t_n_i   ,
                                       c_alpha ,
                                       c_beta  ,
                                       t_center,
@@ -2660,26 +2660,26 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           dim = 2)
                     # \"Numpy\" copy transformed node inverse.
                     n_c_t_n_i = ncopy(t_center_inv[0])
-                    t_nodes_inv.append(n_c_t_c_i)
+                    t_nodes_inv.append(n_c_t_n_i[: dimension])
                     displ += dimension
 
                 # \"h\" (1), plus the coordinates of the nodes on the foreground
                 # boundary (\" + (dimension * 2)\"), that's the explanation for
                 # \"displ\".
                 displ = 1 + (dimension * 2)
-                is_bad_point, \
-                n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
-                                                   displ               ,
-                                                   grid                ,
-                                                   o_ranges            ,
-                                                   ids_octree_contained,
-                                                   n_t_foreground      ,
-                                                   h_inter             ,
-                                                   keys[i][5]          ,
-                                                   keys[i][6]          ,
-                                                   dimension)
-                if (is_bad_point):
-                    stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
+                #is_bad_point, \
+                #n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                #                                   displ               ,
+                #                                   grid                ,
+                #                                   o_ranges            ,
+                #                                   ids_octree_contained,
+                #                                   n_t_foreground      ,
+                #                                   h_inter             ,
+                #                                   keys[i][5]          ,
+                #                                   keys[i][6]          ,
+                #                                   dimension)
+                #if (is_bad_point):
+                #    stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
                 # Getting transformed coordinates of the first neighbour (the one
                 # of the face/intersection), that will be the same for both the
                 # nodes of the intersection.
@@ -2721,6 +2721,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     for j in xrange(0, 2):
                         for k in xrange(0, 3):
                             displ = displ + dimension
+                            if ((j == 1) and (k == 0)):
+                                displ = displ + dimension
                             n_f_n = narray([stencils[i][displ : displ + dimension]])
                             apply_bil_mapping(n_f_n   ,
                                               c_alpha ,
@@ -2735,7 +2737,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             # \"0\" is the neighbours of node, so the second in
                             # the ring, because the neighbour of intersection was
                             # yet considered before.
-                            is_outside = ((not k) or (keys[2 + (j * 2)] == -1))
+                            is_outside = ((not k) or (keys[i][2 + (j * 2)] == -1))
                             if (is_outside):
                                 uint32_max = numpy.iinfo(numpy.uint32).max
                                 # Inner \"local_idx\"
@@ -2744,35 +2746,42 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 if (in_local_idx != uint32_max):
                                     in_global_idx += o_ranges[0]
                                     in_m_global_idx = mask_octant(in_global_idx)
+                                    # The MPI process containing the mapped neighbour continue to do
+                                    # the check for the other neighbours.
+                                    oct_center, \
+                                    n_oct_center  = get_center(in_local_idx         ,
+                                                               ptr_octant = False,
+                                                               also_numpy_center = True)
                                     if (in_m_global_idx not in t_indices_inv[j]):
-                                        # The MPI process containing the mapped neighbour continue to do
-                                        # the check for the other neighbours.
-                                        oct_center, \
-                                        n_oct_center  = get_center(in_local_idx         ,
-                                                                   ptr_octant = False,
-                                                                   also_numpy_center = True)
+                                        t_indices_inv[j].add(in_m_global_idx)
+                                        t_centers_inv[j].append(n_oct_center[: dimension])
                             else:
                                 if (k == 2):
                                     in_m_global_idx = keys[i][1]
                                 else:
                                     in_m_global_idx = keys[i][2 + (j * 2)]
                                 n_oct_center = ncopy(t_center_inv[0])
-
-                            t_indices_inv[j].add(in_m_global_idx)
-                            t_centers_inv[j].append(n_oct_center[: dimension])
-
+                                if (in_m_global_idx not in t_indices_inv[j]):
+                                    t_indices_inv[j].add(in_m_global_idx)
+                                    t_centers_inv[j].append(n_oct_center[: dimension])
+                    if(narray(t_centers_inv[1]).shape[0] == 1):
+                        print(self._comm_w.Get_rank())
                     l_s_coeffs = map(b_c,
-                                     zip([narray(pair[0]) for pair in t_centers_inv],
+                                     zip([narray(t_center_inv) for t_center_inv in t_centers_inv],
                                          [n_node for n_node in t_nodes_inv]))
                     nodes_inter = t_nodes_inv
                     owners_centers = [t_centers_inv[0][0], t_centers_inv[0][-1]]
                     n_coeffs     , \
                     coeffs_node_1, \
-                    coeffs_node_0  =  self.get_interface_coefficients(inter         ,
+                    coeffs_node_0  =  self.get_interface_coefficients(0         ,
                                                                       dimension     ,
                                                                       nodes_inter   ,
                                                                       owners_centers,
                                                                       l_s_coeffs    ,
+                                                                      use_inter = False,
+                                                                      h_given = h_inter,
+                                                                      n_axis_given = keys[i][5],
+                                                                      n_value_given = keys[i][6],
                                                                       grid = keys[i][0])
                     coeffs_nodes = (coeffs_node_0,
                                     coeffs_node_1)
@@ -2782,10 +2791,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     values.append(n_coeffs[1])
                     values.extend(coeffs_nodes[0])
                     values.extend(coeffs_nodes[1])
-                    columns.append(t_indices_inv[0][0])
-                    columns.append(t_indices_inv[0][-1])
-                    columns.extend(list(t_indices_inv[0]))
-                    columns.extend(list(t_indices_inv[1]))
+                    # Sets do not support indexing.
+                    l_t_indices_inv_0 = list(t_indices_inv[0])
+                    l_t_indices_inv_1 = list(t_indices_inv[1])
+                    columns.append(l_t_indices_inv_0[0])
+                    columns.append(l_t_indices_inv_0[-1])
+                    columns.extend(l_t_indices_inv_0)
+                    columns.extend(l_t_indices_inv_1)
                     apply_rest_prol_ops([keys[i][1]],
                                         columns     ,
                                         values)
@@ -2794,14 +2806,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     rec_centers.append(t_centers_inv[0][-1])
                     rec_centers.extend(t_centers_inv[0])
                     rec_centers.extend(t_centers_inv[1])
-                    rec_sols = solution(narray([rec_centers]),
+                    rec_sols = solution(narray(rec_centers),
                                         b_alpha              ,
                                         b_beta               ,
                                         dim = 2              ,
                                         apply_mapping = True)
                     rec_sol = 0
-                        for i in xrange(0, len(rec_sols):
-                            rec_sol += rec_sols[i] * values[i]
+                    for k in xrange(0, rec_sols.shape[0]):
+                        rec_sol += rec_sols[k] * values[k]
                     self._f_on_borders.append(rec_sol)
                     #node_0 = stencils[i][1 : 1 + dimension]
                     #node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
