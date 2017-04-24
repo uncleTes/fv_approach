@@ -2484,6 +2484,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 h_inter = stencils[i][0]
                 t_centers_inv = []
                 t_indices_inv = set()
+                l_t_indices_inv = []
                 # \"h\" + \"n_coeffs[node_on_f_b]\" (2) + the coordinates of the
                 # node on the foreground boundary  + the first two ring neighbours
                 # (of face and of node) (\"(+ dimension * 3)\"); that's the di-
@@ -2541,9 +2542,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                        ptr_octant = False,
                                                        also_numpy_center = True)
                             m_global_idx = mask_octant(global_idx)
+                            apply_bil_mapping(narray([n_oct_center]),
+                                              b_alpha ,
+                                              b_beta  ,
+                                              t_center,
+                                              dim = 2)
+                            apply_bil_mapping_inv(t_center    ,
+                                                  c_alpha     ,
+                                                  c_beta      ,
+                                                  t_center_inv,
+                                                  dim = 2)
+                            c_n_oct_center = ncopy(t_center_inv[0])
                             if (m_global_idx not in t_indices_inv):
-                                t_centers_inv.append(n_oct_center[: dimension])
+                                t_centers_inv.append(c_n_oct_center[: dimension])
                                 t_indices_inv.add(m_global_idx)
+                                l_t_indices_inv.append(m_global_idx)
                         # Other outside foreground neighbour (the one of node).
                         elif (j == (2 + (2 * dimension))):
                             # TODO: WRONG! here the check has to be done on the
@@ -2583,9 +2596,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                            ptr_octant = False,
                                                            also_numpy_center = True)
                                 n_n_m_global_idx = mask_octant(n_n_global_idx)
+                                apply_bil_mapping(narray([n_oct_center]),
+                                                  b_alpha ,
+                                                  b_beta  ,
+                                                  t_center,
+                                                  dim = 2)
+                                apply_bil_mapping_inv(t_center    ,
+                                                      c_alpha     ,
+                                                      c_beta      ,
+                                                      t_center_inv,
+                                                      dim = 2)
+                                c_n_oct_center = ncopy(t_center_inv[0])
                                 if (n_n_m_global_idx not in t_indices_inv):
-                                    t_centers_inv.append(n_oct_center[: dimension])
+                                    t_centers_inv.append(c_n_oct_center[: dimension])
                                     t_indices_inv.add(n_n_m_global_idx)
+                                    l_t_indices_inv.append(n_n_m_global_idx)
                         # Other neighbour inside foreground neighbours.
                         else:
                             # \"Numpy\" node in foreground grid.
@@ -2603,8 +2628,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             # \"Numpy\" copy \"t_center_inv\".
                             n_c_t_c_i = ncopy(t_center_inv[0])
                             t_centers_inv.append(n_c_t_c_i[: dimension])
-                            t_indices_inv.add(keys[i][1])
-                            t_indices_inv.add(keys[i][2])
+                            if (keys[i][1] not in t_indices_inv):
+                                t_indices_inv.add(keys[i][1])
+                                l_t_indices_inv.append(keys[i][1])
+                            if (keys[i][2] not in t_indices_inv):
+                                t_indices_inv.add(keys[i][2])
+                                l_t_indices_inv.append(keys[i][2])
                     # \"h\" + \"n_coeffs[node_on_f_b]\" (2).
                     displ = 2
                     # Coordinates of the node on the foreground boundary.
@@ -2634,7 +2663,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     row_indices = []
                     row_indices.append(keys[i][1])
                     row_indices.append(keys[i][2])
-                    col_indices = list(t_indices_inv)
+                    col_indices = l_t_indices_inv
                     apply_rest_prol_ops(row_indices,
                                         col_indices,
                                         col_values)
@@ -2642,24 +2671,27 @@ class Laplacian(BaseClass2D.BaseClass2D):
             elif (keys[i][3] == 2):
                 t_centers_inv = [[], []]
                 t_indices_inv = [set(), set()]
+                l_t_indices_inv = [[], []]
                 t_nodes_inv = []
                 h_inter = stencils[i][0]
                 displ = 1
                 for j in xrange(0, 2):
                     # Transformed node inverse.
-                    t_n_i = narray([stencils[i][displ : displ + dimension]])
-                    apply_bil_mapping(t_n_i   ,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      t_center,
-                                      dim = 2)
-                    apply_bil_mapping_inv(t_center    ,
-                                          b_alpha     ,
-                                          b_beta      ,
-                                          t_center_inv,
-                                          dim = 2)
-                    # \"Numpy\" copy transformed node inverse.
-                    n_c_t_n_i = ncopy(t_center_inv[0])
+                    #t_n_i = narray([stencils[i][displ : displ + dimension]])
+                    #apply_bil_mapping(t_n_i   ,
+                    #                  c_alpha ,
+                    #                  c_beta  ,
+                    #                  t_center,
+                    #                  dim = 2)
+                    #apply_bil_mapping_inv(t_center    ,
+                    #                      b_alpha     ,
+                    #                      b_beta      ,
+                    #                      t_center_inv,
+                    #                      dim = 2)
+                    ## \"Numpy\" copy transformed node inverse.
+                    #n_c_t_n_i = ncopy(t_center_inv[0])
+                    t_n_i = narray(stencils[i][displ : displ + dimension])
+                    n_c_t_n_i = t_n_i
                     t_nodes_inv.append(n_c_t_n_i[: dimension])
                     displ += dimension
 
@@ -2685,16 +2717,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # nodes of the intersection.
                 # \"Numpy\" face neighbour.
                 n_f_n = narray([stencils[i][displ : displ + dimension]])
+                #print("row " + str(keys[i][1]) + " point of face " + str(n_f_n))
                 apply_bil_mapping(n_f_n   ,
                                   c_alpha ,
                                   c_beta  ,
                                   t_center,
                                   dim = 2)
+                #print("Outside point after first mapping, row " + str(keys[i][1]) + " point of face " + str(t_center[0]))
                 apply_bil_mapping_inv(t_center    ,
                                       b_alpha     ,
                                       b_beta      ,
                                       t_center_inv,
                                       dim = 2)
+                #print("Outside point after second mapping, row " + str(keys[i][1]) + " point of face " + str(t_center_inv[0]))
                 uint32_max = numpy.iinfo(numpy.uint32).max
                 local_idx = get_point_owner_idx(t_center_inv[0])
                 global_idx = local_idx
@@ -2708,37 +2743,57 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     self._f_on_borders_exact.append(ex_sol[0])
                     global_idx += o_ranges[0]
                     m_global_idx = mask_octant(global_idx)
+                    #print("Global background owner " + str(global_idx) + " Global masked background owner " + str(m_global_idx))
                     # The MPI process containing the mapped neighbour continue to do
                     # the check for the other neighbours.
                     oct_center, \
                     n_oct_center  = get_center(local_idx         ,
                                                ptr_octant = False,
                                                also_numpy_center = True)
+                    #print("Center of the background owner " + str(n_oct_center))
+                    apply_bil_mapping(narray([n_oct_center]),
+                                      b_alpha ,
+                                      b_beta  ,
+                                      t_center,
+                                      dim = 2)
+                    #print("Center of the background owner after first mapping, row " + str(keys[i][1]) + " point of face " + str(t_center[0]))
+                    apply_bil_mapping_inv(t_center    ,
+                                          c_alpha     ,
+                                          c_beta      ,
+                                          t_center_inv,
+                                          dim = 2)
+                    #print("Center of the background owner after second mapping, row " + str(keys[i][1]) + " point of face " + str(t_center_inv[0]))
+                    c_n_oct_center = ncopy(t_center_inv[0])
                     t_indices_inv[0].add(m_global_idx)
                     t_indices_inv[1].add(m_global_idx)
-                    t_centers_inv[0].append(n_oct_center[: dimension])
-                    t_centers_inv[1].append(n_oct_center[: dimension])
+                    l_t_indices_inv[0].append(m_global_idx)
+                    l_t_indices_inv[1].append(m_global_idx)
+                    t_centers_inv[0].append(c_n_oct_center[: dimension])
+                    t_centers_inv[1].append(c_n_oct_center[: dimension])
                     for j in xrange(0, 2):
                         for k in xrange(0, 3):
                             displ = displ + dimension
                             if ((j == 1) and (k == 0)):
                                 displ = displ + dimension
                             n_f_n = narray([stencils[i][displ : displ + dimension]])
-                            apply_bil_mapping(n_f_n   ,
-                                              c_alpha ,
-                                              c_beta  ,
-                                              t_center,
-                                              dim = 2)
-                            apply_bil_mapping_inv(t_center    ,
-                                                  b_alpha     ,
-                                                  b_beta      ,
-                                                  t_center_inv,
-                                                  dim = 2)
                             # \"0\" is the neighbours of node, so the second in
                             # the ring, because the neighbour of intersection was
                             # yet considered before.
-                            is_outside = ((not k) or (keys[i][2 + (j * 2)] == -1))
+                            is_outside = ((not k) or ((k == 1) and (keys[i][2 + (j * 2)] == -1)))
+                            #print("Nodo " + str(j) + " vicino " + str(k + 1) + " = " + str(n_f_n) + " is outside = " + str(is_outside))
                             if (is_outside):
+                                apply_bil_mapping(n_f_n   ,
+                                                  c_alpha ,
+                                                  c_beta  ,
+                                                  t_center,
+                                                  dim = 2)
+                                #print("Nodo " + str(n_f_n) + " outside after first mapping, row " + str(keys[i][1]) + " point of face " + str(t_center[0]))
+                                apply_bil_mapping_inv(t_center    ,
+                                                      b_alpha     ,
+                                                      b_beta      ,
+                                                      t_center_inv,
+                                                      dim = 2)
+                                #print("Nodo " + str(n_f_n) + " outside after second mapping, row " + str(keys[i][1]) + " point of face " + str(t_center_inv[0]))
                                 uint32_max = numpy.iinfo(numpy.uint32).max
                                 # Inner \"local_idx\"
                                 in_local_idx = get_point_owner_idx(t_center_inv[0])
@@ -2746,24 +2801,47 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 if (in_local_idx != uint32_max):
                                     in_global_idx += o_ranges[0]
                                     in_m_global_idx = mask_octant(in_global_idx)
+                                    #print("Global background owner " + str(in_global_idx) + " Global masked background owner " + str(in_m_global_idx))
                                     # The MPI process containing the mapped neighbour continue to do
                                     # the check for the other neighbours.
                                     oct_center, \
                                     n_oct_center  = get_center(in_local_idx         ,
                                                                ptr_octant = False,
                                                                also_numpy_center = True)
+                                    #print("Center of the background owner " + str(n_oct_center))
+                                    apply_bil_mapping(narray([n_oct_center]),
+                                                      b_alpha ,
+                                                      b_beta  ,
+                                                      t_center,
+                                                      dim = 2)
+                                    #print("Center of the background owner after first mapping, row " + str(keys[i][1]) + " point of face " + str(t_center[0]))
+                                    apply_bil_mapping_inv(t_center    ,
+                                                          c_alpha     ,
+                                                          c_beta      ,
+                                                          t_center_inv,
+                                                          dim = 2)
+                                    #print("Center of the background owner after second mapping, row " + str(keys[i][1]) + " point of face " + str(t_center_inv[0]))
+                                    c_n_oct_center = ncopy(t_center_inv[0])
                                     if (in_m_global_idx not in t_indices_inv[j]):
+                                        #print("not masked " + str(in_global_idx))
+                                        #print("masked " + str(in_m_global_idx))
                                         t_indices_inv[j].add(in_m_global_idx)
-                                        t_centers_inv[j].append(n_oct_center[: dimension])
+                                        l_t_indices_inv[j].append(in_m_global_idx)
+                                        t_centers_inv[j].append(c_n_oct_center[: dimension])
                             else:
                                 if (k == 2):
                                     in_m_global_idx = keys[i][1]
                                 else:
                                     in_m_global_idx = keys[i][2 + (j * 2)]
-                                n_oct_center = ncopy(t_center_inv[0])
+                                #print(in_m_global_idx)
+
+                                #n_oct_center = ncopy(t_center_inv[0])
+                                n_oct_center = n_f_n
+                                #print(n_oct_center.shape)
                                 if (in_m_global_idx not in t_indices_inv[j]):
                                     t_indices_inv[j].add(in_m_global_idx)
-                                    t_centers_inv[j].append(n_oct_center[: dimension])
+                                    l_t_indices_inv[j].append(in_m_global_idx)
+                                    t_centers_inv[j].append(n_oct_center[0][: dimension])
                     if(narray(t_centers_inv[1]).shape[0] == 1):
                         print(self._comm_w.Get_rank())
                     l_s_coeffs = map(b_c,
@@ -2792,12 +2870,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     values.extend(coeffs_nodes[0])
                     values.extend(coeffs_nodes[1])
                     # Sets do not support indexing.
-                    l_t_indices_inv_0 = list(t_indices_inv[0])
-                    l_t_indices_inv_1 = list(t_indices_inv[1])
+                    # SET ARE ORDEREDDDDDDD!!!!! I NEEDED an unordered data structure!!!!!
+                    #print(l_t_indices_inv)
+                    l_t_indices_inv_0 = l_t_indices_inv[0]
+                    l_t_indices_inv_1 = l_t_indices_inv[1]
                     columns.append(l_t_indices_inv_0[0])
                     columns.append(l_t_indices_inv_0[-1])
                     columns.extend(l_t_indices_inv_0)
                     columns.extend(l_t_indices_inv_1)
+                    #print("row " + str(keys[i][1]))
+                    #print("values " + str(values))
+                    #print("cols " + str(columns))
                     apply_rest_prol_ops([keys[i][1]],
                                         columns     ,
                                         values)
