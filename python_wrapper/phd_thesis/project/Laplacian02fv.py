@@ -946,11 +946,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                            use_inter = True,
                                            h_given = 0     ,
                                            n_axis_given = 0,
-                                           n_value_given = 0):
+                                           n_value_given = 0,
+                                           bound_inter = False):
         octree = self._octree
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
-        is_bound_inter = True
+        is_bound_inter = bound_inter
         n_axis = n_axis_given
         n_value = n_value_given
         n_normal_inter = numpy.zeros((3, ),
@@ -1931,7 +1932,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         ksp.setFromOptions()
         ksp.setInitialGuessNonzero(True)
         # Solve the system.
-        #self._b_mat.view()
+        self._b_mat.view()
         ksp.solve(self._rhs,
                   self._sol)
         # How many iterations are done.
@@ -3316,9 +3317,97 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #        stencil[(2 * dimension) + 1] = value_to_store
 
             values = (n_t_array * mult).tolist()
-        self._b_mat.setValues(r_indices, # Row
-                              c_indices, # Columns
-                              values   , # Values to be inserted
+        if ((octree.get_level(g_o_norms_inter[0],
+                              False             ,
+                              False)) !=
+            (octree.get_level(g_o_norms_inter[1],
+                              False             ,
+                              False))):
+            face_out = octree.get_face(inter)
+            h_in = octree.get_area(g_o_norms_inter[0])
+            cen_in_normal = numpy.copy(owners_centers[0])
+            cen_out_normal = numpy.copy(owners_centers[0])
+            #print(cen_in_normal)
+            if (n_axis):
+                if (n_value == 1):
+                    cen_in_normal[1] -= h_in
+                    face_in = face_out - 1
+                else:
+                    cen_in_normal[1] += h_in
+                    face_in = face_out + 1
+            else:
+                if (n_value == 1):
+                    cen_in_normal[0] -= h_in
+                    face_in = face_out - 1
+                else:
+                    cen_in_normal[0] += h_in
+                    face_in = face_out + 1
+            #print(cen_in_normal)
+            #print(cen_out_normal)
+            face_in_nodes_in = octree.get_face_node()[face_in][0 : 2]
+            face_in_nodes_coord = octree.get_nodes(g_o_norms_inter[0], dimension)
+            face_in_nodes_coord_0 = face_in_nodes_coord[face_in_nodes_in[0]]
+            face_in_nodes_coord_1 = face_in_nodes_coord[face_in_nodes_in[1]]
+            face_in_nodes = [face_in_nodes_coord_0, face_in_nodes_coord_1]
+            #print(g_o_norms_inter)
+            #print([cen_in_normal, cen_out_normal])
+            coeffs_face_in = self.get_interface_coefficients_1_order(inter,
+                                                                     dimension,
+                                                                     face_in_nodes,
+                                                                     [cen_in_normal, cen_out_normal],
+                                                                     grid,
+                                                                     use_inter = False,
+                                                                     h_given = h_in,
+                                                                     n_axis_given = n_axis,
+                                                                     n_value_given = n_value,
+                                                                     bound_inter = False)
+            #print(coeffs_face_in)
+            #print(cen_out_normal) 
+            local_idx = octree.get_point_owner_idx(cen_in_normal)
+            #print(local_idx)
+            oct_center, \
+            n_oct_center  = octree.get_center(local_idx,
+                                              ptr_octant = False,
+                                              also_numpy_center = True)
+            oct_ring = utilities.get_points_local_ring(numpy.array(cen_in_normal),
+                                                       n_oct_center)
+            #print(local_idx)
+            #print(oct_ring)
+            n_cs_n_is = self.new_find_right_neighbours(local_idx,
+                                                       0,
+                                                       oct_ring)
+            #print(n_cs_n_is)
+            coeffs = utilities.bil_coeffs(n_cs_n_is[0],
+                                          numpy.array(cen_in_normal))
+            #print(coeffs)
+            coeffs = coeffs * coeffs_face_in[1] * 1/2
+            #print(coeffs)
+            #print(face_in_nodes_in)
+            #print(str(face_in_nodes_coord_0) + " "  + str(face_in_nodes_coord_1))
+            c_indices_in = []
+            # Normal in.
+            r_index_in = r_indices[0]
+            c_indices_in.append(r_index_in)
+            c_indices_in.extend(n_cs_n_is[1])
+            coeffs_in = []
+            coeffs_in.append(coeffs_face_in[0] * 1/2)
+            coeffs_in.extend(coeffs)
+            self._b_mat.setValues(r_index_in,
+                                  c_indices_in,
+                                  coeffs_in,
+                                  insert_mode)
+            # Normal out.
+            r_index_out = r_indices[1]
+            c_indices_out = c_indices
+            coeffs_out = values[1]
+            self._b_mat.setValues(r_index_out,
+                                  c_indices_out,
+                                  coeffs_out,
+                                  insert_mode)
+        else:
+            self._b_mat.setValues(r_indices, # Row
+                                  c_indices, # Columns
+                                  values   , # Values to be inserted
                               insert_mode)
     # --------------------------------------------------------------------------
 
