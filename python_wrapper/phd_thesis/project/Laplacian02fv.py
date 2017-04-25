@@ -3330,17 +3330,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
             #print(cen_in_normal)
             if (n_axis):
                 if (n_value == 1):
-                    cen_in_normal[1] -= h_in
+                    cen_out_normal[1] -= h_in
                     face_in = face_out - 1
                 else:
-                    cen_in_normal[1] += h_in
+                    cen_out_normal[1] += h_in
                     face_in = face_out + 1
             else:
                 if (n_value == 1):
-                    cen_in_normal[0] -= h_in
+                    cen_out_normal[0] -= h_in
                     face_in = face_out - 1
                 else:
-                    cen_in_normal[0] += h_in
+                    cen_out_normal[0] += h_in
                     face_in = face_out + 1
             #print(cen_in_normal)
             #print(cen_out_normal)
@@ -3363,13 +3363,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                      bound_inter = False)
             #print(coeffs_face_in)
             #print(cen_out_normal) 
-            local_idx = octree.get_point_owner_idx(cen_in_normal)
+            local_idx = octree.get_point_owner_idx(cen_out_normal)
             #print(local_idx)
             oct_center, \
             n_oct_center  = octree.get_center(local_idx,
                                               ptr_octant = False,
                                               also_numpy_center = True)
-            oct_ring = utilities.get_points_local_ring(numpy.array(cen_in_normal),
+            oct_ring = utilities.get_points_local_ring(numpy.array(cen_out_normal),
                                                        n_oct_center)
             #print(local_idx)
             #print(oct_ring)
@@ -3378,9 +3378,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                        oct_ring)
             #print(n_cs_n_is)
             coeffs = utilities.bil_coeffs(n_cs_n_is[0],
-                                          numpy.array(cen_in_normal))
+                                          numpy.array(cen_out_normal))
             #print(coeffs)
-            coeffs = coeffs * coeffs_face_in[1] * 1/2
+            coeffs = coeffs * coeffs_face_in[1] * -1/2
             #print(coeffs)
             #print(face_in_nodes_in)
             #print(str(face_in_nodes_coord_0) + " "  + str(face_in_nodes_coord_1))
@@ -3390,7 +3390,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             c_indices_in.append(r_index_in)
             c_indices_in.extend(n_cs_n_is[1])
             coeffs_in = []
-            coeffs_in.append(coeffs_face_in[0] * 1/2)
+            coeffs_in.append(coeffs_face_in[0] * -1/2)
             coeffs_in.extend(coeffs)
             self._b_mat.setValues(r_index_in,
                                   c_indices_in,
