@@ -3438,7 +3438,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   c_indices_out,
                                   coeffs_out,
                                   insert_mode)
-            self._michel_values.append(michel_value)
+            self._michel_values.append(michel_value[0])
             self._michel_hs.append(h_in)
         else:
             self._b_mat.setValues(r_indices, # Row
