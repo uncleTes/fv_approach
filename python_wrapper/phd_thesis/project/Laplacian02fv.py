@@ -1348,6 +1348,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         f_bound = self._f_bound
         grid = self._proc_g
         n_grids = self._n_grids
+        self._michel_values = []
+        self._michel_hs = []
 
         # Ghosts' deplacement.
         g_d = 0
@@ -1620,6 +1622,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self.log_msg(msg   ,
                      "info",
                      extra_msg)
+        n_michel_values = numpy.array(self._michel_values)
+        n_michel_hs = numpy.array(self._michel_values)
+        michel_zeros = [0] * len(self._michel_values)
+        n_michel_zeros = numpy.array(michel_zeros)
+        michel_norms = self.evaluate_norms(n_michel_values, n_michel_zeros,
+                                           n_michel_hs, False)
+        print(michel_norms)
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
@@ -1932,7 +1941,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         ksp.setFromOptions()
         ksp.setInitialGuessNonzero(True)
         # Solve the system.
-        self._b_mat.view()
+        #self._b_mat.view()
         ksp.solve(self._rhs,
                   self._sol)
         # How many iterations are done.
@@ -3392,6 +3401,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
             coeffs_in = []
             coeffs_in.append(coeffs_face_in[0] * -1/2)
             coeffs_in.extend(coeffs)
+            michel_value = 0
+            c_alpha = self.get_trans(grid)[1]
+            c_beta = self.get_trans(grid)[2]
+            for index_in in xrange(0, len(c_indices_in)):
+                oct_center, \
+                n_oct_center  = octree.get_center(index_in,
+                                                  ptr_octant = False,
+                                                  also_numpy_center = True)
+                sol_tem = utilities.exact_sol(numpy.array([n_oct_center[: dimension]]),
+                                              c_alpha                    ,
+                                              c_beta                     ,
+                                              2                          ,
+                                              True)
+                michel_value -= sol_tem * coeffs_in[index_in]
             self._b_mat.setValues(r_index_in,
                                   c_indices_in,
                                   coeffs_in,
@@ -3400,10 +3423,23 @@ class Laplacian(BaseClass2D.BaseClass2D):
             r_index_out = r_indices[1]
             c_indices_out = c_indices
             coeffs_out = values[1]
+            for index_out in xrange(0, len(c_indices_out)):
+                oct_center, \
+                n_oct_center  = octree.get_center(index_out,
+                                                  ptr_octant = False,
+                                                  also_numpy_center = True)
+                sol_tem = utilities.exact_sol(numpy.array([n_oct_center[: dimension]]),
+                                              c_alpha                    ,
+                                              c_beta                     ,
+                                              2                          ,
+                                              True)
+                michel_value += sol_tem * coeffs_out[index_out]
             self._b_mat.setValues(r_index_out,
                                   c_indices_out,
                                   coeffs_out,
                                   insert_mode)
+            self._michel_values.append(michel_value)
+            self._michel_hs.append(h_in)
         else:
             self._b_mat.setValues(r_indices, # Row
                                   c_indices, # Columns
