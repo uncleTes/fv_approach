@@ -2648,6 +2648,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # \"Numpy\" coordinates of the node on the foreground boun-
                     # dary.
                     n_cs_n = narray([cs_n])
+                    ex_sol = solution(n_cs_n,
+                                        c_alpha              ,
+                                        c_beta               ,
+                                        dim = 2              ,
+                                        apply_mapping = True)
+                    self._f_on_borders_exact.append(ex_sol[0])
+                    self._h_s_inter_on_board.append(h_inter)
                     apply_bil_mapping(n_cs_n  ,
                                       c_alpha ,
                                       c_beta  ,
@@ -2659,7 +2666,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           t_center_inv,
                                           dim = 2)
                     coeffs = b_c((narray(t_centers_inv),
-                                  t_center_inv[0][: dimension]))
+                                  narray(cs_n)))
+                    rec_sols = solution(narray(t_centers_inv),
+                                        c_alpha              ,
+                                        c_beta               ,
+                                        dim = 2              ,
+                                        apply_mapping = True)
+                    rec_sol = 0
+                    for k in xrange(0, rec_sols.shape[0]):
+                        rec_sol += rec_sols[k] * coeffs[k]
+                    self._f_on_borders.append(rec_sol)
                     # Outer normal coeffs.
                     o_n_coeffs = coeffs * stencils[i][1]
                     # Inner normal coeffs.
