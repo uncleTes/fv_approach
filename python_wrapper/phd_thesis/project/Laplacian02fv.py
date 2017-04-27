@@ -2741,11 +2741,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 local_idx = get_point_owner_idx(t_center_inv[0])
                 global_idx = local_idx
                 if (local_idx != uint32_max):
-                    ex_sol = solution(t_center,
+                    ex_sol = solution(narray([t_nodes_inv[0]]),
                                       c_alpha ,
                                       c_beta  ,
-                                      dim = 3 ,
-                                      apply_mapping = False)
+                                      dim = 2 ,
+                                      apply_mapping = True)
+                    self._h_s_inter_on_board.append(h_inter)
+                    self._f_on_borders_exact.append(ex_sol[0])
+                    ex_sol = solution(narray([t_nodes_inv[1]]),
+                                      c_alpha ,
+                                      c_beta  ,
+                                      dim = 2 ,
+                                      apply_mapping = True)
                     self._h_s_inter_on_board.append(h_inter)
                     self._f_on_borders_exact.append(ex_sol[0])
                     global_idx += o_ranges[0]
@@ -2892,18 +2899,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         columns     ,
                                         values)
                     rec_centers = []
-                    rec_centers.append(t_centers_inv[0][0])
-                    rec_centers.append(t_centers_inv[0][-1])
                     rec_centers.extend(t_centers_inv[0])
                     rec_centers.extend(t_centers_inv[1])
                     rec_sols = solution(narray(rec_centers),
-                                        b_alpha              ,
-                                        b_beta               ,
+                                        c_alpha              ,
+                                        c_beta               ,
                                         dim = 2              ,
                                         apply_mapping = True)
                     rec_sol = 0
+                    index_coeffs = 0
+                    p = 0
                     for k in xrange(0, rec_sols.shape[0]):
-                        rec_sol += rec_sols[k] * values[k]
+                        if (k == len(t_centers_inv[0])):
+                            self._f_on_borders.append(rec_sol)
+                            index_coeffs = 1
+                            rec_sol = 0
+                            p = 0
+                        rec_sol += rec_sols[k] * l_s_coeffs[index_coeffs][p]
+                        p += 1
                     self._f_on_borders.append(rec_sol)
                     #node_0 = stencils[i][1 : 1 + dimension]
                     #node_1 = stencils[i][1 + dimension : 1 + (2 * dimension)]
