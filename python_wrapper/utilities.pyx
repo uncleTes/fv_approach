@@ -689,25 +689,38 @@ def get_points_local_ring(numpy.ndarray[dtype = numpy.float64_t, \
 def neigh_inter_center(numpy.ndarray[dtype = numpy.float64_t,
                                      ndim = 2] point        ,
                        double h                             ,
-                       int n_axis                           ,
-                       int n_value                          ,
+                       int codimension                      ,
+                       int index_neighbour                  ,
                        int dimension = 2):
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] n_point =      \
          numpy.zeros((1, dimension)            ,\
                      dtype = numpy.float64)
     numpy.copyto(n_point, point)
-
-    if (n_axis == 1):
-        if (n_value == 1):
-            n_point[0][1] = n_point[0][1] + h
-        else:
-            n_point[0][1] = n_point[0][1] - h
-    else:
-        if (n_value == 1):
+    # Face
+    if (codimension == 1):
+        if (index_neighbour == 0):
+            n_point[0][0] = n_point[0][0] - h
+        elif (index_neighbour == 1):
             n_point[0][0] = n_point[0][0] + h
-        else:
-            n_point[0] = n_point[0] - h
+        elif (index_neighbour == 2):
+            n_point[0][1] = n_point[0][1] - h
+        elif (index_neighbour == 3):
+            n_point[0][1] = n_point[0][1] + h
+    # Node
+    elif (codimension == 2):
+        if (index_neighbour == 0):
+            n_point[0][0] = n_point[0][0] - h
+            n_point[0][1] = n_point[0][1] - h
+        elif (index_neighbour == 1):
+            n_point[0][0] = n_point[0][0] + h
+            n_point[0][1] = n_point[0][1] - h
+        elif (index_neighbour == 2):
+            n_point[0][0] = n_point[0][0] - h
+            n_point[0][1] = n_point[0][1] + h
+        elif (index_neighbour == 3):
+            n_point[0][0] = n_point[0][0] + h
+            n_point[0][1] = n_point[0][1] + h
 
     return n_point
 

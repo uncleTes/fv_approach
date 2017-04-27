@@ -675,6 +675,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                        key_2,
                        key_2,
                        key_2,
+                       key_2,
+                       key_2,
+                       key_2,
+                       key_2,
+                       key_2,
+                       key_2,
                        key_2)
 
                 # If the octant is covered by the foreground grids, we need to
@@ -1601,7 +1607,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                              n_coeffs         ,
                              nodes_inter      ,
                              n_nodes_on_f_b   ,
-                             node_on_f_b)
+                             node_on_f_b      ,
+                             rings)
 
         # We have inserted argument \"assembly\" equal to
         # \"PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY\" because the final assembly
@@ -1989,31 +1996,31 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._n_edg = None
         # TODO: check to see if is better to use int64 or uint64.
         if not is_background:
-            self._d_type_s = numpy.dtype('(1, 7)i8, (1, 21)f8') if \
+            self._d_type_s = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 7)i8, (1, 31)f8')
-            blocks_length_s = [7, 21] if (dimension == 2) else [7, 31]
-            blocks_displacement_s = [0, 56]
+                             numpy.dtype('(1, 13)i8, (1, 31)f8')
+            blocks_length_s = [13, 21] if (dimension == 2) else [13, 31]
+            blocks_displacement_s = [0, 104]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 7)i8, (1, 21)f8') if \
+            self._d_type_r = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 7)i8, (1, 31)f8')
-            blocks_length_r = [7, 21] if (dimension == 2) else [7, 31]
-            blocks_displacement_r = [0, 56]
+                             numpy.dtype('(1, 13)i8, (1, 31)f8')
+            blocks_length_r = [13, 21] if (dimension == 2) else [13, 31]
+            blocks_displacement_r = [0, 104]
         else:
-            self._d_type_s = numpy.dtype('(1, 7)i8, (1, 21)f8') if \
+            self._d_type_s = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 7)i8, (1, 31)f8')
-            blocks_length_s = [7, 21] if (dimension == 2) else [7, 31]
-            blocks_displacement_s = [0, 56]
+                             numpy.dtype('(1, 13)i8, (1, 31)f8')
+            blocks_length_s = [13, 21] if (dimension == 2) else [13, 31]
+            blocks_displacement_s = [0, 104]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 7)i8, (1, 21)f8') if \
+            self._d_type_r = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
                              (dimension == 2) else                 \
-                             numpy.dtype('(1, 7)i8, (1,31)f8')
-            blocks_length_r = [7, 21] if (dimension == 2) else [7, 31]
-            blocks_displacement_r = [0, 56]
+                             numpy.dtype('(1, 13)i8, (1,31)f8')
+            blocks_length_r = [13, 21] if (dimension == 2) else [13, 31]
+            blocks_displacement_r = [0, 104]
         # MPI data type to send.
         self._mpi_d_t_s = MPI.Datatype.Create_struct(blocks_length_s      ,
                                                      blocks_displacement_s,
@@ -2354,8 +2361,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    ids_octree_contained,
                                    n_t_foreground      ,
                                    h_inter             ,
-                                   n_axis              ,
-                                   n_value             ,
+                                   codimension         ,
+                                   index_neighbour     ,
                                    dimension = 2):
         octree = self._octree
         c_alpha = self.get_trans(grid)[1]
@@ -2407,10 +2414,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                          n_t_foreground)
             if (is_in_fg):
                 bad_diamond_point = True
-                n_f_n = neigh_inter_center(n_f_n  ,
-                                           h_inter,
-                                           n_axis ,
-                                           n_value)
+                n_f_n = neigh_inter_center(n_f_n      ,
+                                           h_inter    ,
+                                           codimension,
+                                           index_neighbour)
         return (bad_diamond_point, n_f_n)
     # --------------------------------------------------------------------------
 
@@ -2499,8 +2506,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #                                   ids_octree_contained,
                 #                                   n_t_foreground      ,
                 #                                   h_inter             ,
-                #                                   keys[i][5]          ,
-                #                                   keys[i][6]          ,
+                #                                   1                   ,
+                #                                   keys[i][9]          ,
                 #                                   dimension)
                 #if (is_bad_point):
                 #    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
@@ -2570,8 +2577,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             #                                   ids_octree_contained,
                             #                                   n_t_foreground      ,
                             #                                   h_inter             ,
-                            #                                   keys[i][5]          ,
-                            #                                   keys[i][6]          ,
+                            #                                   2                   ,
+                            #                                   keys[i][8]          ,
                             #                                   dimension)
                             #if (is_bad_point):
                             #    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
@@ -2707,8 +2714,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #                                   ids_octree_contained,
                 #                                   n_t_foreground      ,
                 #                                   h_inter             ,
-                #                                   keys[i][5]          ,
-                #                                   keys[i][6]          ,
+                #                                   1                   ,
+                #                                   keys[i][7]          ,
                 #                                   dimension)
                 #if (is_bad_point):
                 #    stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
@@ -3089,7 +3096,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                  n_coeffs         ,
                  nodes_inter      ,
                  n_nodes_on_f_b   ,
-                 node_on_f_b):
+                 node_on_f_b      ,
+                 rings):
 
         grid = self._proc_g
         octree = self._octree
@@ -3141,13 +3149,31 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         # the intersection
             key_5 = n_axis              # Normal axis
             key_6 = n_value             # Value of the normal axis
+            key_7 = rings[node_on_f_b][0] if (n_nodes_on_f_b == 1) else \
+                    rings[0][0]
+            key_8 = rings[node_on_f_b][1] if (n_nodes_on_f_b == 1) else \
+                    rings[0][1]
+            key_9 = rings[node_on_f_b][2] if (n_nodes_on_f_b == 1) else \
+                    rings[0][2]
+            key_10 = 0 if (n_nodes_on_f_b == 1) else \
+                     rings[1][0]
+            key_11 = 0 if (n_nodes_on_f_b == 1) else \
+                     rings[1][1]
+            key_12 = 0 if (n_nodes_on_f_b == 1) else \
+                    rings[1][2]
             key = (key_0,
                    key_1,
                    key_2,
                    key_3,
                    key_4,
                    key_5,
-                   key_6)
+                   key_6,
+                   key_7,
+                   key_8,
+                   key_9,
+                   key_10,
+                   key_11,
+                   key_12)
             l_stencil = 21 if (dimension == 2) else 31
             stencil = [-1] * l_stencil
             h = octree.get_area(inter        ,
@@ -3266,6 +3292,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                 key = (n_polygon + 1, \
                        p_g_index    , \
+                       0            , \
+                       0            , \
+                       0            , \
+                       0            , \
+                       0            , \
+                       0            , \
                        0            , \
                        0            , \
                        0            , \
