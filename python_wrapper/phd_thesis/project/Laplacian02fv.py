@@ -2595,14 +2595,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                   t_center_inv,
                                                   dim = 2)
                             n_n_local_idx = get_point_owner_idx(t_center_inv[0])
-                            n_n_global_idx = local_idx
+                            #print(n_n_local_idx)
+                            n_n_global_idx = n_n_local_idx
                             if (n_n_local_idx != uint32_max):
+                                #print("not masked local = " + str(n_n_local_idx))
                                 n_n_global_idx += o_ranges[0]
+                                #print("o_ranges = " + str(o_ranges[0]))
+                                #print("not masked global = " + str(n_n_global_idx))
                                 oct_center, \
                                 n_oct_center  = get_center(n_n_local_idx         ,
                                                            ptr_octant = False,
                                                            also_numpy_center = True)
                                 n_n_m_global_idx = mask_octant(n_n_global_idx)
+                                #print("masked global = " + str(n_n_m_global_idx))
                                 apply_bil_mapping(narray([n_oct_center]),
                                                   b_alpha ,
                                                   b_beta  ,
@@ -2615,6 +2620,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                       dim = 2)
                                 c_n_oct_center = ncopy(t_center_inv[0])
                                 if (n_n_m_global_idx not in t_indices_inv):
+                                    #print(c_n_oct_center)
                                     t_centers_inv.append(c_n_oct_center[: dimension])
                                     t_indices_inv.add(n_n_m_global_idx)
                                     l_t_indices_inv.append(n_n_m_global_idx)
@@ -2622,18 +2628,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         else:
                             # \"Numpy\" node in foreground grid.
                             n_n_f_g = narray([stencils[i][j : j + dimension]])
-                            apply_bil_mapping(n_n_f_g ,
-                                              c_alpha ,
-                                              c_beta  ,
-                                              t_center,
-                                              dim = 2)
-                            apply_bil_mapping_inv(t_center    ,
-                                                  b_alpha     ,
-                                                  b_beta      ,
-                                                  t_center_inv,
-                                                  dim = 2)
+                            #apply_bil_mapping(n_n_f_g ,
+                            #                  c_alpha ,
+                            #                  c_beta  ,
+                            #                  t_center,
+                            #                  dim = 2)
+                            #apply_bil_mapping_inv(t_center    ,
+                            #                      b_alpha     ,
+                            #                      b_beta      ,
+                            #                      t_center_inv,
+                            #                      dim = 2)
                             # \"Numpy\" copy \"t_center_inv\".
-                            n_c_t_c_i = ncopy(t_center_inv[0])
+                            #n_c_t_c_i = ncopy(t_center_inv[0])
+                            n_c_t_c_i = ncopy(n_n_f_g[0])
                             t_centers_inv.append(n_c_t_c_i[: dimension])
                             if (keys[i][1] not in t_indices_inv):
                                 t_indices_inv.add(keys[i][1])
