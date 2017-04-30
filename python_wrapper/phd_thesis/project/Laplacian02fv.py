@@ -2539,6 +2539,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     displ = 2 + dimension
                     step = dimension
                     for j in xrange(displ, l_s, step):
+                        # TODO: check type conversion in Python; being
+                        #       \"stencils[i][j]\"  a float and \"-1\" an \"int\"
+                        #       we should be sure that the conversion is done
+                        #       correctly.
                         if (stencils[i][j] == -1):
                             break
                         # Yet evaluated before: the ring neighbour of the other
