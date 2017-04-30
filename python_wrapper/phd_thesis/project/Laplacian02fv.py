@@ -2667,16 +2667,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         apply_mapping = True)
                     self._f_on_borders_exact.append(ex_sol[0])
                     self._h_s_inter_on_board.append(h_inter)
-                    apply_bil_mapping(n_cs_n  ,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      t_center,
-                                      dim = 2)
-                    apply_bil_mapping_inv(t_center    ,
-                                          b_alpha     ,
-                                          b_beta      ,
-                                          t_center_inv,
-                                          dim = 2)
+                    #apply_bil_mapping(n_cs_n  ,
+                    #                  c_alpha ,
+                    #                  c_beta  ,
+                    #                  t_center,
+                    #                  dim = 2)
+                    #apply_bil_mapping_inv(t_center    ,
+                    #                      b_alpha     ,
+                    #                      b_beta      ,
+                    #                      t_center_inv,
+                    #                      dim = 2)
                     coeffs = b_c((narray(t_centers_inv),
                                   narray(cs_n)))
                     rec_sols = solution(narray(t_centers_inv),
