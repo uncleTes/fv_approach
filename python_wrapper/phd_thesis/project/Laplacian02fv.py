@@ -2300,12 +2300,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
             col_indices = []
             col_values = []
             for i in xrange(displ, len(stencils[idx]), step):
-                row_index = stencils[idx][i]
+                row_index = int(stencils[idx][i])
                 if (row_index == -1):
                     break
                 # Masked row index (in function \"create_mask\", they are not
                 # still masked).
-                m_row_index = self._ngn[int(row_index)]
+                m_row_index = self._ngn[row_index]
                 row_indices.append(m_row_index)
                 value_to_multiply = stencils[idx][i + 1]
                 # Current coefficients.
