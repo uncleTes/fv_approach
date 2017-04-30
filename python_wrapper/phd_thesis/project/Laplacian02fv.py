@@ -695,8 +695,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # two possible neighbours for each face of the current octant).
                 l_stencil = 21 if (dimension == 2) else 31
                 stencil = [-1] * l_stencil
+                stencil[0] = h
                 for i in xrange(dimension):
-                    stencil[i] = center[i]
+                    stencil[i + 1] = center[i]
                 # http://www.laurentluce.com/posts/python-dictionary-implementation/
                 # http://effbot.org/zone/python-hash.htm
                 self._edl.update({key : stencil})
@@ -707,7 +708,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 d_count += 1
                 h_s.append(h)
             # \"stencil\"'s index.
-            s_i = dimension
+            s_i = 1 + dimension
             # Number of neighbours (Being the possibility of a jump between oc-
             # tants, we can have a minimum of 4 and a maximum of 8 neighbours on
             # the faces.
@@ -2186,7 +2187,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             range(0, l_l_edg)]).reshape(l_l_edg, l_k)
         stencils = numpy.array([list_edg[i][1] for i in
                                 range(0, l_l_edg)]).reshape(l_l_edg, l_s)
-        centers = [(stencils[i][0 : dimension]) for i in range(0, l_l_edg)]
+        centers = [(stencils[i][1 : dimension + 1]) for i in range(0, l_l_edg)]
         n_centers = len(centers)
         t_centers_inv = []
         uint32_max = numpy.iinfo(numpy.uint32).max
@@ -2294,7 +2295,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
             # Checkout how the \"stencil\" is created in the function
             # \"create_mask\".
-            displ = dimension
+            displ = 1 + dimension
             step = 2
             row_indices = []
             col_indices = []
@@ -3341,7 +3342,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                        0)
 
                 stencil = self._edl.get(key)
-                displ = dimension
+                displ = 1 + dimension
                 step = 2
                 l_stencil = 21 if (dimension == 2) else 31
                 # Sometimes \"stencil\" is equal to \"None\" because
