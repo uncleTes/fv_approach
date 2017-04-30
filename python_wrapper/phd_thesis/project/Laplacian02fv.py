@@ -2817,11 +2817,28 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             displ = displ + dimension
                             if ((j == 1) and (k == 0)):
                                 displ = displ + dimension
-                            n_f_n = narray([stencils[i][displ : displ + dimension]])
                             # \"0\" is the neighbours of node, so the second in
                             # the ring, because the neighbour of intersection was
                             # yet considered before.
                             is_outside = ((not k) or ((k == 1) and (keys[i][2 + (j * 2)] == -1)))
+                            #if (is_outside):
+                            #    codimension = 2 if (k == 0) else 1
+                            #    index_neighbour = keys[i][8 + k] if (j == 0) else \
+                            #                      keys[i][11 + k]
+                            #    is_bad_point, \
+                            #    n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                            #                                       displ               ,
+                            #                                       grid                ,
+                            #                                       o_ranges            ,
+                            #                                       ids_octree_contained,
+                            #                                       n_t_foreground      ,
+                            #                                       h_inter             ,
+                            #                                       codimension         ,
+                            #                                       index_neighbour     ,
+                            #                                       dimension)
+                            #    if (is_bad_point):
+                            #        stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
+                            n_f_n = narray([stencils[i][displ : displ + dimension]])
                             #print("Nodo " + str(j) + " vicino " + str(k + 1) + " = " + str(n_f_n) + " is outside = " + str(is_outside))
                             if (is_outside):
                                 apply_bil_mapping(n_f_n   ,
