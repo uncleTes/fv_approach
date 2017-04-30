@@ -2260,7 +2260,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # TODO: pass also \"h\" of the background octants to be sure of their
             #       dimension carachteristic in case more complicated (here is just
             #       two time the \"h\" of the foreground octants).
-            self._h_s_inter_on_board.append(h*2)
+            self._h_s_inter_on_board.append(stencils[idx][0])
             self._f_on_borders_exact.append(ex_sols[idx])
             n_rec_sol = solution(narray([n_oct_center]),
                                  c_alpha               ,
