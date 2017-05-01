@@ -2499,19 +2499,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # splacement \"displ\".
                 displ = 2 + (dimension * 3)
                 # TODO: WRONG evaluation of the new point! correct!!!
-                #is_bad_point, \
-                #n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
-                #                                   displ               ,
-                #                                   grid                ,
-                #                                   o_ranges            ,
-                #                                   ids_octree_contained,
-                #                                   n_t_foreground      ,
-                #                                   h_inter             ,
-                #                                   1                   ,
-                #                                   keys[i][9]          ,
-                #                                   dimension)
-                #if (is_bad_point):
-                #    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
+                is_bad_point, \
+                n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                                                   displ               ,
+                                                   grid                ,
+                                                   o_ranges            ,
+                                                   ids_octree_contained,
+                                                   n_t_foreground      ,
+                                                   h_inter             ,
+                                                   1                   ,
+                                                   keys[i][9]          ,
+                                                   dimension)
+                if (is_bad_point):
+                    # TODO: why \"list\" conversion and not a \"numpy copy\"?
+                    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
                 # Getting transformed coordinates of the third neighbour (the
                 # one  of the other face/intersection).
                 # \"Numpy\" face neighbour.
@@ -2574,19 +2575,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             # TODO: WRONG! here the check has to be done on the
                             #       node, so the \"x\" AND the \"y\" have to be
                             #       modified.
-                            #is_bad_point, \
-                            #n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
-                            #                                   displ               ,
-                            #                                   grid                ,
-                            #                                   o_ranges            ,
-                            #                                   ids_octree_contained,
-                            #                                   n_t_foreground      ,
-                            #                                   h_inter             ,
-                            #                                   2                   ,
-                            #                                   keys[i][8]          ,
-                            #                                   dimension)
-                            #if (is_bad_point):
-                            #    stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
+                            is_bad_point, \
+                            n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                                                               displ               ,
+                                                               grid                ,
+                                                               o_ranges            ,
+                                                               ids_octree_contained,
+                                                               n_t_foreground      ,
+                                                               h_inter             ,
+                                                               2                   ,
+                                                               keys[i][8]          ,
+                                                               dimension)
+                            if (is_bad_point):
+                                stencils[i][displ : displ + dimension] = n_f_n[0].tolist()
                             # \"Numpy\" node neighbour.
                             n_n_n = narray([stencils[i][j : j + dimension]])
                             apply_bil_mapping(n_n_n   ,
@@ -2734,19 +2735,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # boundary (\" + (dimension * 2)\"), that's the explanation for
                 # \"displ\".
                 displ = 1 + (dimension * 2)
-                #is_bad_point, \
-                #n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
-                #                                   displ               ,
-                #                                   grid                ,
-                #                                   o_ranges            ,
-                #                                   ids_octree_contained,
-                #                                   n_t_foreground      ,
-                #                                   h_inter             ,
-                #                                   1                   ,
-                #                                   keys[i][7]          ,
-                #                                   dimension)
-                #if (is_bad_point):
-                #    stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
+                is_bad_point, \
+                n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                                                   displ               ,
+                                                   grid                ,
+                                                   o_ranges            ,
+                                                   ids_octree_contained,
+                                                   n_t_foreground      ,
+                                                   h_inter             ,
+                                                   1                   ,
+                                                   keys[i][7]          ,
+                                                   dimension)
+                if (is_bad_point):
+                    stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
                 # Getting transformed coordinates of the first neighbour (the one
                 # of the face/intersection), that will be the same for both the
                 # nodes of the intersection.
@@ -2821,23 +2822,23 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             # the ring, because the neighbour of intersection was
                             # yet considered before.
                             is_outside = ((not k) or ((k == 1) and (keys[i][2 + (j * 2)] == -1)))
-                            #if (is_outside):
-                            #    codimension = 2 if (k == 0) else 1
-                            #    index_neighbour = keys[i][8 + k] if (j == 0) else \
-                            #                      keys[i][11 + k]
-                            #    is_bad_point, \
-                            #    n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
-                            #                                       displ               ,
-                            #                                       grid                ,
-                            #                                       o_ranges            ,
-                            #                                       ids_octree_contained,
-                            #                                       n_t_foreground      ,
-                            #                                       h_inter             ,
-                            #                                       codimension         ,
-                            #                                       index_neighbour     ,
-                            #                                       dimension)
-                            #    if (is_bad_point):
-                            #        stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
+                            if (is_outside):
+                                codimension = 2 if (k == 0) else 1
+                                index_neighbour = keys[i][8 + k] if (j == 0) else \
+                                                  keys[i][11 + k]
+                                is_bad_point, \
+                                n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
+                                                                   displ               ,
+                                                                   grid                ,
+                                                                   o_ranges            ,
+                                                                   ids_octree_contained,
+                                                                   n_t_foreground      ,
+                                                                   h_inter             ,
+                                                                   codimension         ,
+                                                                   index_neighbour     ,
+                                                                   dimension)
+                                if (is_bad_point):
+                                    stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
                             n_f_n = narray([stencils[i][displ : displ + dimension]])
                             #print("Nodo " + str(j) + " vicino " + str(k + 1) + " = " + str(n_f_n) + " is outside = " + str(is_outside))
                             if (is_outside):
