@@ -313,6 +313,7 @@ def is_point_on_line(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point     
                      int dimension = 2):
 
     absolute = numpy.absolute
+    distance = numpy.linalg.norm
 
     cdef size_t i
     cdef n_points = 2
@@ -325,6 +326,7 @@ def is_point_on_line(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point     
     cdef double threshold = 1.0e-15
     cdef double diff
     cdef bool on_line = False
+    cdef bool on_segment = False
 
     for i in xrange(0, n_points):
         d_x = absolute(point[0][0] - line_points[i][0])
@@ -338,8 +340,15 @@ def is_point_on_line(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point     
     diff = absolute((d_yc * d_x1) - (d_y1 * d_xc))
 
     on_line = (diff <= threshold)
-
-    return on_line
+    # Check the following link: if a point is on a line, it does not mean that
+    # that point is between the extremes of the segment considered. So, we have
+    # to check that.
+    # http://stackoverflow.com/questions/328107/how-can-you-determine-a-point-is-between-two-other-points-on-a-line-segment
+    if (on_line):
+        on_segment = (((distance(point[0][: dimension] - line_points[0]) + \
+                        distance(point[0][: dimension] - line_points[1])) -\
+                       distance(line_points[0] - line_points[1])) <= threshold)
+    return on_segment
 
 def is_point_on_lines(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point      ,
                       numpy.ndarray[dtype = numpy.float64_t, ndim = 3] line_points,
