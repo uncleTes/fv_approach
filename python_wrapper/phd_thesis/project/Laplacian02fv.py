@@ -2405,7 +2405,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_oct_center  = get_center(local_idx         ,
                                        ptr_octant = False,
                                        also_numpy_center = True)
-            t_center_inv[0] = n_oct_center
+            #t_center_inv[0] = n_oct_center
+            numpy.copyto(t_center_inv[0], n_oct_center)
             apply_bil_mapping(t_center_inv,
                               b_alpha     ,
                               b_beta      ,
