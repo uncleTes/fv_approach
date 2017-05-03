@@ -358,33 +358,42 @@ def set_octree(comm_l,
 
     n_octs = pablo.get_num_octants()
 
-    #if (proc_grid):
-    #    for octant in xrange(0, n_octs):
-    #        center  = pablo.get_center(octant)[: dimension]
-    #        # Refinement condition on \"x\".
-    #        ref_cond_x = (center[0] < 0.75) and (center[0] > 0.25)
-    #        #ref_cond_x = False
-    #        ref_cond_x_02 = (center[0] > 0.25)
-    #        #ref_cond_x = True
-    #        #ref_cond_x = 0
-    #        ref_cond_x_03 = (numpy.abs(center[0] - 0.5) <= 0.1)
-    #        # Refinement condition on \"y\".
-    #        ref_cond_y = (center[1] < 0.75) and (center[1] > 0.25)
-    #        ref_cond_y_02 = (center[1] > 0.25)
-    #        ref_cond_y_03 = (numpy.abs(center[1] - 0.5) <= 0.1)
-    #        #ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
-    #        #                           numpy.square(center[1] - 0.5)) <= 0.5)
-    #        ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
-    #                                   numpy.square(center[1] - 0.5)) <= 0.45)
-    #        # Refinement condition on \"y\".
-    #        # TODO: for 3D cases, implement this condition.
-    #        ref_cond_z = True if (dimension == 2) else \
-    #                     True
-    #        if ((ref_cond_x and ref_cond_y and ref_cond_z)):
-    #            #or (ref_cond_x_02 and ref_cond_y_02 and ref_cond_z)):
-    #        #if (ref_cond_x_03 and ref_cond_y_03):
-    #        #if ref_cond_x_y:
-    #                pablo.set_marker(octant, 1)
+    if (not proc_grid):
+        for octant in xrange(0, n_octs):
+            center = pablo.get_center(octant)[: dimension]
+            ref_cond_x = center[0] >= 0.0625 and center[0] <= 0.9375
+            ref_cond_y = center[1] >= 0.0625 and center[1] <= 0.9375
+            ref_cond_x_y = ref_cond_x and ref_cond_y
+            if (ref_cond_x_y):
+                pablo.set_marker(octant, 1)
+
+    if (proc_grid):
+        for octant in xrange(0, n_octs):
+            center  = pablo.get_center(octant)[: dimension]
+            # Refinement condition on \"x\".
+            ref_cond_x = (center[0] < 0.75) and (center[0] > 0.25)
+            #ref_cond_x = False
+            ref_cond_x_02 = (center[0] > 0.25)
+            #ref_cond_x = True
+            #ref_cond_x = 0
+            ref_cond_x_03 = (numpy.abs(center[0] - 0.5) <= 0.1)
+            # Refinement condition on \"y\".
+            ref_cond_y = (center[1] < 0.75) and (center[1] > 0.25)
+            ref_cond_y_02 = (center[1] > 0.25)
+            ref_cond_y_03 = (numpy.abs(center[1] - 0.5) <= 0.1)
+            #ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
+            #                           numpy.square(center[1] - 0.5)) <= 0.5)
+            ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
+                                       numpy.square(center[1] - 0.5)) <= 0.45)
+            # Refinement condition on \"y\".
+            # TODO: for 3D cases, implement this condition.
+            ref_cond_z = True if (dimension == 2) else \
+                         True
+            #if ((ref_cond_x and ref_cond_y and ref_cond_z)):
+                #or (ref_cond_x_02 and ref_cond_y_02 and ref_cond_z)):
+            #if (ref_cond_x_03 and ref_cond_y_03):
+            if ref_cond_x_y:
+                    pablo.set_marker(octant, 1)
 
     pablo.adapt()
     pablo.load_balance()

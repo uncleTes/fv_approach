@@ -659,6 +659,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               beta         ,
                                               t_foregrounds)
             if (is_penalized):
+                #print("yeppa")
                 self._nln[octant] = -1
                 self._p_o_f_g[octant] = n_polygon
                 # Moved \"h\" from the \"key\" to the \"stencil\", preferring
@@ -2179,6 +2180,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         #       foreground (if there are too few octants in general, for example
         #       the case I am running with refs 3, 3, 3).
         l_l_edg = len(list_edg)
+        #print(list_edg)
         # Length key.
         l_k = list_edg[0][0].size
         # Length stencil.
@@ -2420,6 +2422,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                            h_inter    ,
                                            codimension,
                                            index_neighbour)
+                #print("bongo")
         return (bad_diamond_point, n_f_n)
     # --------------------------------------------------------------------------
 
@@ -2905,6 +2908,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     t_centers_inv[j].append(n_oct_center[0][: dimension])
                     if(narray(t_centers_inv[1]).shape[0] == 1):
                         print(self._comm_w.Get_rank())
+                    #print(t_centers_inv)
                     l_s_coeffs = map(b_c,
                                      zip([narray(t_center_inv) for t_center_inv in t_centers_inv],
                                          [n_node for n_node in t_nodes_inv]))
