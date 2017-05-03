@@ -2577,7 +2577,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             #       modified.
                             is_bad_point, \
                             n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
-                                                               displ               ,
+                                                               j                   ,
                                                                grid                ,
                                                                o_ranges            ,
                                                                ids_octree_contained,
