@@ -470,7 +470,7 @@ def check_oct_corners(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] numpy_cor
                       numpy.ndarray[dtype = numpy.float64_t, ndim = 4] polygons     ,
                       int dim = 2):
     cdef bool penalized = True
-    cdef bool is_corner_penalized
+    cdef bool is_corner_penalized = True
     cdef int n_oct_corners = 4 if (dim == 2) else 8
     cdef int n_polygon
     cdef size_t i
