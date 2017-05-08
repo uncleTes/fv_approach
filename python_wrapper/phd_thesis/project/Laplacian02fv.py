@@ -2617,23 +2617,54 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                            ptr_octant = False,
                                                            also_numpy_center = True)
                                 n_n_m_global_idx = mask_octant(n_n_global_idx)
-                                #print("masked global = " + str(n_n_m_global_idx))
-                                apply_bil_mapping(narray([n_oct_center]),
-                                                  b_alpha ,
-                                                  b_beta  ,
-                                                  t_center,
+                            else:
+                                neighs, ghosts = ([] for i in range(0, 2))
+                                if (keys[i][5] == 0):
+                                    if ((keys[i][8] == 1) or (keys[i][8] == 3)):
+                                        index_face_n_face = 1
+                                    else:
+                                        index_face_n_face = 0
+                                elif (keys[i][5] == 1):
+                                    if ((keys[i][8] == 2) or (keys[i][8] == 3)):
+                                        index_face_n_face = 3
+                                    else:
+                                        index_face_n_face = 2
+                                (neighs, ghosts) = octree.find_neighbours(local_idx        ,
+                                                                          index_face_n_face,
+                                                                          1                ,
+                                                                          neighs           ,
+                                                                          ghosts)
+                                g_d = 0
+                                by_octant = True
+                                #for i in xrange(0, grid):
+                                #    g_d = g_d + self._oct_f_g[i]
+                                n_n_global_idx = octree.get_ghost_global_idx(neighs[0]) + g_d
+                                # \".index\" give us the \"self._global_ghosts\" index
+                                # that contains the index of the global ghost quad(/oc)-
+                                # tree previously found and stored in \"index\".
+                                py_ghost_oct = octree.get_ghost_octant(neighs[0])
+                                n_n_m_global_idx = mask_octant(n_n_global_idx)
+                                oct_center, \
+                                n_oct_center = get_center(py_ghost_oct,
+                                                          by_octant   ,
+                                                          True)
+                            #print("masked global = " + str(n_n_m_global_idx))
+                            apply_bil_mapping(narray([n_oct_center]),
+                                              b_alpha ,
+                                              b_beta  ,
+                                              t_center,
+                                              dim = 2)
+                            apply_bil_mapping_inv(t_center    ,
+                                                  c_alpha     ,
+                                                  c_beta      ,
+                                                  t_center_inv,
                                                   dim = 2)
-                                apply_bil_mapping_inv(t_center    ,
-                                                      c_alpha     ,
-                                                      c_beta      ,
-                                                      t_center_inv,
-                                                      dim = 2)
-                                c_n_oct_center = ncopy(t_center_inv[0])
-                                if (n_n_m_global_idx not in t_indices_inv):
-                                    #print(c_n_oct_center)
-                                    t_centers_inv.append(c_n_oct_center[: dimension])
-                                    t_indices_inv.add(n_n_m_global_idx)
-                                    l_t_indices_inv.append(n_n_m_global_idx)
+                            c_n_oct_center = ncopy(t_center_inv[0])
+                            if (n_n_m_global_idx not in t_indices_inv):
+                                #print(c_n_oct_center)
+                                t_centers_inv.append(c_n_oct_center[: dimension])
+                                t_indices_inv.add(n_n_m_global_idx)
+                                l_t_indices_inv.append(n_n_m_global_idx)
                         # Other neighbour inside foreground neighbours.
                         else:
                             # \"Numpy\" node in foreground grid.
@@ -2830,6 +2861,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 codimension = 2 if (k == 0) else 1
                                 index_neighbour = keys[i][8 + k] if (j == 0) else \
                                                   keys[i][11 + k]
+                                index_neighbour_previous = keys[i][8 + k - 1] if (j == 0) else \
+                                                  keys[i][11 + k - 1]
                                 is_bad_point, \
                                 n_f_n = check_bg_bad_diamond_point(stencils[i]         ,
                                                                    displ               ,
@@ -2872,26 +2905,87 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     n_oct_center  = get_center(in_local_idx         ,
                                                                ptr_octant = False,
                                                                also_numpy_center = True)
-                                    #print("Center of the background owner " + str(n_oct_center))
-                                    apply_bil_mapping(narray([n_oct_center]),
-                                                      b_alpha ,
-                                                      b_beta  ,
-                                                      t_center,
+                                else:
+                                    #print("bongo")
+                                    if (k == 0):
+                                        codimension = 1
+                                    else:
+                                        codimension = 2
+                                    neighs, ghosts = ([] for i in range(0, 2))
+                                    if (k == 0):
+                                        if (keys[i][5] == 1):
+                                            if ((index_neighbour == 1) or (index_neighbour == 3)):
+                                                index_face_n_face = 1
+                                            else:
+                                                index_face_n_face = 0
+                                        elif (keys[i][5] == 0):
+                                            if ((index_neighbour == 2) or (index_neighbour == 3)):
+                                                index_face_n_face = 3
+                                            else:
+                                                index_face_n_face = 2
+                                    else:
+                                        if (keys[i][5] == 1):
+                                            if (keys[i][6] == 1):
+                                                if (index_neighbour_previous == 2):
+                                                    index_face_n_face = 0
+                                                elif (index_neighbour_previous == 3):
+                                                    index_face_n_face = 1
+                                            elif (keys[i][6] == -1):
+                                                if (index_neighbour_previous == 0):
+                                                    index_face_n_face = 2
+                                                elif (index_neighbour_previous == 1):
+                                                    index_face_n_face = 3
+                                        elif (keys[i][5] == 0):
+                                            if (keys[i][6] == 1):
+                                                if (index_neighbour_previous == 3):
+                                                    index_face_n_face = 2
+                                                elif (index_neighbour_previous == 1):
+                                                    index_face_n_face = 0
+                                            elif (keys[i][6] == -1):
+                                                if (index_neighbour_previous == 2):
+                                                    index_face_n_face = 3
+                                                elif (index_neighbour_previous == 0):
+                                                    index_face_n_face = 1
+
+                                    (neighs, ghosts) = octree.find_neighbours(local_idx        ,
+                                                                              index_face_n_face,
+                                                                              codimension      ,
+                                                                              neighs           ,
+                                                                              ghosts)
+                                    g_d = 0
+                                    by_octant = True
+                                    #for i in xrange(0, grid):
+                                    #    g_d = g_d + self._oct_f_g[i]
+                                    in_global_idx = octree.get_ghost_global_idx(neighs[0]) + g_d
+                                    # \".index\" give us the \"self._global_ghosts\" index
+                                    # that contains the index of the global ghost quad(/oc)-
+                                    # tree previously found and stored in \"index\".
+                                    py_ghost_oct = octree.get_ghost_octant(neighs[0])
+                                    in_m_global_idx = mask_octant(in_global_idx)
+                                    oct_center, \
+                                    n_oct_center = get_center(py_ghost_oct,
+                                                              by_octant   ,
+                                                              True)
+                                #print("Center of the background owner " + str(n_oct_center))
+                                apply_bil_mapping(narray([n_oct_center]),
+                                                  b_alpha ,
+                                                  b_beta  ,
+                                                  t_center,
+                                                  dim = 2)
+                                #print("Center of the background owner after first mapping, row " + str(keys[i][1]) + " point of face " + str(t_center[0]))
+                                apply_bil_mapping_inv(t_center    ,
+                                                      c_alpha     ,
+                                                      c_beta      ,
+                                                      t_center_inv,
                                                       dim = 2)
-                                    #print("Center of the background owner after first mapping, row " + str(keys[i][1]) + " point of face " + str(t_center[0]))
-                                    apply_bil_mapping_inv(t_center    ,
-                                                          c_alpha     ,
-                                                          c_beta      ,
-                                                          t_center_inv,
-                                                          dim = 2)
-                                    #print("Center of the background owner after second mapping, row " + str(keys[i][1]) + " point of face " + str(t_center_inv[0]))
-                                    c_n_oct_center = ncopy(t_center_inv[0])
-                                    if (in_m_global_idx not in t_indices_inv[j]):
-                                        #print("not masked " + str(in_global_idx))
-                                        #print("masked " + str(in_m_global_idx))
-                                        t_indices_inv[j].add(in_m_global_idx)
-                                        l_t_indices_inv[j].append(in_m_global_idx)
-                                        t_centers_inv[j].append(c_n_oct_center[: dimension])
+                                #print("Center of the background owner after second mapping, row " + str(keys[i][1]) + " point of face " + str(t_center_inv[0]))
+                                c_n_oct_center = ncopy(t_center_inv[0])
+                                if (in_m_global_idx not in t_indices_inv[j]):
+                                    #print("not masked " + str(in_global_idx))
+                                    #print("masked " + str(in_m_global_idx))
+                                    t_indices_inv[j].add(in_m_global_idx)
+                                    l_t_indices_inv[j].append(in_m_global_idx)
+                                    t_centers_inv[j].append(c_n_oct_center[: dimension])
                             else:
                                 if (k == 2):
                                     in_m_global_idx = keys[i][1]
