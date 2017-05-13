@@ -2845,6 +2845,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                       (11 + k)
                                 index_neighbour = keys[i][8 + k] if (j == 0) else \
                                                   keys[i][11 + k]
+                                index_neighbour_previous = keys[i][8 + k - 1] if (j == 0) else \
+                                                           keys[i][11 + k - 1]
                                 n_f_n = narray([stencils[i][i_n : i_n + dimension]])
                                 apply_bil_mapping(n_f_n   ,
                                                   c_alpha ,
