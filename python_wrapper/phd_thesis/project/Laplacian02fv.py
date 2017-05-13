@@ -2389,7 +2389,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_oct_center = numpy.copy(n_bg_center)
 
         h_background = get_area(local_idx,
-                                using_bg_center)
+                                is_ptr = using_bg_center)
 
         numpy.copyto(n_f_n[0], n_oct_center)
 
