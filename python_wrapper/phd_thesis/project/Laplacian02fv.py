@@ -2382,7 +2382,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         neigh_inter_center = utilities.neigh_inter_center
         if (not using_bg_center):
             oct_center, \
-            n_oct_center  = get_center(local_idx_owner   ,
+            n_oct_center  = get_center(idx_ptr_owner     ,
                                        ptr_octant = False,
                                        also_numpy_center = True)
         else:
