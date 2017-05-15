@@ -2370,9 +2370,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         b_alpha = self.get_trans(0)[1]
         b_beta = self.get_trans(0)[2]
         bad_diamond_point = False
-        t_center = numpy.zeros(shape = (1, 3), \
+        t_center = numpy.zeros(shape = (1, dimension), \
                                dtype = numpy.float64)
-        n_f_n = numpy.zeros(shape = (1, 3), \
+        n_f_n = numpy.zeros(shape = (1, dimension), \
                             dtype = numpy.float64)
 
         apply_bil_mapping = utilities.apply_bil_mapping
@@ -2388,10 +2388,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         else:
             n_oct_center = numpy.copy(n_bg_center)
 
-        h_background = get_area(local_idx,
+        h_background = get_area(idx_ptr_owner,
                                 is_ptr = using_bg_center)
 
-        numpy.copyto(n_f_n[0], n_oct_center)
+        numpy.copyto(n_f_n[0], n_oct_center[: dimension])
 
         apply_bil_mapping(n_f_n   ,
                           b_alpha ,
@@ -2400,10 +2400,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                           dim = 2)
 
         is_in_fg = is_point_inside_polygon(t_center,
-                                           n_t_foreground)
+                                           foreground)
+
+        numpy.copyto(n_f_n[0], n_point[: dimension])
+
         if (is_in_fg):
             bad_diamond_point = True
-            numpy.copyto(n_f_n[0], n_point)
             n_f_n = neigh_inter_center(n_f_n       ,
                                        h_background,
                                        codimension ,
@@ -2509,7 +2511,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (local_idx != uint32_max):
                     global_idx += o_ranges[0]
                     is_bad_point, \
-                    n_f_n = check_bg_bad_diamond_point(t_center_inv[0],
+                    n_f_n = check_bg_bad_diamond_point(n_f_n[0]       ,
                                                        local_idx      ,
                                                        n_t_foreground ,
                                                        h_inter        ,
@@ -2523,8 +2525,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # that's the displacement \"displ\".
                     displ = 2 + dimension
                     step = dimension
-                    is_outside = False
                     for j in xrange(displ, l_s, step):
+                        is_outside = False
                         if ((j == (2 + (3 * dimension))) or \
                             (j == (2 + (2 * dimension)))):
                             is_outside = True
@@ -2581,7 +2583,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         using_bg_center = True
                                         bg_center = n_oct_center
                                     is_bad_point, \
-                                    n_f_n = check_bg_bad_diamond_point(t_center_inv[0],
+                                    n_f_n = check_bg_bad_diamond_point(n_f_n[0]       ,
                                                                        l_local_idx    ,
                                                                        n_t_foreground ,
                                                                        h_inter        ,
@@ -2591,7 +2593,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                        using_bg_center,
                                                                        bg_center)
                                     if (is_bad_point):
-                                        stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
+                                        stencils[i][j : j + dimension] = n_f_n[0][: dimension]
                                 n_f_n = narray([stencils[i][j : j + dimension]])
                                 apply_bil_mapping(n_f_n   ,
                                                   c_alpha ,
@@ -2704,6 +2706,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     row_indices.append(keys[i][1])
                     row_indices.append(keys[i][2])
                     col_indices = l_t_indices_inv
+                    #print(col_indices)
                     apply_rest_prol_ops(row_indices,
                                         col_indices,
                                         col_values)
@@ -2741,7 +2744,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (local_idx != uint32_max):
                     global_idx += o_ranges[0]
                     is_bad_point, \
-                    n_f_n = check_bg_bad_diamond_point(t_center_inv[0],
+                    n_f_n = check_bg_bad_diamond_point(n_f_n[0]       ,
                                                        local_idx      ,
                                                        n_t_foreground ,
                                                        h_inter        ,
@@ -2764,7 +2767,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           b_alpha     ,
                                           b_beta      ,
                                           t_center_inv,
-                                          dim = 2)
+                                          dimension)
                     l_local_idx = get_point_owner_idx(t_center_inv[0])
                     g_global_idx = l_local_idx
 
@@ -2836,6 +2839,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             displ = displ + dimension
                             if ((j == 1) and (k == 0)):
                                 displ = displ + dimension
+                            n_f_n = narray([stencils[i][displ : displ + dimension]])
                             # \"0\" is the neighbours of node, so the second in
                             # the ring, because the neighbour of intersection was
                             # yet considered before.
@@ -2847,7 +2851,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                   keys[i][11 + k]
                                 index_neighbour_previous = keys[i][8 + k - 1] if (j == 0) else \
                                                            keys[i][11 + k - 1]
-                                n_f_n = narray([stencils[i][i_n : i_n + dimension]])
                                 apply_bil_mapping(n_f_n   ,
                                                   c_alpha ,
                                                   c_beta  ,
@@ -2913,7 +2916,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     py_ghost_oct = get_ghost_octant(neighs[0])
                                     oct_center, \
                                     n_oct_center = get_center(py_ghost_oct,
-                                                              by_octant   ,
+                                                              True,
                                                               True)
                                     l_local_idx = py_ghost_oct
                                     using_bg_center = True
@@ -2923,7 +2926,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 else:
                                     codimension = 1
                                 is_bad_point, \
-                                n_f_n = check_bg_bad_diamond_point(t_center_inv[0],
+                                n_f_n = check_bg_bad_diamond_point(n_f_n[0]       ,
                                                                    l_local_idx    ,
                                                                    n_t_foreground ,
                                                                    h_inter        ,
@@ -2995,11 +2998,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 elif (index_neighbour_previous == 0):
                                                     index_face_n_face = 1
 
-                                    (neighs, ghosts) = octree.find_neighbours(local_idx        ,
-                                                                              index_face_n_face,
-                                                                              codimension      ,
-                                                                              neighs           ,
-                                                                              ghosts)
+                                    (neighs, ghosts) = find_neighbours(local_idx        ,
+                                                                       index_face_n_face,
+                                                                       codimension      ,
+                                                                       neighs           ,
+                                                                       ghosts)
                                     g_d = 0
                                     by_octant = True
                                     #for i in xrange(0, grid):
@@ -3037,12 +3040,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 #print(in_m_global_idx)
 
                                 #n_oct_center = ncopy(t_center_inv[0])
-                                n_oct_center = n_f_n
+                                c_n_oct_center = ncopy(n_f_n[0])
                                 #print(n_oct_center.shape)
                                 if (in_m_global_idx not in t_indices_inv[j]):
                                     t_indices_inv[j].add(in_m_global_idx)
                                     l_t_indices_inv[j].append(in_m_global_idx)
-                                    t_centers_inv[j].append(n_oct_center[0][: dimension])
+                                    t_centers_inv[j].append(c_n_oct_center[: dimension])
                     if(narray(t_centers_inv[1]).shape[0] == 1):
                         print(self._comm_w.Get_rank())
                     #print(t_centers_inv)
