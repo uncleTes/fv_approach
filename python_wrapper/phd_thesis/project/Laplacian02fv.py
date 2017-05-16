@@ -2678,13 +2678,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             m_g_global_idx = mask_octant(g_global_idx)
 
                             apply_bil_mapping(narray([n_oct_center]),
-                                              b_alpha ,
-                                              b_beta  ,
-                                              n_t_a_01,
+                                              b_alpha               ,
+                                              b_beta                ,
+                                              n_t_a_01              ,
                                               dimension)
-                            apply_bil_mapping_inv(n_t_a_01    ,
-                                                  c_alpha     ,
-                                                  c_beta      ,
+                            apply_bil_mapping_inv(n_t_a_01,
+                                                  c_alpha ,
+                                                  c_beta  ,
                                                   n_t_a_02,
                                                   dimension)
                             c_n_oct_center = ncopy(n_t_a_02[0])
@@ -2748,59 +2748,59 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 t_indices_inv = [set(), set()]
                 l_t_indices_inv = [[], []]
                 t_nodes_inv = []
+                # \"h\" (1)
                 displ = 1
+                # Appending to \"t_nodes_inv\" the nodes of the intersection on
+                # the boundary of the foreground grid.
                 for j in xrange(0, 2):
-                    n_f_n = narray(stencils[i][displ : displ + dimension])
-                    t_nodes_inv.append(n_f_n[: dimension])
+                    ncopyto(n_t_a_03[0][: dimension], \
+                            stencils[i][displ : displ + dimension])
+                    c_n_node = ncopy(n_a_03[0])
+                    t_nodes_inv.append(c_n_node)
                     displ += dimension
-
-                # \"h\" (1), plus the coordinates of the nodes on the foreground
-                # boundary (\" + (dimension * 2)\"), that's the explanation for
-                # \"displ\".
+                # Getting coordinates of the first neighbour (the one of the
+                # intersection) of the rings of the nodes (it will be the same
+                # for both the nodes).
                 displ = 1 + (dimension * 2)
-                n_f_n = narray([stencils[i][displ : displ + dimension]])
-                apply_bil_mapping(n_f_n   ,
+                ncopyto(n_t_a_03[0][: dimension], \
+                        stencils[i][displ : displ + dimension])
+                apply_bil_mapping(n_t_a_03,
                                   c_alpha ,
                                   c_beta  ,
                                   n_t_a_01,
                                   dimension)
-                apply_bil_mapping_inv(n_t_a_01    ,
-                                      b_alpha     ,
-                                      b_beta      ,
+                apply_bil_mapping_inv(n_t_a_01,
+                                      b_alpha ,
+                                      b_beta  ,
                                       n_t_a_02,
                                       dimension)
-                uint32_max = numpy.iinfo(numpy.uint32).max
                 local_idx = get_point_owner_idx(n_t_a_02[0])
                 global_idx = local_idx
                 if (local_idx != uint32_max):
+                    codim = 1
+                    iface = keys[i][7]
                     global_idx += o_ranges[0]
-                    is_bad_point, \
-                    n_f_n = check_bg_bad_diamond_point(n_f_n[0]       ,
-                                                       local_idx      ,
-                                                       n_t_foreground ,
-                                                       h_inter        ,
-                                                       1              ,
-                                                       keys[i][7]     ,
-                                                       dimension)
+                    l_local_idx = local_idx
+
+                    is_bad_point = check_bg_bad_diamond_point(n_t_a_03      ,
+                                                              local_idx     ,
+                                                              n_t_foreground,
+                                                              h_inter       ,
+                                                              codim         ,
+                                                              iface         ,
+                                                              dimension)
                     if (is_bad_point):
-                        stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
-                    # Getting transformed coordinates of the first neighbour (the
-                    # one of the face/intersection), that will be the same for
-                    # both the nodes of the intersection.
-                    # \"Numpy\" face neighbour.
-                    n_f_n = narray([stencils[i][displ : displ + dimension]])
-                    apply_bil_mapping(n_f_n   ,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      n_t_a_01,
-                                      dimension)
-                    apply_bil_mapping_inv(n_t_a_01    ,
-                                          b_alpha     ,
-                                          b_beta      ,
-                                          n_t_a_02,
+                        apply_bil_mapping(n_t_a_03,
+                                          c_alpha ,
+                                          c_beta  ,
+                                          n_t_a_01,
                                           dimension)
-                    l_local_idx = get_point_owner_idx(n_t_a_02[0])
-                    g_global_idx = l_local_idx
+                        apply_bil_mapping_inv(n_t_a_01,
+                                              b_alpha ,
+                                              b_beta  ,
+                                              n_t_a_02,
+                                              dimension)
+                        l_local_idx = get_point_owner_idx(n_t_a_02[0])
 
                     ex_sol = solution(narray([t_nodes_inv[0]]),
                                       c_alpha ,
@@ -2818,44 +2818,37 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     self._f_on_borders_exact.append(ex_sol[0])
 
                     if (l_local_idx != uint32_max):
-                        g_global_idx += o_ranges[0]
+                        g_global_idx = l_local_idx + o_ranges[0]
                         oct_center, \
                         n_oct_center  = get_center(l_local_idx       ,
                                                    ptr_octant = False,
                                                    also_numpy_center = True)
-                        m_g_global_idx = mask_octant(g_global_idx)
                     else:
-                        neighs, ghosts = ([] for i in range(0, 2))
-                        codim = 1
-                        iface = keys[i][7]
-
-                        (neighs, ghosts) = find_neighbours(local_idx,
-                                                           iface      ,
-                                                           codim      ,
-                                                           neighs     ,
-                                                           ghosts)
-                        g_d = 0
                         by_octant = True
-                        #for i in xrange(0, grid):
-                        #    g_d = g_d + self._oct_f_g[i]
-                        g_global_idx = get_ghost_global_idx(neighs[0]) + g_d
+                        neighs, ghosts = ([] for i in range(0, 2))
+                        (neighs, ghosts) = find_neighbours(local_idx,
+                                                           iface    ,
+                                                           codim    ,
+                                                           neighs   ,
+                                                           ghosts)
+                        g_global_idx = get_ghost_global_idx(neighs[0])
                         # \".index\" give us the \"self._global_ghosts\" index
                         # that contains the index of the global ghost quad(/oc)-
                         # tree previously found and stored in \"index\".
                         py_ghost_oct = get_ghost_octant(neighs[0])
-                        m_g_global_idx = mask_octant(g_global_idx)
                         oct_center, \
                         n_oct_center = get_center(py_ghost_oct,
                                                   by_octant   ,
                                                   True)
+                    m_g_global_idx = mask_octant(g_global_idx)
                     apply_bil_mapping(narray([n_oct_center]),
-                                      b_alpha ,
-                                      b_beta  ,
-                                      n_t_a_01,
+                                      b_alpha               ,
+                                      b_beta                ,
+                                      n_t_a_01              ,
                                       dimension)
-                    apply_bil_mapping_inv(n_t_a_01    ,
-                                          c_alpha     ,
-                                          c_beta      ,
+                    apply_bil_mapping_inv(n_t_a_01,
+                                          c_alpha ,
+                                          c_beta  ,
                                           n_t_a_02,
                                           dimension)
                     c_n_oct_center = ncopy(n_t_a_02[0])
@@ -2865,197 +2858,219 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     l_t_indices_inv[1].append(m_g_global_idx)
                     t_centers_inv[0].append(c_n_oct_center[: dimension])
                     t_centers_inv[1].append(c_n_oct_center[: dimension])
+                    # Looping now on the other components of the rings of the
+                    # nodes of the intersection.
+                    # Loop on the nodes.
                     for j in xrange(0, 2):
+                        # Loop on the rings' components.
                         for k in xrange(0, 3):
+                            is_outside = False
                             displ = displ + dimension
+                            # Skipping the octant of the ring in front of the
+                            # intersection, previously done, which is the same
+                            # for both the nodes.
                             if ((j == 1) and (k == 0)):
                                 displ = displ + dimension
-                            n_f_n = narray([stencils[i][displ : displ + dimension]])
+                            ncopyto(n_t_a_03[0][: dimension], \
+                                    stencils[i][displ : displ + dimension])
                             # \"0\" is the neighbours of node, so the second in
                             # the ring, because the neighbour of intersection was
                             # yet considered before.
-                            is_outside = ((not k) or ((k == 1) and (keys[i][2 + (j * 2)] == -1)))
+                            if ((not k) or \
+                                ((k == 1) and (keys[i][2 + (j * 2)] == -1))):
+                                is_outside = True
+
                             if (is_outside):
-                                i_n = (8 + k) if (j == 0) else \
-                                      (11 + k)
-                                index_neighbour = keys[i][8 + k] if (j == 0) else \
-                                                  keys[i][11 + k]
-                                index_neighbour_previous = keys[i][8 + k - 1] if (j == 0) else \
-                                                           keys[i][11 + k - 1]
-                                apply_bil_mapping(n_f_n   ,
+                                # Index of the neighbour.
+                                i_n = keys[i][8 + (j * 3) + k]
+                                # Index of the previous neighbour.
+                                i_n_p = keys[i][8 + (j * 3) + k - 1]
+
+                                apply_bil_mapping(n_t_a_03,
                                                   c_alpha ,
                                                   c_beta  ,
                                                   n_t_a_01,
                                                   dimension)
-                                apply_bil_mapping_inv(n_t_a_01    ,
-                                                      b_alpha     ,
-                                                      b_beta      ,
+                                apply_bil_mapping_inv(n_t_a_01,
+                                                      b_alpha ,
+                                                      b_beta  ,
                                                       n_t_a_02,
                                                       dimension)
+
                                 l_local_idx = get_point_owner_idx(n_t_a_02[0])
                                 if (l_local_idx != uint32_max):
                                     using_bg_center = False
                                     bg_center = None
-                                else:
-                                    neighs, ghosts = ([] for i in range(0, 2))
-                                    if (k == 0):
-                                        codimension = 1
-                                    else:
-                                        codimension = 2
-                                    if (k == 0):
-                                        if (keys[i][5] == 1):
-                                            if ((index_neighbour == 1) or (index_neighbour == 3)):
-                                                index_face_n_face = 1
-                                            else:
-                                                index_face_n_face = 0
-                                        elif (keys[i][5] == 0):
-                                            if ((index_neighbour == 2) or (index_neighbour == 3)):
-                                                index_face_n_face = 3
-                                            else:
-                                                index_face_n_face = 2
-                                    else:
-                                        if (keys[i][5] == 1):
-                                            if (keys[i][6] == 1):
-                                                if (index_neighbour_previous == 2):
-                                                    index_face_n_face = 0
-                                                elif (index_neighbour_previous == 3):
-                                                    index_face_n_face = 1
-                                            elif (keys[i][6] == -1):
-                                                if (index_neighbour_previous == 0):
-                                                    index_face_n_face = 2
-                                                elif (index_neighbour_previous == 1):
-                                                    index_face_n_face = 3
-                                        elif (keys[i][5] == 0):
-                                            if (keys[i][6] == 1):
-                                                if (index_neighbour_previous == 3):
-                                                    index_face_n_face = 2
-                                                elif (index_neighbour_previous == 1):
-                                                    index_face_n_face = 0
-                                            elif (keys[i][6] == -1):
-                                                if (index_neighbour_previous == 2):
-                                                    index_face_n_face = 3
-                                                elif (index_neighbour_previous == 0):
-                                                    index_face_n_face = 1
-                                    (neighs, ghosts) = find_neighbours(local_idx        ,
-                                                                       index_face_n_face,
-                                                                       codimension      ,
-                                                                       neighs           ,
-                                                                       ghosts)
-                                    # \".index\" give us the \"self._global_ghosts\" index
-                                    # that contains the index of the global ghost quad(/oc)-
-                                    # tree previously found and stored in \"index\".
-                                    py_ghost_oct = get_ghost_octant(neighs[0])
-                                    oct_center, \
-                                    n_oct_center = get_center(py_ghost_oct,
-                                                              True,
-                                                              True)
-                                    l_local_idx = py_ghost_oct
-                                    using_bg_center = True
-                                    bg_center = n_oct_center
-                                if (k == 0):
-                                    codimension = 2
-                                else:
-                                    codimension = 1
-                                is_bad_point, \
-                                n_f_n = check_bg_bad_diamond_point(n_f_n[0]       ,
-                                                                   l_local_idx    ,
-                                                                   n_t_foreground ,
-                                                                   h_inter        ,
-                                                                   codimension    ,
-                                                                   index_neighbour,
-                                                                   dimension      ,
-                                                                   using_bg_center,
-                                                                   bg_center)
-                                if (is_bad_point):
-                                    stencils[i][displ : displ + dimension] = n_f_n[0][: dimension]
-                                n_f_n = narray([stencils[i][displ : displ + dimension]])
-                                apply_bil_mapping(n_f_n   ,
-                                                  c_alpha ,
-                                                  c_beta  ,
-                                                  n_t_a_01,
-                                                  dimension)
-                                apply_bil_mapping_inv(n_t_a_01    ,
-                                                      b_alpha     ,
-                                                      b_beta      ,
-                                                      n_t_a_02,
-                                                      dimension)
-                                l_local_idx = get_point_owner_idx(n_t_a_02[0])
-                                g_global_idx = l_local_idx
-                                if (l_local_idx != uint32_max):
-                                    g_global_idx += o_ranges[0]
+                                    g_global_idx = l_local_idx + o_ranges[0]
                                     oct_center, \
                                     n_oct_center  = get_center(l_local_idx       ,
                                                                ptr_octant = False,
                                                                also_numpy_center = True)
-                                    m_g_global_idx = mask_octant(g_global_idx)
                                 else:
-                                    neighs, ghosts = ([] for i in range(0, 2))
-                                    if (k == 0):
-                                        codimension = 1
-                                    else:
-                                        codimension = 2
-                                    if (k == 0):
-                                        if (keys[i][5] == 1):
-                                            if ((index_neighbour == 1) or (index_neighbour == 3)):
-                                                index_face_n_face = 1
-                                            else:
-                                                index_face_n_face = 0
-                                        elif (keys[i][5] == 0):
-                                            if ((index_neighbour == 2) or (index_neighbour == 3)):
-                                                index_face_n_face = 3
-                                            else:
-                                                index_face_n_face = 2
-                                    else:
-                                        if (keys[i][5] == 1):
-                                            if (keys[i][6] == 1):
-                                                if (index_neighbour_previous == 2):
-                                                    index_face_n_face = 0
-                                                elif (index_neighbour_previous == 3):
-                                                    index_face_n_face = 1
-                                            elif (keys[i][6] == -1):
-                                                if (index_neighbour_previous == 0):
-                                                    index_face_n_face = 2
-                                                elif (index_neighbour_previous == 1):
-                                                    index_face_n_face = 3
-                                        elif (keys[i][5] == 0):
-                                            if (keys[i][6] == 1):
-                                                if (index_neighbour_previous == 3):
-                                                    index_face_n_face = 2
-                                                elif (index_neighbour_previous == 1):
-                                                    index_face_n_face = 0
-                                            elif (keys[i][6] == -1):
-                                                if (index_neighbour_previous == 2):
-                                                    index_face_n_face = 3
-                                                elif (index_neighbour_previous == 0):
-                                                    index_face_n_face = 1
-
-                                    (neighs, ghosts) = find_neighbours(local_idx        ,
-                                                                       index_face_n_face,
-                                                                       codimension      ,
-                                                                       neighs           ,
-                                                                       ghosts)
-                                    g_d = 0
                                     by_octant = True
-                                    #for i in xrange(0, grid):
-                                    #    g_d = g_d + self._oct_f_g[i]
-                                    g_global_idx = octree.get_ghost_global_idx(neighs[0]) + g_d
-                                    # \".index\" give us the \"self._global_ghosts\" index
-                                    # that contains the index of the global ghost quad(/oc)-
-                                    # tree previously found and stored in \"index\".
-                                    py_ghost_oct = octree.get_ghost_octant(neighs[0])
-                                    m_g_global_idx = mask_octant(g_global_idx)
+                                    neighs, ghosts = ([] for i in range(0, 2))
+                                    # Neighbour of the other face respect to
+                                    # the intersection (\"k\" == 1).
+                                    if (k):
+                                        codim = 2
+                                        # Intersection's normal parallel to
+                                        # \"y\" axis.
+                                        if (keys[i][5]):
+                                            # Normal is positive...
+                                            if (keys[i][6] == 1):
+                                                if (i_n_p == 2):
+                                                    iface = 0
+                                                elif (i_n_p == 3):
+                                                    iface = 1
+                                            # ...or negative.
+                                            elif (keys[i][6] == -1):
+                                                if (i_n_p == 0):
+                                                    iface = 2
+                                                elif (i_n_p == 1):
+                                                    iface = 3
+                                        # Intersection's normal parallel to
+                                        # \"x\" axis (\"keys[i][5]\" == 0).
+                                        else:
+                                            if (keys[i][6] == 1):
+                                                if (i_n_p == 3):
+                                                    iface = 2
+                                                elif (i_n_p == 1):
+                                                    iface = 0
+                                            elif (keys[i][6] == -1):
+                                                if (i_n_p == 2):
+                                                    iface = 3
+                                                elif (i_n_p == 0):
+                                                    iface = 1
+                                    # Neighbour of node.
+                                    else:
+                                        codim = 1
+                                        if (keys[i][5]):
+                                            if ((i_n == 1) or \
+                                                (i_n == 3)):
+                                                iface = 1
+                                            else:
+                                                iface = 0
+                                        else:
+                                            if ((i_n == 2) or \
+                                                (i_n == 3)):
+                                                iface = 3
+                                            else:
+                                                iface = 2
+                                    (neighs, ghosts) = find_neighbours(local_idx,
+                                                                       iface    ,
+                                                                       codim    ,
+                                                                       neighs   ,
+                                                                       ghosts)
+                                    py_ghost_oct = get_ghost_octant(neighs[0])
                                     oct_center, \
                                     n_oct_center = get_center(py_ghost_oct,
                                                               by_octant   ,
                                                               True)
+                                    l_local_idx = py_ghost_oct
+                                    using_bg_center = True
+                                    bg_center = n_oct_center
+                                    g_global_idx = get_ghost_global_idx(neighs[0])
+                                if (k):
+                                    codim = 1
+                                else:
+                                    codim = 2
+                                is_bad_point = \
+                                        check_bg_bad_diamond_point(n_a_t_03       ,
+                                                                   l_local_idx    ,
+                                                                   n_t_foreground ,
+                                                                   h_inter        ,
+                                                                   codim          ,
+                                                                   i_n            ,
+                                                                   dimension      ,
+                                                                   using_bg_center,
+                                                                   bg_center)
+                                if (is_bad_point):
+                                    apply_bil_mapping(n_a_t_03,
+                                                      c_alpha ,
+                                                      c_beta  ,
+                                                      n_t_a_01,
+                                                      dimension)
+                                    apply_bil_mapping_inv(n_t_a_01,
+                                                          b_alpha ,
+                                                          b_beta  ,
+                                                          n_t_a_02,
+                                                          dimension)
+                                    l_local_idx = get_point_owner_idx(n_t_a_02[0])
+                                    g_global_idx = l_local_idx
+                                    if (l_local_idx != uint32_max):
+                                        g_global_idx += o_ranges[0]
+                                        oct_center, \
+                                        n_oct_center  = get_center(l_local_idx       ,
+                                                                   ptr_octant = False,
+                                                                   True)
+                                    else:
+                                        by_octant = True
+                                        neighs, ghosts = ([] for i in range(0, 2))
+                                        if (k):
+                                            codim = 2
+                                            # Intersection's normal parallel to
+                                            # \"y\" axis.
+                                            if (keys[i][5]):
+                                                # Normal is positive...
+                                                if (keys[i][6] == 1):
+                                                    if (i_n_p == 2):
+                                                        iface = 0
+                                                    elif (i_n_p == 3):
+                                                        iface = 1
+                                                # ...or negative.
+                                                elif (keys[i][6] == -1):
+                                                    if (i_n_p == 0):
+                                                        iface = 2
+                                                    elif (i_n_p == 1):
+                                                        iface = 3
+                                            # Intersection's normal parallel to
+                                            # \"x\" axis (\"keys[i][5]\" == 0).
+                                            else:
+                                                if (keys[i][6] == 1):
+                                                    if (i_n_p == 3):
+                                                        iface = 2
+                                                    elif (i_n_p == 1):
+                                                        iface = 0
+                                                elif (keys[i][6] == -1):
+                                                    if (i_n_p == 2):
+                                                        iface = 3
+                                                    elif (i_n_p == 0):
+                                                        iface = 1
+                                        # Neighbour of node.
+                                        else:
+                                            codim = 1
+                                            if (keys[i][5]):
+                                                if ((i_n == 1) or \
+                                                    (i_n == 3)):
+                                                    iface = 1
+                                                else:
+                                                    iface = 0
+                                            else:
+                                                if ((i_n == 2) or \
+                                                    (i_n == 3)):
+                                                    iface = 3
+                                                else:
+                                                    iface = 2
+                                        (neighs, ghosts) = find_neighbours(local_idx,
+                                                                           iface    ,
+                                                                           codim    ,
+                                                                           neighs   ,
+                                                                           ghosts)
+                                    g_global_idx = octree.get_ghost_global_idx(neighs[0])
+                                    py_ghost_oct = octree.get_ghost_octant(neighs[0])
+                                    oct_center, \
+                                    n_oct_center = get_center(py_ghost_oct,
+                                                              by_octant   ,
+                                                              True)
+                                m_g_global_idx = mask_octant(g_global_idx)
                                 apply_bil_mapping(narray([n_oct_center]),
-                                                  b_alpha ,
-                                                  b_beta  ,
-                                                  n_t_a_01,
+                                                  b_alpha               ,
+                                                  b_beta                ,
+                                                  n_t_a_01              ,
                                                   dimension)
-                                apply_bil_mapping_inv(n_t_a_01    ,
-                                                      c_alpha     ,
-                                                      c_beta      ,
+                                apply_bil_mapping_inv(n_t_a_01,
+                                                      c_alpha ,
+                                                      c_beta  ,
                                                       n_t_a_02,
                                                       dimension)
                                 c_n_oct_center = ncopy(n_t_a_02[0])
@@ -3071,7 +3086,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 #print(in_m_global_idx)
 
                                 #n_oct_center = ncopy(n_t_a_02[0])
-                                c_n_oct_center = ncopy(n_f_n[0])
+                                c_n_oct_center = ncopy(n_a_t_03[0])
                                 #print(n_oct_center.shape)
                                 if (in_m_global_idx not in t_indices_inv[j]):
                                     t_indices_inv[j].add(in_m_global_idx)
