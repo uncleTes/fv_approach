@@ -2369,6 +2369,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    n_bg_center = numpy.zeros(shape = (1, 3), \
                                                         dtype = numpy.float64)):
         octree = self._octree
+        get_area = octree.get_area
         b_alpha = self.get_trans(0)[1]
         b_beta = self.get_trans(0)[2]
         bad_diamond_point = False
@@ -2401,7 +2402,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                        also_numpy_center = True)
 
 
-        ncopyto(n_t_a_01[0], \
+        ncopyto(n_t_a_01[0][: dimension], \
                 n_oct_center[: dimension])
 
         apply_bil_mapping(n_t_a_01,
@@ -2415,7 +2416,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         if (is_in_fg):
             bad_diamond_point = True
-            ncopyto(n_point, n_i_c(n_point))
+            ncopyto(n_point[0][: dimension],
+                    n_i_c(n_point)[0][: dimension])
 
         return bad_diamond_point
     # --------------------------------------------------------------------------
@@ -2464,7 +2466,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         apply_rest_prol_ops = self.new_apply_rest_prol_ops
         narray = numpy.array
         ncopy = numpy.copy
-        ncopyto = numpycopyto
+        ncopyto = numpy.copyto
         get_point_owner_idx = octree.get_point_owner_idx
         neigh_inter_center = utilities.neigh_inter_center
         get_interface_coefficients_1_order = self.get_interface_coefficients_1_order
@@ -2475,6 +2477,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         check_bg_bad_diamond_point = self.check_bg_bad_diamond_point
         mask_octant = self.mask_octant
         solution = utilities.exact_sol
+        get_codim_iface = utilities.get_codim_iface
         uint32_max = numpy.iinfo(numpy.uint32).max
 
         b_c = lambda x : bil_coeffs(x[0],
@@ -2590,16 +2593,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 # of two layers of octants?
                                 neighs, ghosts = ([] for i in range(0, 2))
                                 codim = 1
-                                if (keys[i][5] == 0):
-                                    iface = 0
-                                    if ((keys[i][8] == 1) or \
-                                        (keys[i][8] == 3)):
-                                        iface = 1
-                                elif (keys[i][5] == 1):
+                                if (keys[i][5]):
                                     iface = 2
                                     if ((keys[i][8] == 2) or \
                                         (keys[i][8] == 3)):
                                         iface = 3
+                                else:
+                                    iface = 0
+                                    if ((keys[i][8] == 1) or \
+                                        (keys[i][8] == 3)):
+                                        iface = 1
                                 (neighs, \
                                  ghosts) = find_neighbours(local_idx,
                                                            iface    ,
@@ -2694,7 +2697,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 l_t_indices_inv.append(m_g_global_idx)
                         # Other neighbour inside foreground neighbours.
                         else:
-                            c_n_oct_center = ncopy(n_a_03[0])
+                            c_n_oct_center = ncopy(n_t_a_03[0])
                             t_centers_inv.append(c_n_oct_center[: dimension])
                             if (keys[i][1] not in t_indices_inv):
                                 t_indices_inv.add(keys[i][1])
@@ -2755,7 +2758,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 for j in xrange(0, 2):
                     ncopyto(n_t_a_03[0][: dimension], \
                             stencils[i][displ : displ + dimension])
-                    c_n_node = ncopy(n_a_03[0])
+                    c_n_node = ncopy(n_t_a_03[0])
                     t_nodes_inv.append(c_n_node)
                     displ += dimension
                 # Getting coordinates of the first neighbour (the one of the
@@ -2909,53 +2912,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 else:
                                     by_octant = True
                                     neighs, ghosts = ([] for i in range(0, 2))
-                                    # Neighbour of the other face respect to
-                                    # the intersection (\"k\" == 1).
-                                    if (k):
-                                        codim = 2
-                                        # Intersection's normal parallel to
-                                        # \"y\" axis.
-                                        if (keys[i][5]):
-                                            # Normal is positive...
-                                            if (keys[i][6] == 1):
-                                                if (i_n_p == 2):
-                                                    iface = 0
-                                                elif (i_n_p == 3):
-                                                    iface = 1
-                                            # ...or negative.
-                                            elif (keys[i][6] == -1):
-                                                if (i_n_p == 0):
-                                                    iface = 2
-                                                elif (i_n_p == 1):
-                                                    iface = 3
-                                        # Intersection's normal parallel to
-                                        # \"x\" axis (\"keys[i][5]\" == 0).
-                                        else:
-                                            if (keys[i][6] == 1):
-                                                if (i_n_p == 3):
-                                                    iface = 2
-                                                elif (i_n_p == 1):
-                                                    iface = 0
-                                            elif (keys[i][6] == -1):
-                                                if (i_n_p == 2):
-                                                    iface = 3
-                                                elif (i_n_p == 0):
-                                                    iface = 1
-                                    # Neighbour of node.
-                                    else:
-                                        codim = 1
-                                        if (keys[i][5]):
-                                            if ((i_n == 1) or \
-                                                (i_n == 3)):
-                                                iface = 1
-                                            else:
-                                                iface = 0
-                                        else:
-                                            if ((i_n == 2) or \
-                                                (i_n == 3)):
-                                                iface = 3
-                                            else:
-                                                iface = 2
+                                    codim, \
+                                    iface = get_codim_iface(k,
+                                                            keys[i][5],
+                                                            keys[i][6],
+                                                            i_n       ,
+                                                            i_n_p)
                                     (neighs, ghosts) = find_neighbours(local_idx,
                                                                        iface    ,
                                                                        codim    ,
@@ -2975,7 +2937,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 else:
                                     codim = 2
                                 is_bad_point = \
-                                        check_bg_bad_diamond_point(n_a_t_03       ,
+                                        check_bg_bad_diamond_point(n_t_a_03       ,
                                                                    l_local_idx    ,
                                                                    n_t_foreground ,
                                                                    h_inter        ,
@@ -2985,7 +2947,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                    using_bg_center,
                                                                    bg_center)
                                 if (is_bad_point):
-                                    apply_bil_mapping(n_a_t_03,
+                                    apply_bil_mapping(n_t_a_03,
                                                       c_alpha ,
                                                       c_beta  ,
                                                       n_t_a_01,
@@ -3000,68 +2962,29 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     if (l_local_idx != uint32_max):
                                         g_global_idx += o_ranges[0]
                                         oct_center, \
-                                        n_oct_center  = get_center(l_local_idx       ,
-                                                                   ptr_octant = False,
+                                        n_oct_center  = get_center(l_local_idx,
+                                                                   False,
                                                                    True)
                                     else:
                                         by_octant = True
                                         neighs, ghosts = ([] for i in range(0, 2))
-                                        if (k):
-                                            codim = 2
-                                            # Intersection's normal parallel to
-                                            # \"y\" axis.
-                                            if (keys[i][5]):
-                                                # Normal is positive...
-                                                if (keys[i][6] == 1):
-                                                    if (i_n_p == 2):
-                                                        iface = 0
-                                                    elif (i_n_p == 3):
-                                                        iface = 1
-                                                # ...or negative.
-                                                elif (keys[i][6] == -1):
-                                                    if (i_n_p == 0):
-                                                        iface = 2
-                                                    elif (i_n_p == 1):
-                                                        iface = 3
-                                            # Intersection's normal parallel to
-                                            # \"x\" axis (\"keys[i][5]\" == 0).
-                                            else:
-                                                if (keys[i][6] == 1):
-                                                    if (i_n_p == 3):
-                                                        iface = 2
-                                                    elif (i_n_p == 1):
-                                                        iface = 0
-                                                elif (keys[i][6] == -1):
-                                                    if (i_n_p == 2):
-                                                        iface = 3
-                                                    elif (i_n_p == 0):
-                                                        iface = 1
-                                        # Neighbour of node.
-                                        else:
-                                            codim = 1
-                                            if (keys[i][5]):
-                                                if ((i_n == 1) or \
-                                                    (i_n == 3)):
-                                                    iface = 1
-                                                else:
-                                                    iface = 0
-                                            else:
-                                                if ((i_n == 2) or \
-                                                    (i_n == 3)):
-                                                    iface = 3
-                                                else:
-                                                    iface = 2
+                                        codim, \
+                                        iface = get_codim_iface(k,
+                                                                keys[i][5],
+                                                                keys[i][6],
+                                                                i_n       ,
+                                                                i_n_p)
                                         (neighs, ghosts) = find_neighbours(local_idx,
                                                                            iface    ,
                                                                            codim    ,
                                                                            neighs   ,
                                                                            ghosts)
-                                    g_global_idx = octree.get_ghost_global_idx(neighs[0])
-                                    py_ghost_oct = octree.get_ghost_octant(neighs[0])
-                                    oct_center, \
-                                    n_oct_center = get_center(py_ghost_oct,
-                                                              by_octant   ,
-                                                              True)
+                                        g_global_idx = get_ghost_global_idx(neighs[0])
+                                        py_ghost_oct = get_ghost_octant(neighs[0])
+                                        oct_center, \
+                                        n_oct_center = get_center(py_ghost_oct,
+                                                                  by_octant   ,
+                                                                  True)
                                 m_g_global_idx = mask_octant(g_global_idx)
                                 apply_bil_mapping(narray([n_oct_center]),
                                                   b_alpha               ,
@@ -3086,7 +3009,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 #print(in_m_global_idx)
 
                                 #n_oct_center = ncopy(n_t_a_02[0])
-                                c_n_oct_center = ncopy(n_a_t_03[0])
+                                c_n_oct_center = ncopy(n_t_a_03[0])
                                 #print(n_oct_center.shape)
                                 if (in_m_global_idx not in t_indices_inv[j]):
                                     t_indices_inv[j].add(in_m_global_idx)

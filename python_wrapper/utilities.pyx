@@ -705,7 +705,7 @@ def neigh_inter_center(numpy.ndarray[dtype = numpy.float64_t,
                        ndim = 2] n_point =      \
          numpy.zeros((1, dimension)            ,\
                      dtype = numpy.float64)
-    numpy.copyto(n_point, point)
+    numpy.copyto(n_point[0], point[0][: dimension])
     # Face
     if (codimension == 1):
         if (index_neighbour == 0):
@@ -1283,6 +1283,63 @@ def metric_coefficients(int dimension                                          ,
 #    n_m_cs = numpy.array(m_cs)
 #
 #    return n_m_cs
+
+def get_codim_iface(int k      ,
+                    int n_dir  ,
+                    int n_value,
+                    int i_n    ,
+                    int i_n_p):
+    cdef int codim = 0
+    cdef int iface = 0
+    # Neighbour of the other face respect to
+    # the intersection (\"k\" == 1).
+    if (k):
+        codim = 2
+        # Intersection's normal parallel to
+        # \"y\" axis.
+        if (n_dir):
+            # Normal is positive...
+            if (n_value == 1):
+                if (i_n_p == 2):
+                    iface = 0
+                elif (i_n_p == 3):
+                    iface = 1
+            # ...or negative.
+            elif (n_value == -1):
+                if (i_n_p == 0):
+                    iface = 2
+                elif (i_n_p == 1):
+                    iface = 3
+        # Intersection's normal parallel to
+        # \"x\" axis (\"keys[i][5]\" == 0).
+        else:
+            if (n_value == 1):
+                if (i_n_p == 3):
+                    iface = 2
+                elif (i_n_p == 1):
+                    iface = 0
+            elif (n_value == -1):
+                if (i_n_p == 2):
+                    iface = 3
+                elif (i_n_p == 0):
+                    iface = 1
+    # Neighbour of node.
+    else:
+        codim = 1
+        if (n_dir):
+            if ((i_n == 1) or \
+                (i_n == 3)):
+                iface = 1
+            else:
+                iface = 0
+        else:
+            if ((i_n == 2) or \
+                (i_n == 3)):
+                iface = 3
+            else:
+                iface = 2
+
+    return (codim, iface)
        
 def apply_persp_trans_inv(int dimension                                                ,
                           numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point       ,
