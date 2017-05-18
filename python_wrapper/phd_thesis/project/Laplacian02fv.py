@@ -2841,8 +2841,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
                                                          n_t_a_03[0][: dimension])
 
-                    nodes_inter = [stencils[i][1 : 3], stencils[i][3: 5]]
-                    owners_centers = [stencils[i][5 : 7], stencils[i][11: 13]]
+                    nodes_inter = [stencils[i][1 : 3], stencils[i][3 : 5]]
+                    owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
                     n_coeffs = self.get_interface_coefficients_1_order(0                        ,
                                                                        dimension                ,
                                                                        nodes_inter              ,
