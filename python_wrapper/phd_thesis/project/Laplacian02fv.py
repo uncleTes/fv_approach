@@ -2841,20 +2841,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
                                                          n_t_a_03[0][: dimension])
 
-                    nodes_inter = t_nodes_inv
+                    nodes_inter = [stencils[i][1 : 3], stencils[i][3: 5]]
                     owners_centers = [stencils[i][5 : 7], stencils[i][11: 13]]
-                    n_coeffs     , \
-                    coeffs_node_1, \
-                    coeffs_node_0  =  self.get_interface_coefficients(0                         ,
-                                                                      dimension                 ,
-                                                                      nodes_inter               ,
-                                                                      owners_centers            ,
-                                                                      l_s_coeffs                ,
-                                                                      use_inter = False         ,
-                                                                      h_given = h_inter         ,
-                                                                      n_axis_given = keys[i][5] ,
-                                                                      n_value_given = keys[i][6],
-                                                                      grid = keys[i][0])
+                    n_coeffs = self.get_interface_coefficients_1_order(0                        ,
+                                                                       dimension                ,
+                                                                       nodes_inter              ,
+                                                                       owners_centers           ,
+                                                                       keys[i][0]               ,
+                                                                       use_inter = False        ,
+                                                                       h_given = h_inter        ,
+                                                                       n_axis_given = keys[i][5],
+                                                                       n_value_given = keys[i][6])
                     coeffs_ghost = l_s_coeffs * n_coeffs[0]
                     columns = []
                     values = []
