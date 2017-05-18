@@ -2786,7 +2786,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     n_cell_center = get_center(local_idx,
                                                False    ,
                                                True)
-                    t_centers_inv.append(n_cell_center[: dimension])
+                    n_n_cell_center = narray([n_cell_center])
+                    apply_bil_mapping(n_n_cell_center,
+                                      b_alpha        ,
+                                      b_beta         ,
+                                      n_t_a_01       ,
+                                      dimension)
+                    apply_bil_mapping_inv(n_t_a_01,
+                                          c_alpha ,
+                                          c_beta  ,
+                                          n_t_a_02,
+                                          dimension)
+                    c_n_oct_center = ncopy(n_t_a_02[0])
+                    t_centers_inv.append(c_n_oct_center[: dimension])
                     l_t_indices_inv.append(m_index)
                     neighs, ghosts = ([] for i in range(0, 2))
                     for codim in xrange(1, 3):
@@ -2823,20 +2835,33 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         n_cell_center = get_center(py_ghost_oct,
                                                                    by_octant   ,
                                                                    True)
+                                        n_n_cell_center = narray([n_cell_center])
+                                        apply_bil_mapping(n_n_cell_center,
+                                                          b_alpha        ,
+                                                          b_beta         ,
+                                                          n_t_a_01       ,
+                                                          dimension)
+                                        apply_bil_mapping_inv(n_t_a_01,
+                                                              c_alpha ,
+                                                              c_beta  ,
+                                                              n_t_a_02,
+                                                              dimension)
                                         # Temporary distance.
-                                        t_d = numpy.linalg.norm(n_cell_center[: dimension] - \
+                                        t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
                                                                 n_t_a_03[0][: dimension])
                                         # \"j\" == 0...first neighbour.
                                         if (not j):
                                             d_c_n = t_d
-                                            t_centers_inv.append(n_cell_center[: dimension])
+                                            c_n_oct_center = ncopy(n_t_a_02[0])
+                                            t_centers_inv.append(c_n_oct_center[: dimension])
                                             l_t_indices_inv.append(m_index)
                                         # Second neighbour case.
                                         else:
                                             if (t_d < d_c_n):
                                                 d_c_n = t_d
+                                                c_n_oct_center = ncopy(n_t_a_02[0])
                                                 t_centers_inv[-1][: dimension] = \
-                                                n_cell_center[: dimension]
+                                                c_n_oct_center[: dimension]
                                                 l_t_indices_inv[-1] = m_index
                     l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
                                                          n_t_a_03[0][: dimension])
