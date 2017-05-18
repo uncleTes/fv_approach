@@ -2751,16 +2751,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 t_indices_inv = set()
                 l_t_indices_inv = []
                 t_nodes_inv = []
-                # \"h\" (1)
-                displ = 1
-                # Appending to \"t_nodes_inv\" the nodes of the intersection on
-                # the boundary of the foreground grid.
-                for j in xrange(0, 2):
-                    ncopyto(n_t_a_03[0][: dimension], \
-                            stencils[i][displ : displ + dimension])
-                    c_n_node = ncopy(n_t_a_03[0])
-                    t_nodes_inv.append(c_n_node)
-                    displ += dimension
                 # Getting coordinates of the first neighbour (the one of the
                 # intersection) of the rings of the nodes (it will be the same
                 # for both the nodes).
