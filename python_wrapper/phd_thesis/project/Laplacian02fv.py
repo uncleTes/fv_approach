@@ -1337,7 +1337,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # If an element is being allocated in a place not preallocate, then
         # the program will stop.
         self._b_mat.setOption(self._b_mat.Option.NEW_NONZERO_ALLOCATION_ERR,
-                              True)
+                              False)
         msg = "Initialized monolithic matrix"
         extra_msg = "with sizes \"" + str(self._b_mat.getSizes()) + \
                     "\" and type \"" + str(self._b_mat.getType()) + "\""
