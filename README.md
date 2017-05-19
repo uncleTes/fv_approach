@@ -1,5 +1,5 @@
 ## Discretization of the Laplacian Operator Using Multiple Overlapping Grids
-### Using a Pythonistic Approach
+## Using a Pythonistic Approach
 
 ### Introduction
 
