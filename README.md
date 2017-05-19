@@ -30,6 +30,8 @@ For any questions about *PABLO* or *bitpit*, contact *OPTIMAD Engineering Srl*.
 
 3. Hybrid parallelization using an *MPI + X* approach.
 
+4. *bitpit* Python wrapper.
+
 ### Notes
 
 Up to date with bitpit 1.2, needed for bug corrections.
