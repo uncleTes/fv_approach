@@ -1,4 +1,36 @@
-FV approach for my PhD Thesis.
+##Discretization of the Laplacian Operator Using Multiple Overlapping Grids
+###Using a Pythonistic Approach
+
+###Introduction
+
+Adaptive discretizations are important in many *multiscale* problems, where it is critical to reduce the **computational time** while achieving the same or greater accuracy in particular regions of the computational domain.
+
+*Finite differences* applied on *Cartesian* grids are of course a very simple numerical method for solving differential equations, but do not allow adaptive discretizations, forcing the user to **refine** the computational domain globally. Moreover, when the grid is not cartesian, the discretization of the differential operators in space must take into account the metrics, making *grid transformations* a "bit" annoying to handle.
+
+This problem, imposed by physical domain body-fitted grids, can be crossed more easily using a *finite-volume* approach on **octree meshes**.
+
+###Octree and Programming Language
+
+We have chosen to use in our approach *PABLO*, a C++/MPI library for managing parallel linear octree/quadtree, developed at *OPTIMAD Engineering Srl* and now an integrated part
+of *bitpit*, a more complex library always developed by *OPTIMAD Engineering Srl*.
+
+But, to make things more interesting, we have chosen to use as programming language Python, lately used more and more also in the *HPC* fields, of course with the correct foresights that an interpreted language requires.
+
+That's why, under the folder *python_wrapper*, you can find *PABLitO*, a Python API written in Cython for *PABLO* and developed by Federico Tesser with the aim of increasing the number of scientific wrapper written for Python and already present (*MPI4Py*, *NumPy*, *PETSc4py*, and so on), with a fully Python compatible *linear octree*.
+
+For any questions about the prject and *PABLitO*, feel free to contact me.
+
+For any questions about *PABLO* or *bitpit*, contact *OPTIMAD Engineering Srl*.
+
+###Forthcoming Researches
+
+1. Heat equation.
+
+2. 3D extension.
+
+3. Hybrid parallelization using an *MPI + X* approach.
+
+###Notes
 
 Up to date with bitpit 1.2, needed for bug corrections.
 
