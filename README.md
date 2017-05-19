@@ -1,7 +1,7 @@
-##Discretization of the Laplacian Operator Using Multiple Overlapping Grids
-###Using a Pythonistic Approach
+## Discretization of the Laplacian Operator Using Multiple Overlapping Grids
+### Using a Pythonistic Approach
 
-###Introduction
+### Introduction
 
 Adaptive discretizations are important in many *multiscale* problems, where it is critical to reduce the **computational time** while achieving the same or greater accuracy in particular regions of the computational domain.
 
@@ -9,7 +9,7 @@ Adaptive discretizations are important in many *multiscale* problems, where it i
 
 This problem, imposed by physical domain body-fitted grids, can be crossed more easily using a *finite-volume* approach on **octree meshes**.
 
-###Octree and Programming Language
+### Octree and Programming Language
 
 We have chosen to use in our approach *PABLO*, a C++/MPI library for managing parallel linear octree/quadtree, developed at *OPTIMAD Engineering Srl* and now an integrated part
 of *bitpit*, a more complex library always developed by *OPTIMAD Engineering Srl*.
@@ -22,7 +22,7 @@ For any questions about the prject and *PABLitO*, feel free to contact me.
 
 For any questions about *PABLO* or *bitpit*, contact *OPTIMAD Engineering Srl*.
 
-###Forthcoming Researches
+### Forthcoming Researches
 
 1. Heat equation.
 
@@ -30,7 +30,7 @@ For any questions about *PABLO* or *bitpit*, contact *OPTIMAD Engineering Srl*.
 
 3. Hybrid parallelization using an *MPI + X* approach.
 
-###Notes
+### Notes
 
 Up to date with bitpit 1.2, needed for bug corrections.
 
