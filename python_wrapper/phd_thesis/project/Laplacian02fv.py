@@ -2785,7 +2785,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 c_n_oct_center[: dimension]
                                                 l_t_indices_inv[-1] = m_index
                     # Other neighbour inside foreground neighbours.
-                    displ = 1 + (3 * dimension)
+                    displ = 1 + (5 * dimension)
                     ncopyto(n_t_a_03[0][: dimension], \
                             stencils[i][displ : displ + dimension])
                     c_n_oct_center = ncopy(n_t_a_03[0])
@@ -2793,7 +2793,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     t_indices_inv.add(keys[i][1])
                     l_t_indices_inv.append(keys[i][1])
                     if (keys[i][2] != -1):
-                        displ = 1 + (2 * dimension)
+                        displ = 1 + (4 * dimension)
                         ncopyto(n_t_a_03[0][: dimension], \
                                 stencils[i][displ : displ + dimension])
                         c_n_oct_center = ncopy(n_t_a_03[0])
@@ -2801,7 +2801,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         t_indices_inv.add(keys[i][2])
                         l_t_indices_inv.append(keys[i][2])
                     if (keys[i][4] != -1):
-                        displ = 1 + (6 * dimension)
+                        displ = 1 + (8 * dimension)
                         ncopyto(n_t_a_03[0][: dimension], \
                                 stencils[i][displ : displ + dimension])
                         c_n_oct_center = ncopy(n_t_a_03[0])
