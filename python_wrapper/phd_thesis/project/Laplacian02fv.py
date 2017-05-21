@@ -2530,65 +2530,23 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                       n_t_a_02,
                                       dimension)
                 local_idx = get_point_owner_idx(n_t_a_02[0])
+                global_idx = local_idx
                 # If the current process is the owner of the octant that posses-
                 # ses \"n_t_a_02[0]\", which is the element of the ring of the
                 # other face respect the one of the intersection, then we do all
                 # the checks.
                 if (local_idx != uint32_max):
-                    l_local_idx = local_idx
-                    g_global_idx = l_local_idx
-
-                    codim = 1
-                    iface = keys[i][9]
-
-                    is_bad_point = check_bg_bad_diamond_point(n_t_a_03      ,
-                                                              local_idx     ,
-                                                              n_t_foreground,
-                                                              h_inter       ,
-                                                              codim         ,
-                                                              iface         ,
-                                                              dimension)
-                    if (is_bad_point):
-                        apply_bil_mapping(n_t_a_03,
-                                          c_alpha ,
-                                          c_beta  ,
-                                          n_t_a_01,
-                                          dimension)
-                        apply_bil_mapping_inv(n_t_a_01,
-                                              b_alpha ,
-                                              b_beta  ,
-                                              n_t_a_02,
-                                              dimension)
-                        l_local_idx = get_point_owner_idx(n_t_a_02[0])
-                        g_global_idx = l_local_idx
-
-                    if (l_local_idx != uint32_max):
-                        g_global_idx += o_ranges[0]
-                        oct_center, \
-                        n_oct_center  = get_center(l_local_idx       ,
-                                                   ptr_octant = False,
-                                                   also_numpy_center = True)
-                    else:
-                        neighs, ghosts = ([] for i in range(0, 2))
-                        (neighs, ghosts) = find_neighbours(local_idx,
-                                                           iface    ,
-                                                           codim    ,
-                                                           neighs   ,
-                                                           ghosts)
-                        by_octant = True
-                        g_global_idx = get_ghost_global_idx(neighs[0])
-                        py_ghost_oct = get_ghost_octant(neighs[0])
-                        oct_center, \
-                        n_oct_center = get_center(py_ghost_oct,
-                                                  by_octant   ,
-                                                  True)
-
-                    m_g_global_idx = mask_octant(g_global_idx)
-
-                    apply_bil_mapping(narray([n_oct_center]),
-                                      b_alpha               ,
-                                      b_beta                ,
-                                      n_t_a_01              ,
+                    global_idx += o_ranges[0]
+                    m_index = mask_octant(global_idx)
+                    cell_center, \
+                    n_cell_center = get_center(local_idx,
+                                               False    ,
+                                               True)
+                    n_n_cell_center = narray([n_cell_center])
+                    apply_bil_mapping(n_n_cell_center,
+                                      b_alpha        ,
+                                      b_beta         ,
+                                      n_t_a_01       ,
                                       dimension)
                     apply_bil_mapping_inv(n_t_a_01,
                                           c_alpha ,
@@ -2596,10 +2554,71 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           n_t_a_02,
                                           dimension)
                     c_n_oct_center = ncopy(n_t_a_02[0])
-                    if (m_g_global_idx not in t_indices_inv):
-                        t_centers_inv.append(c_n_oct_center[: dimension])
-                        t_indices_inv.add(m_g_global_idx)
-                        l_t_indices_inv.append(m_g_global_idx)
+                    t_centers_inv.append(c_n_oct_center[: dimension])
+                    l_t_indices_inv.append(m_index)
+                    neighs, ghosts = ([] for i in range(0, 2))
+                    for codim in xrange(1, 3):
+                        for iface in xrange(0, 4):
+                            (neighs, \
+                             ghosts) = find_neighbours(local_idx,
+                                                       iface    ,
+                                                       codim    ,
+                                                       neighs   ,
+                                                       ghosts)
+                            n_neighs = len(neighs)
+                            if (neighs):
+                                # Distance center node.
+                                d_c_n = 0.0
+                                for j in xrange(0, n_neighs):
+                                    # Neighbour is into the same process, so is local.
+                                    if (not ghosts[j]):
+                                        by_octant = False
+                                        index = neighs[j]
+                                        m_index = mask_octant(index + o_ranges[0])
+                                        py_ghost_oct = index
+                                    else:
+                                        by_octant = True
+                                        # In this case, the quas(/oc)tree is no more local into
+                                        # the current process, so we have to find it globally.
+                                        index = get_ghost_global_idx(neighs[j])
+                                        # \".index\" give us the \"self._global_ghosts\" index
+                                        # that contains the index of the global ghost quad(/oc)-
+                                        # tree previously found and stored in \"index\".
+                                        py_ghost_oct = get_ghost_octant(neighs[j])
+                                        m_index = mask_octant(index)
+                                    if (m_index != -1):
+                                        cell_center, \
+                                        n_cell_center = get_center(py_ghost_oct,
+                                                                   by_octant   ,
+                                                                   True)
+                                        n_n_cell_center = narray([n_cell_center])
+                                        apply_bil_mapping(n_n_cell_center,
+                                                          b_alpha        ,
+                                                          b_beta         ,
+                                                          n_t_a_01       ,
+                                                          dimension)
+                                        apply_bil_mapping_inv(n_t_a_01,
+                                                              c_alpha ,
+                                                              c_beta  ,
+                                                              n_t_a_02,
+                                                              dimension)
+                                        # Temporary distance.
+                                        t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
+                                                                n_t_a_03[0][: dimension])
+                                        # \"j\" == 0...first neighbour.
+                                        if (not j):
+                                            d_c_n = t_d
+                                            c_n_oct_center = ncopy(n_t_a_02[0])
+                                            t_centers_inv.append(c_n_oct_center[: dimension])
+                                            l_t_indices_inv.append(m_index)
+                                        # Second neighbour case.
+                                        else:
+                                            if (t_d < d_c_n):
+                                                d_c_n = t_d
+                                                c_n_oct_center = ncopy(n_t_a_02[0])
+                                                t_centers_inv[-1][: dimension] = \
+                                                c_n_oct_center[: dimension]
+                                                l_t_indices_inv[-1] = m_index
                     # Other neighbour inside foreground neighbours.
                     displ = 2 + dimension
                     ncopyto(n_t_a_03[0][: dimension], \
@@ -2631,8 +2650,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                       apply_mapping = True)
                     self._f_on_borders_exact.append(ex_sol[0])
                     self._h_s_inter_on_board.append(h_inter)
-                    coeffs = b_c((narray(t_centers_inv),
-                                  narray(cs_n)))
+                    coeffs = utilities.least_squares(narray(t_centers_inv),
+                                                     narray(cs_n))
                     rec_sols = solution(narray(t_centers_inv),
                                         c_alpha              ,
                                         c_beta               ,
