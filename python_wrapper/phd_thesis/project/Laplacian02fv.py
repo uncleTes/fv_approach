@@ -2506,7 +2506,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # One node of the intersection on foreground boundaries.
             if (keys[i][3] == 1):
                 t_centers_inv = []
-                t_indices_inv = set()
                 l_t_indices_inv = []
                 # \"h\" + \"n_coeffs[node_on_f_b]\" (2) + the coordinates of the
                 # node on the foreground boundary  + the first two ring neigh-
@@ -2596,11 +2595,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           n_t_a_02,
                                           dimension)
                     c_n_oct_center = ncopy(n_t_a_02[0])
-                    if (m_g_global_idx not in t_indices_inv):
-                        t_centers_inv.append(c_n_oct_center[: dimension])
-                        t_indices_inv.add(m_g_global_idx)
-                        l_t_indices_inv.append(m_g_global_idx)
-                    # Other neighbour inside foreground neighbours.
+                    t_centers_inv.append(c_n_oct_center[: dimension])
+                    l_t_indices_inv.append(m_g_global_idx)
+                    # Other neighbours inside foreground neighbours.
                     displ = 2 + dimension
                     ncopyto(n_t_a_03[0][: dimension], \
                             stencils[i][displ : displ + dimension])
@@ -2611,12 +2608,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             stencils[i][displ : displ + dimension])
                     c_n_oct_center = ncopy(n_t_a_03[0])
                     t_centers_inv.append(c_n_oct_center[: dimension])
-                    if (keys[i][1] not in t_indices_inv):
-                        t_indices_inv.add(keys[i][1])
-                        l_t_indices_inv.append(keys[i][1])
-                    if (keys[i][2] not in t_indices_inv):
-                        t_indices_inv.add(keys[i][2])
-                        l_t_indices_inv.append(keys[i][2])
+                    l_t_indices_inv.append(keys[i][1])
+                    l_t_indices_inv.append(keys[i][2])
                     # \"h\" + \"n_coeffs[node_on_f_b]\" (2).
                     displ = 2
                     # Coordinates of the node on the foreground boundary.
