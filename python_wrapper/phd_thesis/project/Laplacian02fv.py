@@ -2612,10 +2612,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     l_t_indices_inv.append(keys[i][2])
                     # \"h\" + \"n_coeffs[node_on_f_b]\" (2).
                     displ = 2
-                    # Coordinates of the node on the foreground boundary.
+                    ## Coordinates of the node on the foreground boundary.
                     cs_n = stencils[i][displ : displ + dimension]
-                    # \"Numpy\" coordinates of the node on the foreground boun-
-                    # dary.
+                    ## \"Numpy\" coordinates of the node on the foreground boun-
+                    ## dary.
                     n_cs_n = narray([cs_n])
                     ex_sol = solution(n_cs_n,
                                       c_alpha              ,
@@ -2653,7 +2653,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Two nodes on foreground boundaries.
             elif (keys[i][3] == 2):
                 t_centers_inv = []
-                t_indices_inv = set()
                 l_t_indices_inv = []
                 t_nodes_inv = []
                 # Getting coordinates of the first neighbour (the one of the
@@ -2760,6 +2759,28 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 l_t_indices_inv[-1] = m_index
                     l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
                                                          n_t_a_03[0][: dimension])
+                    displ = 1 + (2 * dimension)
+                    # Coordinates of the node on the foreground boundary.
+                    cs_n = stencils[i][displ : displ + dimension]
+                    # \"Numpy\" coordinates of the node on the foreground boun-
+                    # dary.
+                    n_cs_n = narray([cs_n])
+                    ex_sol = solution(n_cs_n,
+                                      c_alpha              ,
+                                      c_beta               ,
+                                      dim = dimension      ,
+                                      apply_mapping = True)
+                    self._f_on_borders_exact.append(ex_sol[0])
+                    self._h_s_inter_on_board.append(h_inter)
+                    rec_sols = solution(narray(t_centers_inv),
+                                        c_alpha              ,
+                                        c_beta               ,
+                                        dim = dimension      ,
+                                        apply_mapping = True)
+                    rec_sol = 0
+                    for k in xrange(0, rec_sols.shape[0]):
+                        rec_sol += rec_sols[k] * l_s_coeffs[k]
+                    self._f_on_borders.append(rec_sol)
 
                     nodes_inter = [stencils[i][1 : 3], stencils[i][3 : 5]]
                     owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
