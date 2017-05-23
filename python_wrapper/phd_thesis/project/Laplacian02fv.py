@@ -2608,8 +2608,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             stencils[i][displ : displ + dimension])
                     c_n_oct_center = ncopy(n_t_a_03[0])
                     t_centers_inv.append(c_n_oct_center[: dimension])
-                    l_t_indices_inv.append(keys[i][1])
-                    l_t_indices_inv.append(keys[i][2])
+                    if (keys[i][6] == -1):
+                        l_t_indices_inv.append(keys[i][1])
+                        l_t_indices_inv.append(keys[i][2])
+                    else:
+                        l_t_indices_inv.append(keys[i][2])
+                        l_t_indices_inv.append(keys[i][1])
                     # \"h\" + \"n_coeffs[node_on_f_b]\" (2).
                     displ = 2
                     ## Coordinates of the node on the foreground boundary.
