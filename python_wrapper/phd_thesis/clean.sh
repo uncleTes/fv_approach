@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CURRENT_DIR_PATH=$(pwd)
-EXECUTE_DIR_PATH="/home/federico/WorkSpace/PythonProjects/PhdThesis/bitpit1.2/bitpit-1.2/python_wrapper/phd_thesis"
+EXECUTE_DIR_PATH="/home/ftesser/Devel/fv_approach/python_wrapper/phd_thesis"
 
 if [ "$EXECUTE_DIR_PATH" == "$CURRENT_DIR_PATH" ]; then
     [ -f ./benchmark.txt ] && rm -v ./benchmark.txt
