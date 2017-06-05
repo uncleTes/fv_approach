@@ -1276,7 +1276,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (grid and (not on_b_boundary)):
                 on_f_boundary = is_on_f_boundary(n_t_node)
 
-            if (on_b_boundary):
+            if (on_b_boundary or on_f_boundary):
                 l_owner = "b_boundary"
             else:
                 if (on_f_boundary):
@@ -1945,7 +1945,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                   self._sol)
         # How many iterations are done.
         it_number = ksp.getIterationNumber()
-        #print(ksp.getConvergedReason())
+        print(ksp.getConvergedReason())
 
         msg = "Evaluated solution"
         extra_msg = "Using \"" + str(it_number) + "\" iterations."
@@ -2122,10 +2122,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (not is_background):
                 self.update_fg_grids(o_ranges,
                                      ids_octree_contained)
-            else:
-                if (n_grids > 1):
-                    self.update_bg_grids(o_ranges,
-                                         ids_octree_contained)
+            #else:
+            #    if (n_grids > 1):
+            #        self.update_bg_grids(o_ranges,
+            #                             ids_octree_contained)
 
         self.assembly_petsc_struct("matrix",
                                    PETSc.Mat.AssemblyType.FINAL_ASSEMBLY)
@@ -2507,153 +2507,159 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (keys[i][3] == 1):
                 t_centers_inv = []
                 l_t_indices_inv = []
-                # \"h\" + \"n_coeffs[node_on_f_b]\" (2) + the coordinates of the
-                # node on the foreground boundary  + the first two ring neigh-
-                # bours (of face and of node) (\"(+ dimension * 3)\"); that's
-                # the displacement \"displ\".
-                displ = 2 + (dimension * 3)
-                # Getting coordinates of the third neighbour (the one of the other
-                # face/intersection).
+                t_nodes_inv = []
+                # Getting coordinates of the first neighbour (the one of the
+                # intersection) of the rings of the nodes (it will be the same
+                # for both the nodes).
+                displ = 2
                 ncopyto(n_t_a_03[0][: dimension], \
                         stencils[i][displ : displ + dimension])
-                # From logical to physical space...
                 apply_bil_mapping(n_t_a_03,
                                   c_alpha ,
                                   c_beta  ,
                                   n_t_a_01,
                                   dimension)
-                # ...and comeback.
                 apply_bil_mapping_inv(n_t_a_01,
                                       b_alpha ,
                                       b_beta  ,
                                       n_t_a_02,
                                       dimension)
                 local_idx = get_point_owner_idx(n_t_a_02[0])
-                # If the current process is the owner of the octant that posses-
-                # ses \"n_t_a_02[0]\", which is the element of the ring of the
-                # other face respect the one of the intersection, then we do all
-                # the checks.
+                global_idx = local_idx
                 if (local_idx != uint32_max):
-                    l_local_idx = local_idx
-                    g_global_idx = l_local_idx
-
-                    codim = 1
-                    iface = keys[i][9]
-
-                    is_bad_point = check_bg_bad_diamond_point(n_t_a_03      ,
-                                                              local_idx     ,
-                                                              n_t_foreground,
-                                                              h_inter       ,
-                                                              codim         ,
-                                                              iface         ,
-                                                              dimension)
-                    if (is_bad_point):
-                        apply_bil_mapping(n_t_a_03,
-                                          c_alpha ,
-                                          c_beta  ,
-                                          n_t_a_01,
-                                          dimension)
-                        apply_bil_mapping_inv(n_t_a_01,
-                                              b_alpha ,
-                                              b_beta  ,
-                                              n_t_a_02,
-                                              dimension)
-                        l_local_idx = get_point_owner_idx(n_t_a_02[0])
-                        g_global_idx = l_local_idx
-
-                    if (l_local_idx != uint32_max):
-                        g_global_idx += o_ranges[0]
-                        oct_center, \
-                        n_oct_center  = get_center(l_local_idx       ,
-                                                   ptr_octant = False,
-                                                   also_numpy_center = True)
-                    else:
-                        neighs, ghosts = ([] for i in range(0, 2))
-                        (neighs, ghosts) = find_neighbours(local_idx,
-                                                           iface    ,
-                                                           codim    ,
-                                                           neighs   ,
-                                                           ghosts)
-                        by_octant = True
-                        g_global_idx = get_ghost_global_idx(neighs[0])
-                        py_ghost_oct = get_ghost_octant(neighs[0])
-                        oct_center, \
-                        n_oct_center = get_center(py_ghost_oct,
-                                                  by_octant   ,
-                                                  True)
-
-                    m_g_global_idx = mask_octant(g_global_idx)
-
-                    apply_bil_mapping(narray([n_oct_center]),
-                                      b_alpha               ,
-                                      b_beta                ,
-                                      n_t_a_01              ,
-                                      dimension)
-                    apply_bil_mapping_inv(n_t_a_01,
-                                          c_alpha ,
-                                          c_beta  ,
-                                          n_t_a_02,
-                                          dimension)
-                    c_n_oct_center = ncopy(n_t_a_02[0])
-                    t_centers_inv.append(c_n_oct_center[: dimension])
-                    l_t_indices_inv.append(m_g_global_idx)
-                    # Other neighbours inside foreground neighbours.
-                    displ = 2 + dimension
-                    ncopyto(n_t_a_03[0][: dimension], \
-                            stencils[i][displ : displ + dimension])
-                    c_n_oct_center = ncopy(n_t_a_03[0])
-                    t_centers_inv.append(c_n_oct_center[: dimension])
-                    displ = 2 + (dimension * 4)
-                    ncopyto(n_t_a_03[0][: dimension], \
-                            stencils[i][displ : displ + dimension])
-                    c_n_oct_center = ncopy(n_t_a_03[0])
-                    t_centers_inv.append(c_n_oct_center[: dimension])
-                    if (keys[i][6] == -1):
-                        l_t_indices_inv.append(keys[i][1])
-                        l_t_indices_inv.append(keys[i][2])
-                    else:
-                        l_t_indices_inv.append(keys[i][2])
-                        l_t_indices_inv.append(keys[i][1])
-                    # \"h\" + \"n_coeffs[node_on_f_b]\" (2).
-                    displ = 2
-                    ## Coordinates of the node on the foreground boundary.
-                    cs_n = stencils[i][displ : displ + dimension]
-                    ## \"Numpy\" coordinates of the node on the foreground boun-
-                    ## dary.
-                    n_cs_n = narray([cs_n])
-                    ex_sol = solution(n_cs_n,
+                    ex_sol = solution(n_t_a_03             ,
                                       c_alpha              ,
                                       c_beta               ,
                                       dim = dimension      ,
                                       apply_mapping = True)
+                    coeff_i = ex_sol * stencils[i][1]
+                    coeff_o = ex_sol * stencils[i][1] * -1.0
+                    insert_mode = PETSc.InsertMode.ADD_VALUES
+                    self._rhs.setValues([keys[i][1], keys[i][2]],
+                                        [coeff_i, coeff_o]      ,
+                                        insert_mode)
+                    #global_idx += o_ranges[0]
+                    #m_index = mask_octant(global_idx)
+                    #cell_center, \
+                    #n_cell_center = get_center(local_idx,
+                    #                           False    ,
+                    #                           True)
+                    #n_n_cell_center = narray([n_cell_center])
+                    #apply_bil_mapping(n_n_cell_center,
+                    #                  b_alpha        ,
+                    #                  b_beta         ,
+                    #                  n_t_a_01       ,
+                    #                  dimension)
+                    #apply_bil_mapping_inv(n_t_a_01,
+                    #                      c_alpha ,
+                    #                      c_beta  ,
+                    #                      n_t_a_02,
+                    #                      dimension)
+                    #c_n_oct_center = ncopy(n_t_a_02[0])
+                    #t_centers_inv.append(c_n_oct_center[: dimension])
+                    #l_t_indices_inv.append(m_index)
+                    #neighs, ghosts = ([] for i in range(0, 2))
+                    #for codim in xrange(1, 3):
+                    #    for iface in xrange(0, 4):
+                    #        (neighs, \
+                    #         ghosts) = find_neighbours(local_idx,
+                    #                                   iface    ,
+                    #                                   codim    ,
+                    #                                   neighs   ,
+                    #                                   ghosts)
+                    #        n_neighs = len(neighs)
+                    #        if (neighs):
+                    #            # Distance center node.
+                    #            d_c_n = 0.0
+                    #            for j in xrange(0, n_neighs):
+                    #                # Neighbour is into the same process, so is local.
+                    #                if (not ghosts[j]):
+                    #                    by_octant = False
+                    #                    index = neighs[j]
+                    #                    m_index = mask_octant(index + o_ranges[0])
+                    #                    py_ghost_oct = index
+                    #                else:
+                    #                    by_octant = True
+                    #                    # In this case, the quas(/oc)tree is no more local into
+                    #                    # the current process, so we have to find it globally.
+                    #                    index = get_ghost_global_idx(neighs[j])
+                    #                    # \".index\" give us the \"self._global_ghosts\" index
+                    #                    # that contains the index of the global ghost quad(/oc)-
+                    #                    # tree previously found and stored in \"index\".
+                    #                    py_ghost_oct = get_ghost_octant(neighs[j])
+                    #                    m_index = mask_octant(index)
+                    #                if (m_index != -1):
+                    #                    cell_center, \
+                    #                    n_cell_center = get_center(py_ghost_oct,
+                    #                                               by_octant   ,
+                    #                                               True)
+                    #                    n_n_cell_center = narray([n_cell_center])
+                    #                    apply_bil_mapping(n_n_cell_center,
+                    #                                      b_alpha        ,
+                    #                                      b_beta         ,
+                    #                                      n_t_a_01       ,
+                    #                                      dimension)
+                    #                    apply_bil_mapping_inv(n_t_a_01,
+                    #                                          c_alpha ,
+                    #                                          c_beta  ,
+                    #                                          n_t_a_02,
+                    #                                          dimension)
+                    #                    # Temporary distance.
+                    #                    t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
+                    #                                            n_t_a_03[0][: dimension])
+                    #                    # \"j\" == 0...first neighbour.
+                    #                    if (not j):
+                    #                        d_c_n = t_d
+                    #                        c_n_oct_center = ncopy(n_t_a_02[0])
+                    #                        t_centers_inv.append(c_n_oct_center[: dimension])
+                    #                        l_t_indices_inv.append(m_index)
+                    #                    # Second neighbour case.
+                    #                    else:
+                    #                        if (t_d < d_c_n):
+                    #                            d_c_n = t_d
+                    #                            c_n_oct_center = ncopy(n_t_a_02[0])
+                    #                            t_centers_inv[-1][: dimension] = \
+                    #                            c_n_oct_center[: dimension]
+                    #                            l_t_indices_inv[-1] = m_index
+                    #coeffs = utilities.least_squares(narray(t_centers_inv),
+                    #                                 n_t_a_03[0][: dimension])
+                    ## Coordinates of the node on the foreground boundary.
+                    cs_n = stencils[i][displ : displ + dimension]
+                    ## \"Numpy\" coordinates of the node on the foreground boun-
+                    ## dary.
+                    #n_cs_n = narray([cs_n])
+                    #ex_sol = solution(n_cs_n,
+                    #                  c_alpha              ,
+                    #                  c_beta               ,
+                    #                  dim = dimension      ,
+                    #                  apply_mapping = True)
                     self._f_on_borders_exact.append(ex_sol[0])
                     self._h_s_inter_on_board.append(h_inter)
-                    coeffs = b_c((narray(t_centers_inv),
-                                  narray(cs_n)))
-                    rec_sols = solution(narray(t_centers_inv),
-                                        c_alpha              ,
-                                        c_beta               ,
-                                        dim = dimension      ,
-                                        apply_mapping = True)
-                    rec_sol = 0
-                    for k in xrange(0, rec_sols.shape[0]):
-                        rec_sol += rec_sols[k] * coeffs[k]
-                    self._f_on_borders.append(rec_sol)
-                    # Outer normal coeffs.
-                    o_n_coeffs = coeffs * stencils[i][1]
-                    # Inner normal coeffs.
-                    i_n_coeffs = o_n_coeffs * -1.0
-                    col_values = []
-                    col_values.append(i_n_coeffs.tolist())
-                    col_values.append(o_n_coeffs.tolist())
-                    row_indices = []
-                    row_indices.append(keys[i][1])
-                    row_indices.append(keys[i][2])
-                    col_indices = l_t_indices_inv
-                    #print(col_indices)
-                    apply_rest_prol_ops(row_indices,
-                                        col_indices,
-                                        col_values)
+                    #rec_sols = solution(narray(t_centers_inv),
+                    #                    c_alpha              ,
+                    #                    c_beta               ,
+                    #                    dim = dimension      ,
+                    #                    apply_mapping = True)
+                    #rec_sol = 0
+                    #for k in xrange(0, rec_sols.shape[0]):
+                    #    rec_sol += rec_sols[k] * coeffs[k]
+                    #self._f_on_borders.append(rec_sol)
+                    self._f_on_borders.append(ex_sol[0])
+                    ## Outer normal coeffs.
+                    #o_n_coeffs = coeffs * stencils[i][1]
+                    ## Inner normal coeffs.
+                    #i_n_coeffs = o_n_coeffs * -1.0
+                    #col_values = []
+                    #col_values.append(i_n_coeffs.tolist())
+                    #col_values.append(o_n_coeffs.tolist())
+                    #row_indices = []
+                    #row_indices.append(keys[i][1])
+                    #row_indices.append(keys[i][2])
+                    #col_indices = l_t_indices_inv
+                    ##print(col_indices)
+                    #apply_rest_prol_ops(row_indices,
+                    #                    col_indices,
+                    #                    col_values)
             # Two nodes on foreground boundaries.
             elif (keys[i][3] == 2):
                 t_centers_inv = []
@@ -2678,113 +2684,119 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 local_idx = get_point_owner_idx(n_t_a_02[0])
                 global_idx = local_idx
                 if (local_idx != uint32_max):
-                    global_idx += o_ranges[0]
-                    m_index = mask_octant(global_idx)
-                    cell_center, \
-                    n_cell_center = get_center(local_idx,
-                                               False    ,
-                                               True)
-                    n_n_cell_center = narray([n_cell_center])
-                    apply_bil_mapping(n_n_cell_center,
-                                      b_alpha        ,
-                                      b_beta         ,
-                                      n_t_a_01       ,
-                                      dimension)
-                    apply_bil_mapping_inv(n_t_a_01,
-                                          c_alpha ,
-                                          c_beta  ,
-                                          n_t_a_02,
-                                          dimension)
-                    c_n_oct_center = ncopy(n_t_a_02[0])
-                    t_centers_inv.append(c_n_oct_center[: dimension])
-                    l_t_indices_inv.append(m_index)
-                    neighs, ghosts = ([] for i in range(0, 2))
-                    for codim in xrange(1, 3):
-                        for iface in xrange(0, 4):
-                            (neighs, \
-                             ghosts) = find_neighbours(local_idx,
-                                                       iface    ,
-                                                       codim    ,
-                                                       neighs   ,
-                                                       ghosts)
-                            n_neighs = len(neighs)
-                            if (neighs):
-                                # Distance center node.
-                                d_c_n = 0.0
-                                for j in xrange(0, n_neighs):
-                                    # Neighbour is into the same process, so is local.
-                                    if (not ghosts[j]):
-                                        by_octant = False
-                                        index = neighs[j]
-                                        m_index = mask_octant(index + o_ranges[0])
-                                        py_ghost_oct = index
-                                    else:
-                                        by_octant = True
-                                        # In this case, the quas(/oc)tree is no more local into
-                                        # the current process, so we have to find it globally.
-                                        index = get_ghost_global_idx(neighs[j])
-                                        # \".index\" give us the \"self._global_ghosts\" index
-                                        # that contains the index of the global ghost quad(/oc)-
-                                        # tree previously found and stored in \"index\".
-                                        py_ghost_oct = get_ghost_octant(neighs[j])
-                                        m_index = mask_octant(index)
-                                    if (m_index != -1):
-                                        cell_center, \
-                                        n_cell_center = get_center(py_ghost_oct,
-                                                                   by_octant   ,
-                                                                   True)
-                                        n_n_cell_center = narray([n_cell_center])
-                                        apply_bil_mapping(n_n_cell_center,
-                                                          b_alpha        ,
-                                                          b_beta         ,
-                                                          n_t_a_01       ,
-                                                          dimension)
-                                        apply_bil_mapping_inv(n_t_a_01,
-                                                              c_alpha ,
-                                                              c_beta  ,
-                                                              n_t_a_02,
-                                                              dimension)
-                                        # Temporary distance.
-                                        t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
-                                                                n_t_a_03[0][: dimension])
-                                        # \"j\" == 0...first neighbour.
-                                        if (not j):
-                                            d_c_n = t_d
-                                            c_n_oct_center = ncopy(n_t_a_02[0])
-                                            t_centers_inv.append(c_n_oct_center[: dimension])
-                                            l_t_indices_inv.append(m_index)
-                                        # Second neighbour case.
-                                        else:
-                                            if (t_d < d_c_n):
-                                                d_c_n = t_d
-                                                c_n_oct_center = ncopy(n_t_a_02[0])
-                                                t_centers_inv[-1][: dimension] = \
-                                                c_n_oct_center[: dimension]
-                                                l_t_indices_inv[-1] = m_index
-                    l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
-                                                         n_t_a_03[0][: dimension])
-                    displ = 1 + (2 * dimension)
-                    # Coordinates of the node on the foreground boundary.
-                    cs_n = stencils[i][displ : displ + dimension]
-                    # \"Numpy\" coordinates of the node on the foreground boun-
-                    # dary.
-                    n_cs_n = narray([cs_n])
-                    ex_sol = solution(n_cs_n,
+                    ex_sol = solution(n_t_a_03             ,
                                       c_alpha              ,
                                       c_beta               ,
                                       dim = dimension      ,
                                       apply_mapping = True)
+                    #global_idx += o_ranges[0]
+                    #m_index = mask_octant(global_idx)
+                    #cell_center, \
+                    #n_cell_center = get_center(local_idx,
+                    #                           False    ,
+                    #                           True)
+                    #n_n_cell_center = narray([n_cell_center])
+                    #apply_bil_mapping(n_n_cell_center,
+                    #                  b_alpha        ,
+                    #                  b_beta         ,
+                    #                  n_t_a_01       ,
+                    #                  dimension)
+                    #apply_bil_mapping_inv(n_t_a_01,
+                    #                      c_alpha ,
+                    #                      c_beta  ,
+                    #                      n_t_a_02,
+                    #                      dimension)
+                    #c_n_oct_center = ncopy(n_t_a_02[0])
+                    #t_centers_inv.append(c_n_oct_center[: dimension])
+                    #l_t_indices_inv.append(m_index)
+                    #neighs, ghosts = ([] for i in range(0, 2))
+                    #for codim in xrange(1, 3):
+                    #    for iface in xrange(0, 4):
+                    #        (neighs, \
+                    #         ghosts) = find_neighbours(local_idx,
+                    #                                   iface    ,
+                    #                                   codim    ,
+                    #                                   neighs   ,
+                    #                                   ghosts)
+                    #        n_neighs = len(neighs)
+                    #        if (neighs):
+                    #            # Distance center node.
+                    #            d_c_n = 0.0
+                    #            for j in xrange(0, n_neighs):
+                    #                # Neighbour is into the same process, so is local.
+                    #                if (not ghosts[j]):
+                    #                    by_octant = False
+                    #                    index = neighs[j]
+                    #                    m_index = mask_octant(index + o_ranges[0])
+                    #                    py_ghost_oct = index
+                    #                else:
+                    #                    by_octant = True
+                    #                    # In this case, the quas(/oc)tree is no more local into
+                    #                    # the current process, so we have to find it globally.
+                    #                    index = get_ghost_global_idx(neighs[j])
+                    #                    # \".index\" give us the \"self._global_ghosts\" index
+                    #                    # that contains the index of the global ghost quad(/oc)-
+                    #                    # tree previously found and stored in \"index\".
+                    #                    py_ghost_oct = get_ghost_octant(neighs[j])
+                    #                    m_index = mask_octant(index)
+                    #                if (m_index != -1):
+                    #                    cell_center, \
+                    #                    n_cell_center = get_center(py_ghost_oct,
+                    #                                               by_octant   ,
+                    #                                               True)
+                    #                    n_n_cell_center = narray([n_cell_center])
+                    #                    apply_bil_mapping(n_n_cell_center,
+                    #                                      b_alpha        ,
+                    #                                      b_beta         ,
+                    #                                      n_t_a_01       ,
+                    #                                      dimension)
+                    #                    apply_bil_mapping_inv(n_t_a_01,
+                    #                                          c_alpha ,
+                    #                                          c_beta  ,
+                    #                                          n_t_a_02,
+                    #                                          dimension)
+                    #                    # Temporary distance.
+                    #                    t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
+                    #                                            n_t_a_03[0][: dimension])
+                    #                    # \"j\" == 0...first neighbour.
+                    #                    if (not j):
+                    #                        d_c_n = t_d
+                    #                        c_n_oct_center = ncopy(n_t_a_02[0])
+                    #                        t_centers_inv.append(c_n_oct_center[: dimension])
+                    #                        l_t_indices_inv.append(m_index)
+                    #                    # Second neighbour case.
+                    #                    else:
+                    #                        if (t_d < d_c_n):
+                    #                            d_c_n = t_d
+                    #                            c_n_oct_center = ncopy(n_t_a_02[0])
+                    #                            t_centers_inv[-1][: dimension] = \
+                    #                            c_n_oct_center[: dimension]
+                    #                            l_t_indices_inv[-1] = m_index
+                    #l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
+                    #                                     n_t_a_03[0][: dimension])
+                    #displ = 1 + (2 * dimension)
+                    ## Coordinates of the node on the foreground boundary.
+                    #cs_n = stencils[i][displ : displ + dimension]
+                    ## \"Numpy\" coordinates of the node on the foreground boun-
+                    ## dary.
+                    #n_cs_n = narray([cs_n])
+                    #ex_sol = solution(n_cs_n,
+                    #                  c_alpha              ,
+                    #                  c_beta               ,
+                    #                  dim = dimension      ,
+                    #                  apply_mapping = True)
                     self._f_on_borders_exact.append(ex_sol[0])
                     self._h_s_inter_on_board.append(h_inter)
-                    rec_sols = solution(narray(t_centers_inv),
-                                        c_alpha              ,
-                                        c_beta               ,
-                                        dim = dimension      ,
-                                        apply_mapping = True)
-                    rec_sol = 0
-                    for k in xrange(0, rec_sols.shape[0]):
-                        rec_sol += rec_sols[k] * l_s_coeffs[k]
-                    self._f_on_borders.append(rec_sol)
+                    #rec_sols = solution(narray(t_centers_inv),
+                    #                    c_alpha              ,
+                    #                    c_beta               ,
+                    #                    dim = dimension      ,
+                    #                    apply_mapping = True)
+                    #rec_sol = 0
+                    #for k in xrange(0, rec_sols.shape[0]):
+                    #    rec_sol += rec_sols[k] * l_s_coeffs[k]
+                    #self._f_on_borders.append(rec_sol)
+                    self._f_on_borders.append(ex_sol[0])
 
                     nodes_inter = [stencils[i][1 : 3], stencils[i][3 : 5]]
                     owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
@@ -2797,13 +2809,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                        h_given = h_inter        ,
                                                                        n_axis_given = keys[i][5],
                                                                        n_value_given = keys[i][6])
-                    coeffs_ghost = l_s_coeffs * n_coeffs[0]
+                    coeff_o = ex_sol * -1.0 * n_coeffs[0]
+                    insert_mode = PETSc.InsertMode.ADD_VALUES
+                    self._rhs.setValues([keys[i][1]],
+                                        [coeff_o]   ,
+                                        insert_mode)
+                    #coeffs_ghost = l_s_coeffs * n_coeffs[0]
                     columns = []
                     values = []
                     values.append(n_coeffs[1])
-                    values.extend(coeffs_ghost.tolist())
+                    #values.extend(coeffs_ghost.tolist())
                     columns.append(keys[i][1])
-                    columns.extend(l_t_indices_inv)
+                    #columns.extend(l_t_indices_inv)
                     apply_rest_prol_ops([keys[i][1]],
                                         columns     ,
                                         values)
@@ -3112,6 +3129,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # with \"-1\", to lets \"PETSc\" does nothing with it.
                 r_indices = [-1] * len(r_indices)
                 c_indices = [-1] * len(c_indices)
+            node_0_interpolated = False
+            node_1_interpolated = False
 
             self._edl.update({key : stencil})
 
@@ -3203,13 +3222,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 m_octant = m_g_o_norms_inter[labels[0]]
                 mult = 1.0
                 value_to_store = n_coeffs[1 - labels[0]] * mult
-                if (is_background):
-                    self.set_bg_b_c(inter         ,
-                                    m_octant      ,
-                                    owners_centers,
-                                    n_normal_inter,
-                                    labels        ,
-                                    value_to_store)
+                #if (is_background):
+                self.set_bg_b_c(inter         ,
+                                m_octant      ,
+                                owners_centers,
+                                n_normal_inter,
+                                labels        ,
+                                value_to_store)
                 #else:
                 #    key = (grid    ,
                 #           m_octant,
