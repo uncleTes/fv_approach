@@ -733,6 +733,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     n_neighbours = n_neighbours + n_neighs
                 else:
                     if (not is_background):
+                        # TODO: with least squares method, it should be augmented
+                        #       by 8.
                         # Extern \"ghost\" octant for foreground grids will be
                         # approximated by just its background owner.
                         o_count += 1
@@ -747,6 +749,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # (\"d_count\").
             # TODO: find a better algorithm to store just the right number of e-
             # lements for \"d_count\" and for \"o_count\".
+            # TODO: we try not to consider them using just the ghost stencils of
+            #       face neighbours for the borders of foreground grids, because
+            #       we have seen that we will not obtain a second order using
+            #       the diamond method.
             d_count += (4 * n_neighbours)
             o_count += (4 * n_neighbours)
             if (not is_penalized):
