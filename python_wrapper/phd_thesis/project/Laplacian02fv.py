@@ -2327,7 +2327,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #                                       apply_mapping = True)
                 #c_coeffs = c_coeffs * nsolution * -1.0
                 if (rec_ord == 2):
-                    c_coeffs = (coeffs * value_to_multiply).tolist()
+                    n_copy_coeffs = numpy.copy(coeffs * value_to_multiply)
+                    c_coeffs = n_copy_coeffs.tolist()
                     #nsolutions = solution(n_cs_n_is[0],
                     #                      c_alpha     ,
                     #                      c_beta      ,
