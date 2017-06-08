@@ -2521,6 +2521,25 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 displ = 2
                 ncopyto(n_t_a_03[0][: dimension], \
                         stencils[i][displ : displ + dimension])
+                #----check bil mapping inv-----
+                #print("alpha " +str(c_alpha))
+                #print("beta " + str(c_beta))
+                apply_bil_mapping(n_t_a_03,
+                                  c_alpha ,
+                                  c_beta  ,
+                                  n_t_a_01,
+                                  dimension)
+                apply_bil_mapping_inv(n_t_a_01,
+                                      c_alpha ,
+                                      c_beta  ,
+                                      n_t_a_02,
+                                      dimension)
+                if (abs(n_t_a_02[0][0] - n_t_a_03[0][0] > 1.0e-15) and
+                    abs(n_t_a_02[0][1] - n_t_a_03[0][1]) > 1.0e-15):
+                    print("before " + str(n_t_a_03))
+                    print("middle " + str(n_t_a_01))
+                    print("after " + str(n_t_a_02))
+                #----check bil mapping inv-----
                 apply_bil_mapping(n_t_a_03,
                                   c_alpha ,
                                   c_beta  ,
