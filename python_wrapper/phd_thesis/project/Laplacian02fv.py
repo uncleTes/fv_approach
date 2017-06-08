@@ -1422,6 +1422,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         b_c = lambda x: bil_coeffs(x[0],
                                    x[1])
+        least_squares = lambda x: utilities.least_squares(x[0],
+                                                          x[1])
 
         self._f_nodes = []
         self._f_nodes_exact = []
