@@ -2515,9 +2515,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 t_centers_inv = []
                 l_t_indices_inv = []
                 t_nodes_inv = []
-                # Getting coordinates of the first neighbour (the one of the
-                # intersection) of the rings of the nodes (it will be the same
-                # for both the nodes).
+                # Getting coordinates of the intersection node on the foreground
+                # border.
                 displ = 2
                 ncopyto(n_t_a_03[0][: dimension], \
                         stencils[i][displ : displ + dimension])
