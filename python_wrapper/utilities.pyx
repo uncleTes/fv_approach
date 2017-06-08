@@ -644,10 +644,20 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
         # ...but we choose the right value for \"m\", respecting the logical do-
         # main.
         for i in xrange(0, n_points):
+            # TODO: do the same checks also for \"m_2\"?
+            if (numpy.absolute(m_1[i]) <= 1.0e-12):
+                m_1[i] = numpy.absolute(m_1[i])
+            if (numpy.absolute(m_1[i] - 0.0) <= 1.0e-15):
+                m_1[i] = 0.0
+            if (numpy.absolute(m_1[i] - 1.0) <= 1.0e-15):
+                m_1[i] = 1.0
             if (0.0 <= m_1[i] <= 1.0):
                 l_points[i, 1] = m_1[i]
             else:
                 l_points[i, 1] = m_2[i]
+            if ((l_points[i, 1] > 1.0) or
+                (l_points[i, 1] < 0.0)):
+                print("azz " + str(l_points[i, 1]))
     numpy.copyto(l_points[:, 0],
                  ntdivide(nadd(p_points[:, 0],
                                nadd(nmul(-1.0, alpha[0]),
