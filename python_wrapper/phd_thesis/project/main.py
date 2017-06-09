@@ -506,16 +506,16 @@ def compute(comm_dictionary     ,
                                  "(%e, %e)" % (norm_inf, norm_L2))
     print(msg)
     if (n_grids > 1):
-        if (proc_grid):
-            norm_inf, \
-            norm_l2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
-                                               laplacian.f_exact_on_bord   ,
-                                               laplacian.h_s_inter_on_board,
-                                               l2 = False)
-            msg = utilities.join_strings("Function approximation on border (inf, L2): ",
-                                         "process %d " % comm_w.Get_rank()             ,
-                                         "(%e, %e)" % (norm_inf, norm_l2))
-            print(msg)
+        #if (proc_grid):
+        norm_inf, \
+        norm_l2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
+                                           laplacian.f_exact_on_bord   ,
+                                           laplacian.h_s_inter_on_board,
+                                           l2 = False)
+        msg = utilities.join_strings("Function approximation on border (inf, L2): ",
+                                     "process %d " % comm_w.Get_rank()             ,
+                                     "(%e, %e)" % (norm_inf, norm_l2))
+        print(msg)
     interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
                                 alpha  ,
