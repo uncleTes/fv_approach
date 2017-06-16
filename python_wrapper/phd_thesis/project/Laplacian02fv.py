@@ -1890,10 +1890,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    def evaluate_residual_norms(self     ,
-                                exact_sol,
-                                h_s      ,
-                                petsc_size = True):
+    def evaluate_residual_norms(self             ,
+                                exact_sol        ,
+                                h_s              ,
+                                petsc_size = True,
+                                l2 = False       ,
+                                r_n_d = False):
         if (not petsc_size):
             n_oct = self._n_oct
             tot_oct = self._tot_oct
@@ -1922,6 +1924,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         msg = "Evaluated residuals"
         extra_msg = "with (norm_inf, norm_L2) = " + str((norm_inf, norm_L2))
+
+        if (r_n_d):
+            return (numpy.array([norm_inf]),
+                    numpy.array([norm_L2]))
 
         return (norm_inf, norm_L2)
     # --------------------------------------------------------------------------
@@ -3468,7 +3474,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                        exact_solution,
                        solution      ,
                        h_s           ,
-                       l2 = False):
+                       l2 = False    ,
+                       # Return \"numpy\" data
+                       r_n_d = False):
         """Function which evals the infinite and L2 norms of the error.
 
            Arguments:
@@ -3499,6 +3507,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self.log_msg(msg   ,
                      "info",
                      extra_msg)
+
+        if (r_n_d):
+            return (numpy.array([norm_inf]),
+                    numpy.array([norm_X2]))
 
         return (norm_inf, norm_X2)
     # --------------------------------------------------------------------------
