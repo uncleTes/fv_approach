@@ -411,6 +411,42 @@ def set_octree(comm_l,
 
     return pablo, centers
 # ------------------------------------------------------------------------------
+def write_norms(n_norm_inf ,
+                n_norm_L2  ,
+                comm_l     ,
+                proc_grid  ,
+                file_extension):
+    comm_l_size = comm_l.Get_size()
+    comm_l_name = comm_l.Get_name()
+    n_result_inf = numpy.zeros(shape = (1, ),
+                               dtype = numpy.float64)
+    n_result_L2 = numpy.zeros(shape = (1, ),
+                              dtype = numpy.float64)
+    comm_l.Reduce(n_norm_inf  ,
+                  n_result_inf,
+                  MPI.SUM)
+    comm_l.Reduce(n_norm_L2  ,
+                  n_result_L2,
+                  MPI.SUM)
+    if (comm_l.Get_rank() == 0):
+        norm_inf = n_result_inf[0] / comm_l_size
+        norm_L2 = n_result_L2[0] / comm_l_size
+        r_level = refinements[proc_grid]
+        path_to_file = utilities.join_strings(os.getcwd(),
+                                              "/data/"   ,
+                                              comm_l_name,
+                                              file_extension)
+        file_exists = os.path.exists(path_to_file)
+        open_mod = "w"
+        if (file_exists):
+            open_mod = "a"
+        f_d = open(path_to_file,
+                   open_mod)
+        msg = "%d %e %e" % (r_level, norm_inf, norm_L2)
+        f_d.write(msg)
+        f_d.write("\n")
+        f_d.close()
+# ------------------------------------------------------------------------------
 
 def compute(comm_dictionary     ,
             intercomm_dictionary,
