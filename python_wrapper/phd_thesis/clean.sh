@@ -16,6 +16,12 @@ if [ "$EXECUTE_DIR_PATH" == "$CURRENT_DIR_PATH" ]; then
     
     if [ -d "$SUB_DIR" ]; then
 
+        count=`ls -1 ./data/*.txt 2>/dev/null | wc -l`
+
+        if [ $count != 0 ]; then
+            rm -v ./data/*.txt
+        fi
+
         count=`ls -1 ./data/*.vtu 2>/dev/null | wc -l`
 
         if [ $count != 0 ]; then 
