@@ -516,42 +516,57 @@ def compute(comm_dictionary     ,
     #laplacian.mat.view()
     #laplacian.rhs.view()
     laplacian.solve()
-    norm_inf, \
-    norm_L2 = laplacian.evaluate_norms(e_sol                   ,
-                                       laplacian.sol.getArray(),
-                                       h_s)
-    msg = utilities.join_strings("Errors (inf, L2): process ",
-                                 "%d " % comm_w.Get_rank()   ,
-                                 "(%e, %e)" % (norm_inf, norm_L2))
-                                 #str((norm_inf, norm_L2)))
-    print(msg) 
-    norm_inf, \
-    norm_L2 = laplacian.evaluate_residual_norms(e_sol,
-                                                h_s)
-    msg = utilities.join_strings("Residuals (inf, L2): process ",
-                                 "%d " % comm_w.Get_rank()      ,
-                                 "(%e, %e)" % (norm_inf, norm_L2))
-                                 #str((norm_inf, norm_L2)))
-    print(msg)
-    norm_inf, \
-    norm_L2 = laplacian.evaluate_norms(laplacian.f_nodes      ,
-                                       laplacian.f_nodes_exact,
-                                       laplacian.h_s_inter)
-    msg = utilities.join_strings("Function on internal nodes (inf, L2): process ",
-                                 "%d " % comm_w.Get_rank()                       ,
-                                 "(%e, %e)" % (norm_inf, norm_L2))
-    print(msg)
+
+    comm_l = comm_dictionary["communicator"]
+
+    w_n = lambda x : write_norms(x[0]     ,
+                                 x[1]     ,
+                                 comm_l   ,
+                                 proc_grid,
+                                 x[2])
+
+    n_norm_inf, \
+    n_norm_L2 = laplacian.evaluate_norms(e_sol                   ,
+                                         laplacian.sol.getArray(),
+                                         h_s                     ,
+                                         l2 = False              ,
+                                         r_n_d = True)
+    w_n((n_norm_inf,
+         n_norm_L2 ,
+         "_errors.txt"))
+
+    n_norm_inf, \
+    n_norm_L2 = laplacian.evaluate_residual_norms(e_sol                   ,
+                                                  h_s                     ,
+                                                  petsc_size = True       ,
+                                                  l2 = False              ,
+                                                  r_n_d = True)
+    w_n((n_norm_inf,
+         n_norm_L2 ,
+         "_residuals.txt"))
+
+    n_norm_inf, \
+    n_norm_L2 = laplacian.evaluate_norms(laplacian.f_nodes      ,
+                                         laplacian.f_nodes_exact,
+                                         laplacian.h_s_inter    ,
+                                         l2 = False             ,
+                                         r_n_d = True)
+    w_n((n_norm_inf,
+         n_norm_L2 ,
+         "_f_internal_nodes.txt"))
+
     if (n_grids > 1):
         #if (proc_grid):
-        norm_inf, \
-        norm_l2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
-                                           laplacian.f_exact_on_bord   ,
-                                           laplacian.h_s_inter_on_board,
-                                           l2 = False)
-        msg = utilities.join_strings("Function approximation on border (inf, L2): ",
-                                     "process %d " % comm_w.Get_rank()             ,
-                                     "(%e, %e)" % (norm_inf, norm_l2))
-        print(msg)
+        n_norm_inf, \
+        n_norm_L2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
+                                             laplacian.f_exact_on_bord   ,
+                                             laplacian.h_s_inter_on_board,
+                                             l2 = False                  ,
+                                             r_n_d = True)
+        w_n((n_norm_inf,
+             n_norm_L2 ,
+             "_f_borders.txt"))
+
     interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
                                 alpha  ,
