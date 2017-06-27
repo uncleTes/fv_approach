@@ -643,7 +643,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Lambda function.
             g_b = lambda x : get_bound(py_oct,
                                        x)
-            center  = centers[octant]
+            center = centers[octant]
             # Check to know if an octant is penalized.
             is_penalized = False
             # Background grid.
@@ -659,7 +659,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               beta         ,
                                               t_foregrounds)
             if (is_penalized):
-                #print("yeppa")
                 self._nln[octant] = -1
                 self._p_o_f_g[octant] = n_polygon
                 # Moved \"h\" from the \"key\" to the \"stencil\", preferring
@@ -685,7 +684,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                        key_2)
 
                 # If the octant is covered by the foreground grids, we need to
-                # store info of the stencil it belongs to to push on the rela-
+                # store info of the stencil it belongs to, to push on the rela-
                 # tive rows of the matrix, the right indices of the octants of
                 # the foreground grid owning the penalized one:
                 # first, second and third \"stencil\"'s elements: center of the
