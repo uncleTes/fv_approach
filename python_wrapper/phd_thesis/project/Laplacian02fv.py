@@ -2520,180 +2520,181 @@ class Laplacian(BaseClass2D.BaseClass2D):
             c_beta = self.get_trans(grid)[2]
             # One node of the intersection on foreground boundaries.
             if (keys[i][3] == 1):
-                t_centers_inv = []
-                l_t_indices_inv = []
-                t_nodes_inv = []
-                # Getting coordinates of the intersection node on the foreground
-                # border.
-                displ = 2
-                ncopyto(n_t_a_03[0][: dimension], \
-                        stencils[i][displ : displ + dimension])
-                #----check bil mapping inv-----
-                #print("alpha " +str(c_alpha))
-                #print("beta " + str(c_beta))
-                apply_bil_mapping(n_t_a_03,
-                                  c_alpha ,
-                                  c_beta  ,
-                                  n_t_a_01,
-                                  dimension)
-                apply_bil_mapping_inv(n_t_a_01,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      n_t_a_02,
-                                      dimension)
-                if (abs(n_t_a_02[0][0] - n_t_a_03[0][0] > 1.0e-15) and
-                    abs(n_t_a_02[0][1] - n_t_a_03[0][1]) > 1.0e-15):
-                    print("before " + str(n_t_a_03))
-                    print("middle " + str(n_t_a_01))
-                    print("after " + str(n_t_a_02))
-                #----check bil mapping inv-----
-                apply_bil_mapping(n_t_a_03,
-                                  c_alpha ,
-                                  c_beta  ,
-                                  n_t_a_01,
-                                  dimension)
-                apply_bil_mapping_inv(n_t_a_01,
-                                      b_alpha ,
-                                      b_beta  ,
-                                      n_t_a_02,
-                                      dimension)
-                local_idx = get_point_owner_idx(n_t_a_02[0])
-                global_idx = local_idx
-                if (local_idx != uint32_max):
-                    global_idx += o_ranges[0]
-                    m_index = mask_octant(global_idx)
-                    cell_center, \
-                    n_cell_center = get_center(local_idx,
-                                               False    ,
-                                               True)
-                    n_n_cell_center = narray([n_cell_center])
-                    #apply_bil_mapping(n_n_cell_center,
-                    #                  b_alpha        ,
-                    #                  b_beta         ,
-                    #                  n_t_a_01       ,
-                    #                  dimension)
-                    #apply_bil_mapping_inv(n_t_a_01,
-                    #                      c_alpha ,
-                    #                      c_beta  ,
-                    #                      n_t_a_02,
-                    #                      dimension)
-                    #c_n_oct_center = ncopy(n_t_a_02[0])
-                    c_n_oct_center = ncopy(n_cell_center)
-                    t_centers_inv.append(c_n_oct_center[: dimension])
-                    l_t_indices_inv.append(m_index)
-                    neighs, ghosts = ([] for i in range(0, 2))
-                    for codim in xrange(1, 3):
-                        for iface in xrange(0, 4):
-                            (neighs, \
-                             ghosts) = find_neighbours(local_idx,
-                                                       iface    ,
-                                                       codim    ,
-                                                       neighs   ,
-                                                       ghosts)
-                            n_neighs = len(neighs)
-                            if (neighs):
-                                # Distance center node.
-                                d_c_n = 0.0
-                                for j in xrange(0, n_neighs):
-                                    # Neighbour is into the same process, so is local.
-                                    if (not ghosts[j]):
-                                        by_octant = False
-                                        index = neighs[j]
-                                        m_index = mask_octant(index + o_ranges[0])
-                                        py_ghost_oct = index
-                                    else:
-                                        by_octant = True
-                                        # In this case, the quas(/oc)tree is no more local into
-                                        # the current process, so we have to find it globally.
-                                        index = get_ghost_global_idx(neighs[j])
-                                        # \".index\" give us the \"self._global_ghosts\" index
-                                        # that contains the index of the global ghost quad(/oc)-
-                                        # tree previously found and stored in \"index\".
-                                        py_ghost_oct = get_ghost_octant(neighs[j])
-                                        m_index = mask_octant(index)
-                                    if (m_index != -1):
-                                        cell_center, \
-                                        n_cell_center = get_center(py_ghost_oct,
-                                                                   by_octant   ,
-                                                                   True)
-                                        n_n_cell_center = narray([n_cell_center])
-                                        #apply_bil_mapping(n_n_cell_center,
-                                        #                  b_alpha        ,
-                                        #                  b_beta         ,
-                                        #                  n_t_a_01       ,
-                                        #                  dimension)
-                                        #apply_bil_mapping_inv(n_t_a_01,
-                                        #                      c_alpha ,
-                                        #                      c_beta  ,
-                                        #                      n_t_a_02,
-                                        #                      dimension)
-                                        # Temporary distance.
-                                        #t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
-                                        #                        n_t_a_03[0][: dimension])
-                                        t_d = numpy.linalg.norm(n_cell_center[: dimension] - \
-                                                                n_t_a_02[0][: dimension])
-                                        # \"j\" == 0...first neighbour.
-                                        if (not j):
-                                            d_c_n = t_d
-                                            #c_n_oct_center = ncopy(n_t_a_02[0])
-                                            c_n_oct_center = ncopy(n_cell_center)
-                                            t_centers_inv.append(c_n_oct_center[: dimension])
-                                            l_t_indices_inv.append(m_index)
-                                        # Second neighbour case.
-                                        else:
-                                            if (t_d < d_c_n):
-                                                d_c_n = t_d
-                                                c_n_oct_center = ncopy(n_cell_center)
-                                                #c_n_oct_center = ncopy(n_t_a_02[0])
-                                                t_centers_inv[-1][: dimension] = \
-                                                c_n_oct_center[: dimension]
-                                                l_t_indices_inv[-1] = m_index
-                    coeffs = utilities.least_squares(narray(t_centers_inv),
-                                                     n_t_a_02[0][: dimension])
-                                                     #n_t_a_03[0][: dimension])
-                    # Coordinates of the node on the foreground boundary.
-                    cs_n = stencils[i][displ : displ + dimension]
-                    ## \"Numpy\" coordinates of the node on the foreground boun-
-                    ## dary.
-                    n_cs_n = narray([cs_n])
-                    ex_sol = solution(n_cs_n,
-                                      c_alpha              ,
-                                      c_beta               ,
-                                      dim = dimension      ,
-                                      apply_mapping = True)
-                    self._f_on_borders_exact.append(ex_sol[0])
-                    self._h_s_inter_on_board.append(h_inter)
-                    rec_sols = solution(narray(t_centers_inv),
-                                        #c_alpha              ,
-                                        #c_beta               ,
-                                        b_alpha              ,
-                                        b_beta               ,
-                                        dim = dimension      ,
-                                        apply_mapping = True)
-                    rec_sol = 0
-                    for k in xrange(0, rec_sols.shape[0]):
-                        rec_sol += rec_sols[k] * coeffs[k]
-                    self._f_on_borders.append(rec_sol)
-                    #rec_sol = rec_sol * stencils[i][1]
-                    #insert_mode = PETSc.InsertMode.ADD_VALUES
-                    #self._rhs.setValues([keys[i][1], keys[i][2]] ,
-                    #                    [rec_sol, rec_sol * -1.0],
-                    #                    insert_mode)
-                    # Outer normal coeffs.
-                    o_n_coeffs = coeffs * stencils[i][1]
-                    # Inner normal coeffs.
-                    i_n_coeffs = o_n_coeffs * -1.0
-                    col_values = []
-                    col_values.append(i_n_coeffs.tolist())
-                    col_values.append(o_n_coeffs.tolist())
-                    row_indices = []
-                    row_indices.append(keys[i][1])
-                    row_indices.append(keys[i][2])
-                    col_indices = l_t_indices_inv
-                    #print(col_indices)
-                    apply_rest_prol_ops(row_indices,
-                                        col_indices,
-                                        col_values)
+                pass
+                #t_centers_inv = []
+                #l_t_indices_inv = []
+                #t_nodes_inv = []
+                ## Getting coordinates of the intersection node on the foreground
+                ## border.
+                #displ = 2
+                #ncopyto(n_t_a_03[0][: dimension], \
+                #        stencils[i][displ : displ + dimension])
+                ##----check bil mapping inv-----
+                ##print("alpha " +str(c_alpha))
+                ##print("beta " + str(c_beta))
+                #apply_bil_mapping(n_t_a_03,
+                #                  c_alpha ,
+                #                  c_beta  ,
+                #                  n_t_a_01,
+                #                  dimension)
+                #apply_bil_mapping_inv(n_t_a_01,
+                #                      c_alpha ,
+                #                      c_beta  ,
+                #                      n_t_a_02,
+                #                      dimension)
+                #if (abs(n_t_a_02[0][0] - n_t_a_03[0][0] > 1.0e-15) and
+                #    abs(n_t_a_02[0][1] - n_t_a_03[0][1]) > 1.0e-15):
+                #    print("before " + str(n_t_a_03))
+                #    print("middle " + str(n_t_a_01))
+                #    print("after " + str(n_t_a_02))
+                ##----check bil mapping inv-----
+                #apply_bil_mapping(n_t_a_03,
+                #                  c_alpha ,
+                #                  c_beta  ,
+                #                  n_t_a_01,
+                #                  dimension)
+                #apply_bil_mapping_inv(n_t_a_01,
+                #                      b_alpha ,
+                #                      b_beta  ,
+                #                      n_t_a_02,
+                #                      dimension)
+                #local_idx = get_point_owner_idx(n_t_a_02[0])
+                #global_idx = local_idx
+                #if (local_idx != uint32_max):
+                #    global_idx += o_ranges[0]
+                #    m_index = mask_octant(global_idx)
+                #    cell_center, \
+                #    n_cell_center = get_center(local_idx,
+                #                               False    ,
+                #                               True)
+                #    n_n_cell_center = narray([n_cell_center])
+                #    #apply_bil_mapping(n_n_cell_center,
+                #    #                  b_alpha        ,
+                #    #                  b_beta         ,
+                #    #                  n_t_a_01       ,
+                #    #                  dimension)
+                #    #apply_bil_mapping_inv(n_t_a_01,
+                #    #                      c_alpha ,
+                #    #                      c_beta  ,
+                #    #                      n_t_a_02,
+                #    #                      dimension)
+                #    #c_n_oct_center = ncopy(n_t_a_02[0])
+                #    c_n_oct_center = ncopy(n_cell_center)
+                #    t_centers_inv.append(c_n_oct_center[: dimension])
+                #    l_t_indices_inv.append(m_index)
+                #    neighs, ghosts = ([] for i in range(0, 2))
+                #    for codim in xrange(1, 3):
+                #        for iface in xrange(0, 4):
+                #            (neighs, \
+                #             ghosts) = find_neighbours(local_idx,
+                #                                       iface    ,
+                #                                       codim    ,
+                #                                       neighs   ,
+                #                                       ghosts)
+                #            n_neighs = len(neighs)
+                #            if (neighs):
+                #                # Distance center node.
+                #                d_c_n = 0.0
+                #                for j in xrange(0, n_neighs):
+                #                    # Neighbour is into the same process, so is local.
+                #                    if (not ghosts[j]):
+                #                        by_octant = False
+                #                        index = neighs[j]
+                #                        m_index = mask_octant(index + o_ranges[0])
+                #                        py_ghost_oct = index
+                #                    else:
+                #                        by_octant = True
+                #                        # In this case, the quas(/oc)tree is no more local into
+                #                        # the current process, so we have to find it globally.
+                #                        index = get_ghost_global_idx(neighs[j])
+                #                        # \".index\" give us the \"self._global_ghosts\" index
+                #                        # that contains the index of the global ghost quad(/oc)-
+                #                        # tree previously found and stored in \"index\".
+                #                        py_ghost_oct = get_ghost_octant(neighs[j])
+                #                        m_index = mask_octant(index)
+                #                    if (m_index != -1):
+                #                        cell_center, \
+                #                        n_cell_center = get_center(py_ghost_oct,
+                #                                                   by_octant   ,
+                #                                                   True)
+                #                        n_n_cell_center = narray([n_cell_center])
+                #                        #apply_bil_mapping(n_n_cell_center,
+                #                        #                  b_alpha        ,
+                #                        #                  b_beta         ,
+                #                        #                  n_t_a_01       ,
+                #                        #                  dimension)
+                #                        #apply_bil_mapping_inv(n_t_a_01,
+                #                        #                      c_alpha ,
+                #                        #                      c_beta  ,
+                #                        #                      n_t_a_02,
+                #                        #                      dimension)
+                #                        # Temporary distance.
+                #                        #t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
+                #                        #                        n_t_a_03[0][: dimension])
+                #                        t_d = numpy.linalg.norm(n_cell_center[: dimension] - \
+                #                                                n_t_a_02[0][: dimension])
+                #                        # \"j\" == 0...first neighbour.
+                #                        if (not j):
+                #                            d_c_n = t_d
+                #                            #c_n_oct_center = ncopy(n_t_a_02[0])
+                #                            c_n_oct_center = ncopy(n_cell_center)
+                #                            t_centers_inv.append(c_n_oct_center[: dimension])
+                #                            l_t_indices_inv.append(m_index)
+                #                        # Second neighbour case.
+                #                        else:
+                #                            if (t_d < d_c_n):
+                #                                d_c_n = t_d
+                #                                c_n_oct_center = ncopy(n_cell_center)
+                #                                #c_n_oct_center = ncopy(n_t_a_02[0])
+                #                                t_centers_inv[-1][: dimension] = \
+                #                                c_n_oct_center[: dimension]
+                #                                l_t_indices_inv[-1] = m_index
+                #    coeffs = utilities.least_squares(narray(t_centers_inv),
+                #                                     n_t_a_02[0][: dimension])
+                #                                     #n_t_a_03[0][: dimension])
+                #    # Coordinates of the node on the foreground boundary.
+                #    cs_n = stencils[i][displ : displ + dimension]
+                #    ## \"Numpy\" coordinates of the node on the foreground boun-
+                #    ## dary.
+                #    n_cs_n = narray([cs_n])
+                #    ex_sol = solution(n_cs_n,
+                #                      c_alpha              ,
+                #                      c_beta               ,
+                #                      dim = dimension      ,
+                #                      apply_mapping = True)
+                #    self._f_on_borders_exact.append(ex_sol[0])
+                #    self._h_s_inter_on_board.append(h_inter)
+                #    rec_sols = solution(narray(t_centers_inv),
+                #                        #c_alpha              ,
+                #                        #c_beta               ,
+                #                        b_alpha              ,
+                #                        b_beta               ,
+                #                        dim = dimension      ,
+                #                        apply_mapping = True)
+                #    rec_sol = 0
+                #    for k in xrange(0, rec_sols.shape[0]):
+                #        rec_sol += rec_sols[k] * coeffs[k]
+                #    self._f_on_borders.append(rec_sol)
+                #    #rec_sol = rec_sol * stencils[i][1]
+                #    #insert_mode = PETSc.InsertMode.ADD_VALUES
+                #    #self._rhs.setValues([keys[i][1], keys[i][2]] ,
+                #    #                    [rec_sol, rec_sol * -1.0],
+                #    #                    insert_mode)
+                #    # Outer normal coeffs.
+                #    o_n_coeffs = coeffs * stencils[i][1]
+                #    # Inner normal coeffs.
+                #    i_n_coeffs = o_n_coeffs * -1.0
+                #    col_values = []
+                #    col_values.append(i_n_coeffs.tolist())
+                #    col_values.append(o_n_coeffs.tolist())
+                #    row_indices = []
+                #    row_indices.append(keys[i][1])
+                #    row_indices.append(keys[i][2])
+                #    col_indices = l_t_indices_inv
+                #    #print(col_indices)
+                #    apply_rest_prol_ops(row_indices,
+                #                        col_indices,
+                #                        col_values)
             # Two nodes on foreground boundaries.
             elif (keys[i][3] == 2):
                 t_centers_inv = []
