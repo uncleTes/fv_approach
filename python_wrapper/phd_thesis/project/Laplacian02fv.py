@@ -1215,7 +1215,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # TODO: change the name of this function, I really do not like it!
     def get_owners_nodes_inter(self              ,
                                inter             ,
-                               l_owners_inter    ,
+                               l_owners_inter    , # USELESS, because is never
+                                                   # called
                                o_ghost           , # Owner ghost; if it is
                                                    # \"None\", there is no ow-
                                                    # ner ghost but, if it is
