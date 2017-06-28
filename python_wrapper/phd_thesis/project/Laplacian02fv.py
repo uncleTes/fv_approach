@@ -3167,8 +3167,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # with \"-1\", to lets \"PETSc\" does nothing with it.
                 r_indices = [-1] * len(r_indices)
                 c_indices = [-1] * len(c_indices)
-                node_0_interpolated = False
-                node_1_interpolated = False
+            #node_0_interpolated = False
+            #node_1_interpolated = False
 
             self._edl.update({key : stencil})
 
