@@ -3288,15 +3288,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    def fill_rhs(self          ,
-                 coeffs_sizes  , # How many coeffcients were evaluated for each
+    def fill_rhs(self        ,
+                 coeffs_sizes,   # How many coeffcients were evaluated for each
                                  # node of the intersection
-                 labels        , # \"list\" containing indices for the owners
+                 labels      ,   # \"list\" containing indices for the owners
                                  # of the intersection, to know if they have
                                  # inneror outer normal
-                 coeffs_nodes  , # Square method coefficients for intersection
+                 coeffs_nodes,   # Square method coefficients for intersection
                                  # nodes
-                 r_indices     , # Matrix row indices
+                 r_indices   ,   # Matrix row indices
                  n_nodes_inter): # \"numpy\" coordinates of intersection nodes
         # Number of owners (of the intersection).
         n_owners = len(r_indices)
