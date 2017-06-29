@@ -3057,8 +3057,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         n_value = n_normal_inter[n_axis]
         # We are addding the indices of the interpolation done for the nodes of
         # the intersection, only if they are not on the background boundary.
-        node_1_interpolated = n_cs_n_is[1][0].size
-        node_0_interpolated = n_cs_n_is[0][0].size
+        node_1_interpolated = True if (n_cs_n_is[1][0].size) else False
+        node_0_interpolated = True if (n_cs_n_is[0][0].size) else False
         c_indices.extend(r_indices)
         if (grid and n_nodes_on_f_b):
             key_0 = grid                # Grid on which we are
