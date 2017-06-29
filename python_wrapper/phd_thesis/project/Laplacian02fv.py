@@ -1142,7 +1142,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         n_coeffs = n_coeffs_grad_x + n_coeffs_grad_y
 
         mult_node_1 = 1.0
-        mult_node_0 = mult_node_1
+        mult_node_0 = 1.0
         # If the nodes are not on the background boundary, we have evaluated
         # bilinear interpolation to interpolate the nodes, indeed. On the coun-
         # trary, being on the background border, it will have the exact value of
