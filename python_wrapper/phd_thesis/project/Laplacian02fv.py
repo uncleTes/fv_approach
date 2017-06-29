@@ -562,6 +562,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #       should find a better way to evaluate the right num-
                     #       ber of neighbours (better case has 3 octants on the
                     #       foreground grids, due to a planar interpolation).
+                    # TODO: with least squares method, it should be augmented
+                    #       by 8.
                     o_count += 4
                 else:
                     if (ghosts[i]):
