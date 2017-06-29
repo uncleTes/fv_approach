@@ -1596,14 +1596,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     coeffs_nodes = (coeffs_node_0,
                                     coeffs_node_1)
 
-                    fill_rhs(l_s_coeffs    ,
-                             labels        ,
-                             coeffs_nodes  ,
-                             n_cs_n_is     ,
-                             r_indices     ,
-                             n_nodes_inter ,
-                             n_nodes_on_f_b,
-                             node_on_f_b)
+                    fill_rhs((l_s_coeffs[0].size,
+                              l_s_coeffs[1].size),
+                             labels              ,
+                             coeffs_nodes        ,
+                             r_indices           ,
+                             n_nodes_inter)
 
                     fill_mat(inter            ,
                              owners_centers   ,
@@ -3289,14 +3287,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     # --------------------------------------------------------------------------
     def fill_rhs(self          ,
-                 l_s_coeffs    ,
-                 labels        ,
-                 coeffs_nodes  ,
-                 n_cs_n_is     ,
-                 r_indices     ,
-                 n_nodes_inter ,
-                 n_nodes_on_f_b,
-                 node_on_f_b):
+                 coeffs_sizes  , # How many coeffcients were evaluated for each
+                                 # node of the intersection
+                 labels        , # \"list\" containing indices for the owners
+                                 # of the intersection, to know if they have
+                                 # inneror outer normal
+                 coeffs_nodes  , # Square method coefficients for intersection
+                                 # nodes
+                 r_indices     , # Matrix row indices
+                 n_nodes_inter): # \"numpy\" coordinates of intersection nodes
         # Number of owners (of the intersection).
         n_owners = len(r_indices)
         dimension = self._dim
@@ -3306,12 +3305,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
         values_rhs = []
-        n_values = 0
+        # Number of values to add to the \"rhs\" for each intersection node (if
+        # of course it is on the background boundary).
+        n_values_rhs = 0
 
         insert_mode = PETSc.InsertMode.ADD_VALUES
 
         solution = utilities.exact_sol
-        narray = numpy.array
         nsolution = lambda x : solution(x    ,
                                         alpha,
                                         beta ,
@@ -3326,43 +3326,23 @@ class Laplacian(BaseClass2D.BaseClass2D):
         e_sols = nsolution(n_nodes_inter)
 
         for i in xrange(0, n_nodes):
-            # Number of least square coefficients.
-            n_l_s_coeffs = l_s_coeffs[i].size
+            # Number of \"i\" node coefficients.
+            n_coeffs = coeffs_sizes[i]
             # The node \"i\" of the interface is not on the background boundary.
-            if (n_l_s_coeffs):
+            if (n_coeffs):
                 continue
             # The node \"i\" of the interface is on the background boundary.
             e_sol = e_sols[i]
             e_sol_coeff = coeffs_nodes[i]
             e_sol = mult * e_sol * e_sol_coeff
             values_rhs.append(e_sol)
-            n_values = n_values + 1
-            # TODO: for the moment, we do not consider this case. Think better
-            #       about it.
-            #else:
-            #    for j in xrange(0, n_l_s_coeffs):
-            #        # Neighbour index.
-            #        n_index = n_cs_n_is[i][1][j]
-            #        # Ghost boundary octant for foreground grid are outside the
-            #        # background, so an exact solution has to be found.
-            #        if (grid and (n_index == "outside_bg")):
-            #            # In this way, PETSc will not insert anything in the cor-
-            #            # responding indices equal to \"-1\". And of course will
-            #            # not cause problems not being no more indices signed as
-            #            # \"outside_bg\".
-            #            n_cs_n_is[i][1][j] = -1
-            #            e_sol = nsolution((n_cs_n_is[i][0][j][0],
-            #                               n_cs_n_is[i][0][j][1]))
-            #            e_sol_coeff = coeffs_nodes[i][j] * l_s_coeffs[i][j]
-            #            e_sol = mult * e_sol * e_sol_coeff
-            #            values_rhs.append(e_sol)
+            n_values_rhs = n_values_rhs + 1
 
-        if (n_values):
-            indices_rhs = [r_indices[0]] * n_values
+        if (n_values_rhs):
+            indices_rhs = [r_indices[0]] * n_values_rhs
 
             if (n_owners == 2):
-                # TODO: change \"lists\" with \"numpy\" arrays.
-                indices_rhs.extend([r_indices[1]] * n_values)
+                indices_rhs.extend([r_indices[1]] * n_values_rhs)
                 tmp_values_rhs = [ -1.0 * value for value in values_rhs]
                 values_rhs.extend(tmp_values_rhs)
 
