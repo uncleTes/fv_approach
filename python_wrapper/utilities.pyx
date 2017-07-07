@@ -505,6 +505,49 @@ def check_oct_corners(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] numpy_cor
 
     return (penalized, n_polygon)
 
+def test_bil_map_and_inv(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes ,
+                         numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points,
+                         int dimension = 2):
+    cdef int n_points = points.shape[0]
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1 ] alpha =       \
+         numpy.zeros(shape = (4, ),
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1 ] beta =        \
+         numpy.zeros(shape = (4, ),
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2 ] l_points =    \
+         numpy.zeros(shape = (n_points, 3),     \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2 ] p_points =    \
+         numpy.zeros(shape = (n_points, 3),     \
+                     dtype = numpy.float64)
+    bil_mapping(nodes            ,
+                alpha            ,
+                beta             ,
+                for_pablo = False,
+                dim = dimension)
+    apply_bil_mapping(points  ,
+                      alpha   ,
+                      beta    ,
+                      p_points,
+                      dim = dimension)
+    apply_bil_mapping_inv(p_points,
+                          alpha   ,
+                          beta    ,
+                          l_points,
+                          dim = dimension)
+    try:
+        numpy.testing.assert_array_equal(l_points,
+                                         points  ,
+                                         verbose = True)
+    except AssertionError:
+        msg_of_fail = "Wrong application of bilinear mapping + its inverse"
+        print(msg_of_fail)
+
 #https://www.particleincell.com/2012/quad-interpolation/
 def bil_mapping(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
                 numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha,
