@@ -366,6 +366,14 @@ def set_octree(comm_l,
     #        ref_cond_x_y = ref_cond_x and ref_cond_y
     #        if (ref_cond_x_y):
     #            pablo.set_marker(octant, 1)
+    #if (not proc_grid):
+    #    for octant in xrange(0, n_octs):
+    #        center = pablo.get_center(octant)[: dimension]
+    #        ref_cond_x = center[0] >= 0.3 and center[0] <= 0.7
+    #        ref_cond_y = center[1] >= 0.3 and center[1] <= 0.7
+    #        ref_cond_x_y = ref_cond_x and ref_cond_y
+    #        if (ref_cond_x_y):
+    #            pablo.set_marker(octant, 1)
 
     #if (proc_grid):
     #    for octant in xrange(0, n_octs):
