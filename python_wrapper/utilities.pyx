@@ -670,6 +670,9 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
                       nadd(nmul(-1.0, nmul(alpha[0], beta[1])),
                            nadd(nmul(p_points[:, 0], beta[1]),
                                 nmul(-1.0, nmul(p_points[:, 1], alpha[1]))))))
+    # We have reached 0.0...
+    if (nabs(a_m - 0.0) <= 1.0e-12):
+        a_m = 0.0
     # Returning logical coordinates.
     if (not a_m):
         numpy.copyto(l_points[:, 1],
