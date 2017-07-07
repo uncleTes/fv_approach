@@ -653,6 +653,8 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
     nadd = numpy.add
     nmul = numpy.multiply
     ntdivide = numpy.true_divide
+    nabs = numpy.absolute
+    nsqrt = numpy.sqrt
     # Defining inverse mapping from physical to logical.
     a_m = nadd(nmul(alpha[3], beta[2]),
                nmul(-1.0, nmul(alpha[2], beta[3])))
@@ -670,19 +672,20 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
                                 nmul(-1.0, nmul(p_points[:, 1], alpha[1]))))))
     # Returning logical coordinates.
     if (not a_m):
-        numpy.copyto(l_points[:, 1], ntdivide(nmul(-1.0, c_m), b_m))
+        numpy.copyto(l_points[:, 1],
+                     ntdivide(nmul(-1.0, c_m), b_m))
     else:
         # \"m\" is solution of a second order equation, so we have two solu-
         # tions...
         numpy.copyto(m_1,
                      ntdivide(nadd(nmul(-1.0, b_m),
-                                   numpy.sqrt(nadd(nmul(b_m, b_m),
-                                                   nmul(-4.0, nmul(a_m, c_m))))),
+                                   nsqrt(nadd(nmul(b_m, b_m),
+                                              nmul(-4.0, nmul(a_m, c_m))))),
                               nmul(2.0, a_m)))
         numpy.copyto(m_2,
                      ntdivide(nadd(nmul(-1.0, b_m),
-                                   nmul(-1.0, numpy.sqrt(nadd(nmul(b_m, b_m),
-                                                              nmul(-4.0, nmul(a_m, c_m)))))),
+                                   nmul(-1.0, nsqrt(nadd(nmul(b_m, b_m),
+                                                         nmul(-4.0, nmul(a_m, c_m)))))),
                               nmul(2.0, a_m)))
         # ...but we choose the right value for \"m\", respecting the logical do-
         # main.
