@@ -1268,7 +1268,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         #\"Numpy\" transformed node.
         n_t_node = numpy.zeros(shape = (1, 3), dtype = numpy.float64)
         for i in xrange(0, n_nodes):
-            on_f_boundary = False
+            on_f_boundary = False # CHANGE \"on_f_boundary = False\" with
+                                  # \"on_b_boundary = False\", otherwise we get
+                                  # a repetion 12 lines more down here.
             node = (nodes[i][0], nodes[i][1], nodes[i][2])
             n_node = numpy.array([node])
             apply_bil_mapping(n_node  ,
