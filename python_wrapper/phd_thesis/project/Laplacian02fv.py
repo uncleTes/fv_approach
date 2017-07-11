@@ -1936,6 +1936,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     # --------------------------------------------------------------------------
     # Solving...
+    # https://pypi.python.org/pypi/memory_profiler
+    # https://www.pluralsight.com/blog/tutorials/how-to-profile-memory-usage-in-python
+    #comm_rank = MPI.COMM_WORLD.Get_rank()
+    #mem_log_file = "./log/" + str(comm_rank) + "_mem.log"
+    #mem_fp=open(mem_log_file,'w+')
+    #from memory_profiler import profile
+    #@profile(stream=mem_fp)
     def solve(self):
         """Method which solves the system."""
         # Creating a "KSP" object.
