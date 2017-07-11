@@ -399,7 +399,8 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
                           p_points,
                           dim)
     else:
-        numpy.copyto(p_points, l_points)
+        numpy.copyto(p_points[:, 0], l_points[:, 0])
+        numpy.copyto(p_points[:, 1], l_points[:, 1])
 
     nsin = numpy.sin
     npower = numpy.power
