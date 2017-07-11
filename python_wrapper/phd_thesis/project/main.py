@@ -336,7 +336,7 @@ def set_octree(comm_l,
     an = anchors[proc_grid]
     # Edge's length for PABLO.
     ed = edges[proc_grid]
-    pablo_log_file = "./log/" + comm_name + ".log"
+    pablo_log_file = "./log/" + comm_name
     pablo = my_pablo_uniform.Py_My_Pablo_Uniform(an[0]         ,
                                                  an[1]         ,
                                                  an[2]         ,
