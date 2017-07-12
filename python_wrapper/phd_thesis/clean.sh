@@ -32,6 +32,18 @@ if [ "$EXECUTE_DIR_PATH" == "$CURRENT_DIR_PATH" ]; then
 
         if [ $count != 0 ]; then 
             rm -v ./data/*.pvtu
+        fi
+
+        count=`ls -1 ./data/*.dat 2>/dev/null | wc -l`
+
+        if [ $count != 0 ]; then
+            rm -v ./data/*.dat
+        fi
+
+        count=`ls -1 ./data/*.info 2>/dev/null | wc -l`
+
+        if [ $count != 0 ]; then
+            rm -v ./data/*.info
         fi 
 
         [ -f ./data/multiple_PABLO.vtm ] && rm -v ./data/multiple_PABLO.vtm
