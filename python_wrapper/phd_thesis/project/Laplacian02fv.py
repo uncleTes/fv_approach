@@ -1963,8 +1963,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
         ksp.setType("gmres")
         ksp.setFromOptions()
         ksp.setInitialGuessNonzero(True)
-        # Solve the system.
+        # View the matrix.
         #self._b_mat.view()
+        #if (PETSc.COMM_WORLD.getSize() == 1):
+        #    # File viewer name
+        #    fv_name = "./data/matrix_bin_1_core.dat"
+        #else:
+        #    fv_name = "./data/matrix_bin.dat"
+        # https://fenicsproject.org/qa/7811/export-petsc-matrix-and-vector-in-file
+        # https://pythonhosted.org/petsc4py/apiref/petsc4py.PETSc.Viewer-class.html
+        # New binary viewer:
+        #nv = PETSc.Viewer().createBinary(name = fv_name                    ,
+        #                                 mode = PETSc.Viewer().Mode().WRITE,
+        #                                 comm = PETSc.COMM_WORLD)
+        #self._b_mat.view(nv)
+        # Solve the system.
         ksp.solve(self._rhs,
                   self._sol)
         # How many iterations are done.
