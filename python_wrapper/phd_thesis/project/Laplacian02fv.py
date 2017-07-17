@@ -2156,9 +2156,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 status = MPI.Status()
                 mpi_request.Wait(status)
 
-            if (not is_background):
-                self.update_fg_grids(o_ranges,
-                                     ids_octree_contained)
+            #if (not is_background):
+            #    self.update_fg_grids(o_ranges,
+            #                         ids_octree_contained)
             else:
                 if (n_grids > 1):
                     self.update_bg_grids(o_ranges,
@@ -2973,6 +2973,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # tree previously found and stored in \"index\".
                         py_ghost_oct = get_ghost_octant(neighs[j])
                         m_index = mask_octant(index + g_d)
+                    # TODO: problem here: \"m_octant\" = -1 will be added to the
+                    #       matrix, but PETSc will not add any coefficients, be-
+                    #       cause \"-1\" is an its special sign to say to not insert
+                    #       in that column/row.
+                    #if (not grid):
+                    #    print(m_index)
                     cell_center, \
                     n_cell_center = get_center(py_ghost_oct,
                                                by_octant   ,
@@ -3054,12 +3060,47 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         grid = self._proc_g
         octree = self._octree
+        mask_octant = self.mask_octant
         dimension = self._dim
         coeffs_node_0 = coeffs_nodes[0]
         coeffs_node_1 = coeffs_nodes[1]
         is_background = False if (grid) else True
 
         insert_mode = PETSc.InsertMode.ADD_VALUES
+        narray = numpy.array
+        b_alpha = self.get_trans(0)[1]
+        b_beta = self.get_trans(0)[2]
+        # Setting exact solution for bilinear background centers wich are penalized
+        # by the foreground and used to interpolate nodes of background intersections.
+        if (not grid):
+            #print(n_cs_n_is)
+            for i in xrange(0, 2):
+                for j in xrange(0, len(n_cs_n_is[i][1])):
+                    if (n_cs_n_is[i][1][j] == -1):
+                        #print("bongo")
+                        values_rhs = []
+                        indices_rhs = []
+                        nsolution = utilities.exact_sol(narray([[n_cs_n_is[i][0][j][0],
+                                                                 n_cs_n_is[i][0][j][1]]]),
+                                                        b_alpha              ,
+                                                        b_beta               ,
+                                                        dim = 2              ,
+                                                        apply_mapping = True)
+                        mult = 1.0
+                        if (labels[0]):
+                            mult = -1.0
+                        e_sol = nsolution[0]
+                        e_sol_coeff = coeffs_nodes[i][j]
+                        e_sol = mult * e_sol * e_sol_coeff
+                        values_rhs.append(e_sol)
+                        indices_rhs.append(r_indices[0])
+                        if (len(r_indices) == 2):
+                            values_rhs.append(e_sol * -1.0)
+                            indices_rhs.append(r_indices[1])
+                        self._rhs.setValues(indices_rhs,
+                                            values_rhs,
+                                            insert_mode)
+                        coeffs_nodes[i][j] = 0.0
 
         # Columns indices for the \"PETSc\" matrix.
         c_indices = []
@@ -3244,6 +3285,39 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Not penalized global index, not masked.
                 n_p_g_index = g_o_norms_inter[labels[0]]
                 value_to_store = n_coeffs[1 - labels[0]] * mult
+
+                m_n_p_g_index = mask_octant(n_p_g_index)
+                #print(nodes_inter)
+                # Setting exact solution for centers of owners of background intersections,
+                # centers which are penalized.
+                nsolution = utilities.exact_sol(narray([[owners_centers[1 - labels[0]][0],
+                                                         owners_centers[1 - labels[0]][1]]]),
+                                                       b_alpha              ,
+                                                       b_beta               ,
+                                                       dim = 2              ,
+                                                       apply_mapping = True)
+                self._rhs.setValues(m_n_p_g_index,
+                                    value_to_store * -1.0 * nsolution[0],
+                                    insert_mode)
+                #nsolution = utilities.exact_sol(narray([[nodes_inter[0][0],
+                #                                         nodes_inter[0][1]]]),
+                #                                       b_alpha              ,
+                #                                       b_beta               ,
+                #                                       dim = 2              ,
+                #                                       apply_mapping = True)
+                #self._rhs.setValues(m_n_p_g_index,
+                #                    n_coeffs[3] * -1.0 * nsolution[0] * mult,
+                #                    insert_mode)
+                #nsolution = utilities.exact_sol(narray([[nodes_inter[1][0],
+                #                                         nodes_inter[1][1]]]),
+                #                                       b_alpha              ,
+                #                                       b_beta               ,
+                #                                       dim = 2              ,
+                #                                       apply_mapping = True)
+                #self._rhs.setValues(m_n_p_g_index,
+                #                    n_coeffs[2] * -1.0 * nsolution[0] * mult,
+                #                    insert_mode)
+
 
                 key = (n_polygon + 1, \
                        p_g_index    , \

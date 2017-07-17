@@ -19,7 +19,7 @@ do
     mpi2run python project/main.py
     if (( i < END ));
     then
-        sed -i "34s/$var1, $var2/$((var1+incr)), $((var2+incr))/" ./config/PABLO.ini
+        sed -i "35s/$var1, $var2/$((var1+incr)), $((var2+incr))/" ./config/PABLO.ini
 #        sed -i "30s/$var1/$((var1+incr))/" ./config/PABLO.ini
     fi
     var1=$((var1+incr))
