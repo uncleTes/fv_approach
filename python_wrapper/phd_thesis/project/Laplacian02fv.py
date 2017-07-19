@@ -2715,16 +2715,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     row_indices.append(keys[i][2])
                     col_indices = l_t_indices_inv
                     #print(col_indices)
-                    #apply_rest_prol_ops(row_indices,
-                    #                    col_indices,
-                    #                    col_values)
-                    insert_mode = PETSc.InsertMode.ADD_VALUES
-                    self._rhs.setValues(keys[i][1],
-                                        ex_sol[0] * 1.0 * stencils[i][1],
-                                        insert_mode)
-                    self._rhs.setValues(keys[i][2],
-                                        ex_sol[0] * -1.0 * stencils[i][1],
-                                        insert_mode)
+                    apply_rest_prol_ops(row_indices,
+                                        col_indices,
+                                        col_values)
+                    #insert_mode = PETSc.InsertMode.ADD_VALUES
+                    #self._rhs.setValues(keys[i][1],
+                    #                    ex_sol[0] * 1.0 * stencils[i][1],
+                    #                    insert_mode)
+                    #self._rhs.setValues(keys[i][2],
+                    #                    ex_sol[0] * -1.0 * stencils[i][1],
+                    #                    insert_mode)
             # Two nodes on foreground boundaries.
             elif (keys[i][3] == 2):
                 t_centers_inv = []
@@ -2840,34 +2840,34 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
                                                          n_t_a_02[0][: dimension])
                                                          #n_t_a_03[0][: dimension])
-                    #ncopyto(n_t_a_03[0][: dimension], \
-                    #        stencils[i][1 : 3])
-                    #apply_bil_mapping(n_t_a_03,
-                    #                  c_alpha ,
-                    #                  c_beta  ,
-                    #                  n_t_a_01,
-                    #                  dimension)
-                    #apply_bil_mapping_inv(n_t_a_01,
-                    #                      b_alpha ,
-                    #                      b_beta  ,
-                    #                      n_t_a_02,
-                    #                      dimension)
-                    #l_s_coeffs_node_0 = utilities.least_squares(narray(t_centers_inv),
-                    #                                            n_t_a_02[0][: dimension])
-                    #ncopyto(n_t_a_03[0][: dimension], \
-                    #        stencils[i][3 : 5])
-                    #apply_bil_mapping(n_t_a_03,
-                    #                  c_alpha ,
-                    #                  c_beta  ,
-                    #                  n_t_a_01,
-                    #                  dimension)
-                    #apply_bil_mapping_inv(n_t_a_01,
-                    #                      b_alpha ,
-                    #                      b_beta  ,
-                    #                      n_t_a_02,
-                    #                      dimension)
-                    #l_s_coeffs_node_1 = utilities.least_squares(narray(t_centers_inv),
-                    #                                            n_t_a_02[0][: dimension])
+                    ncopyto(n_t_a_03[0][: dimension], \
+                            stencils[i][1 : 3])
+                    apply_bil_mapping(n_t_a_03,
+                                      c_alpha ,
+                                      c_beta  ,
+                                      n_t_a_01,
+                                      dimension)
+                    apply_bil_mapping_inv(n_t_a_01,
+                                          b_alpha ,
+                                          b_beta  ,
+                                          n_t_a_02,
+                                          dimension)
+                    l_s_coeffs_node_0 = utilities.least_squares(narray(t_centers_inv),
+                                                                n_t_a_02[0][: dimension])
+                    ncopyto(n_t_a_03[0][: dimension], \
+                            stencils[i][3 : 5])
+                    apply_bil_mapping(n_t_a_03,
+                                      c_alpha ,
+                                      c_beta  ,
+                                      n_t_a_01,
+                                      dimension)
+                    apply_bil_mapping_inv(n_t_a_01,
+                                          b_alpha ,
+                                          b_beta  ,
+                                          n_t_a_02,
+                                          dimension)
+                    l_s_coeffs_node_1 = utilities.least_squares(narray(t_centers_inv),
+                                                                n_t_a_02[0][: dimension])
                     displ = 1 + (2 * dimension)
                     # Coordinates of the node on the foreground boundary.
                     cs_n = stencils[i][displ : displ + dimension]
@@ -2908,47 +2908,47 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                     n_axis_given = keys[i][5],
                                                                     n_value_given = keys[i][6],
                                                                     grid = keys[i][0])
-                    insert_mode = PETSc.InsertMode.ADD_VALUES
-                    self._rhs.setValues(keys[i][1],
-                                        ex_sol[0] * -1.0 * n_coeffs[0],
-                                        insert_mode)
-                    n_cs_n = narray([nodes_inter[0]])
-                    ex_sol = solution(n_cs_n,
-                                      c_alpha              ,
-                                      c_beta               ,
-                                      dim = dimension      ,
-                                      apply_mapping = True)
-                    self._rhs.setValues(keys[i][1],
-                                        ex_sol[0] * -1.0 * coeffs_node_0,
-                                        insert_mode)
-                    n_cs_n = narray([nodes_inter[1]])
-                    ex_sol = solution(n_cs_n,
-                                      c_alpha              ,
-                                      c_beta               ,
-                                      dim = dimension      ,
-                                      apply_mapping = True)
-                    insert_mode = PETSc.InsertMode.ADD_VALUES
-                    self._rhs.setValues(keys[i][1],
-                                        ex_sol[0] * -1.0 * coeffs_node_1,
-                                        insert_mode)
+                    #insert_mode = PETSc.InsertMode.ADD_VALUES
+                    #self._rhs.setValues(keys[i][1],
+                    #                    ex_sol[0] * -1.0 * n_coeffs[0],
+                    #                    insert_mode)
+                    #n_cs_n = narray([nodes_inter[0]])
+                    #ex_sol = solution(n_cs_n,
+                    #                  c_alpha              ,
+                    #                  c_beta               ,
+                    #                  dim = dimension      ,
+                    #                  apply_mapping = True)
+                    #self._rhs.setValues(keys[i][1],
+                    #                    ex_sol[0] * -1.0 * coeffs_node_0,
+                    #                    insert_mode)
+                    #n_cs_n = narray([nodes_inter[1]])
+                    #ex_sol = solution(n_cs_n,
+                    #                  c_alpha              ,
+                    #                  c_beta               ,
+                    #                  dim = dimension      ,
+                    #                  apply_mapping = True)
+                    #insert_mode = PETSc.InsertMode.ADD_VALUES
+                    #self._rhs.setValues(keys[i][1],
+                    #                    ex_sol[0] * -1.0 * coeffs_node_1,
+                    #                    insert_mode)
                     #coeff_o = rec_sol * -1.0 * n_coeffs[0]
                     #insert_mode = PETSc.InsertMode.ADD_VALUES
                     #self._rhs.setValues([keys[i][1]],
                     #                    [coeff_o]   ,
                     #                    insert_mode)
                     coeffs_ghost = l_s_coeffs * n_coeffs[0]
-                    #coeffs_ghost_node_0 = l_s_coeffs_node_0 * n_coeffs[3]
-                    #coeffs_ghost_node_1 = l_s_coeffs_node_1 * n_coeffs[2]
+                    coeffs_ghost_node_0 = l_s_coeffs_node_0 * n_coeffs[3]
+                    coeffs_ghost_node_1 = l_s_coeffs_node_1 * n_coeffs[2]
                     columns = []
                     values = []
                     values.append(n_coeffs[1])
-                    #values.extend(coeffs_ghost.tolist())
-                    #values.extend(coeffs_ghost_node_0.tolist())
-                    #values.extend(coeffs_ghost_node_1.tolist())
+                    values.extend(coeffs_ghost.tolist())
+                    values.extend(coeffs_ghost_node_0.tolist())
+                    values.extend(coeffs_ghost_node_1.tolist())
                     columns.append(keys[i][1])
-                    #columns.extend(l_t_indices_inv)
-                    #columns.extend(l_t_indices_inv)
-                    #columns.extend(l_t_indices_inv)
+                    columns.extend(l_t_indices_inv)
+                    columns.extend(l_t_indices_inv)
+                    columns.extend(l_t_indices_inv)
                     apply_rest_prol_ops([keys[i][1]],
                                         columns     ,
                                         values)
