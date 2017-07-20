@@ -1286,7 +1286,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             if (grid and (not on_b_boundary)):
                 on_f_boundary = is_on_f_boundary(n_t_node)
 
-            if (on_b_boundary):
+            if (on_b_boundary or on_f_boundary):
                 l_owner = "b_boundary"
             else:
                 if (on_f_boundary):
@@ -2156,13 +2156,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 status = MPI.Status()
                 mpi_request.Wait(status)
 
-            #if (not is_background):
-            #    self.update_fg_grids(o_ranges,
-            #                         ids_octree_contained)
-            else:
-                if (n_grids > 1):
-                    self.update_bg_grids(o_ranges,
-                                         ids_octree_contained)
+            if (not is_background):
+                self.update_fg_grids(o_ranges,
+                                     ids_octree_contained)
+            #else:
+            #    if (n_grids > 1):
+            #        self.update_bg_grids(o_ranges,
+            #                             ids_octree_contained)
 
         self.assembly_petsc_struct("matrix",
                                    PETSc.Mat.AssemblyType.FINAL_ASSEMBLY)
@@ -3296,8 +3296,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 node_1_interpolated = False
                 # the only index for the rows and for the columns will be filled
                 # with \"-1\", to lets \"PETSc\" does nothing with it.
-                r_indices = [-1] * len(r_indices)
-                c_indices = [-1] * len(c_indices)
+                #r_indices = [-1] * len(r_indices)
+                #c_indices = [-1] * len(c_indices)
             #node_0_interpolated = False
             #node_1_interpolated = False
 
@@ -3423,7 +3423,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 m_octant = m_g_o_norms_inter[labels[0]]
                 mult = 1.0
                 value_to_store = n_coeffs[1 - labels[0]] * mult
-                if (is_background):
+                if (is_background or (not is_background)):
                     self.set_bg_b_c(inter         ,
                                     m_octant      ,
                                     owners_centers,

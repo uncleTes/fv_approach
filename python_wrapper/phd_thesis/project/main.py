@@ -564,7 +564,7 @@ def compute(comm_dictionary     ,
          "_f_internal_nodes.txt"))
 
     if (n_grids > 1):
-        if (not proc_grid):
+        if (proc_grid):
             n_norm_inf, \
             n_norm_L2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
                                                  laplacian.f_exact_on_bord   ,
