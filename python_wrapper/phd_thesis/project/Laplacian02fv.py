@@ -3140,35 +3140,41 @@ class Laplacian(BaseClass2D.BaseClass2D):
         b_beta = self.get_trans(0)[2]
         # Setting exact solution for bilinear background centers wich are penalized
         # by the foreground and used to interpolate nodes of background intersections.
-        #if (not grid):
-        #    #print(n_cs_n_is)
-        #    for i in xrange(0, 2):
-        #        for j in xrange(0, len(n_cs_n_is[i][1])):
-        #            if (n_cs_n_is[i][1][j] == -1):
-        #                #print("bongo")
-        #                values_rhs = []
-        #                indices_rhs = []
-        #                nsolution = utilities.exact_sol(narray([[n_cs_n_is[i][0][j][0],
-        #                                                         n_cs_n_is[i][0][j][1]]]),
-        #                                                b_alpha              ,
-        #                                                b_beta               ,
-        #                                                dim = 2              ,
-        #                                                apply_mapping = True)
-        #                mult = 1.0
-        #                if (labels[0]):
-        #                    mult = -1.0
-        #                e_sol = nsolution[0]
-        #                e_sol_coeff = coeffs_nodes[i][j]
-        #                e_sol = mult * e_sol * e_sol_coeff
-        #                values_rhs.append(e_sol)
-        #                indices_rhs.append(r_indices[0])
-        #                if (len(r_indices) == 2):
-        #                    values_rhs.append(e_sol * -1.0)
-        #                    indices_rhs.append(r_indices[1])
-        #                self._rhs.setValues(indices_rhs,
-        #                                    values_rhs,
-        #                                    insert_mode)
-        #                coeffs_nodes[i][j] = 0.0
+        value_to_store = 0
+        if (not grid):
+            #print(n_cs_n_is)
+            for i in xrange(0, 2):
+                for j in xrange(0, len(n_cs_n_is[i][1])):
+                    if (n_cs_n_is[i][1][j] == -1):
+                        #print("bongo")
+                        values_rhs = []
+                        indices_rhs = []
+                        nsolution = utilities.exact_sol(narray([[n_cs_n_is[i][0][j][0],
+                                                                 n_cs_n_is[i][0][j][1]]]),
+                                                        b_alpha              ,
+                                                        b_beta               ,
+                                                        dim = 2              ,
+                                                        apply_mapping = True)
+                        mult = 1.0
+                        if (labels[0]):
+                            mult = -1.0
+                        e_sol = nsolution[0]
+                        e_sol_coeff = coeffs_nodes[i][j]
+                        e_sol = mult * e_sol * e_sol_coeff
+                        values_rhs.append(e_sol)
+                        indices_rhs.append(r_indices[0])
+                        if (len(r_indices) == 2):
+                            values_rhs.append(e_sol * -1.0)
+                            indices_rhs.append(r_indices[1])
+                        self._rhs.setValues(indices_rhs,
+                                            values_rhs,
+                                            insert_mode)
+                        coeffs_nodes[i][j] = 0.0
+                        #mult = -1.0
+                        #if (labels[0]):
+                        #    mult = 1.0
+                        #value_to_store = value_to_store + (coeffs_nodes[i][j] * mult)
+                        #coeffs_nodes[i][j] = 0.0
 
         # Columns indices for the \"PETSc\" matrix.
         c_indices = []
@@ -3351,7 +3357,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 p_g_index = g_o_norms_inter[1 - labels[0]]
                 # Not penalized global index, not masked.
                 n_p_g_index = g_o_norms_inter[labels[0]]
-                value_to_store = n_coeffs[1 - labels[0]] * mult
+                value_to_store = value_to_store + (n_coeffs[1 - labels[0]] * mult)
 
                 m_n_p_g_index = mask_octant(n_p_g_index)
                 #print(nodes_inter)
