@@ -660,6 +660,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                               alpha        ,
                                               beta         ,
                                               t_foregrounds)
+            #if (g_octant == 224):
+            #    print(is_penalized)
             if (is_penalized):
                 self._nln[octant] = -1
                 self._p_o_f_g[octant] = n_polygon
@@ -696,7 +698,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # possible jump of 1 level between elements, we have to store
                 # two possible neighbours for each face of the current octant).
                 l_stencil = 21 if (dimension == 2) else 31
-                stencil = [-1] * l_stencil
+                stencil = [0, -1] * (l_stencil/2)
+                stencil.append(0)
                 stencil[0] = h
                 for i in xrange(dimension):
                     stencil[i + 1] = center[i]
@@ -716,14 +719,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # the faces.
             n_neighbours = 0
             # Faces' loop.
-            for face in xrange(0, nfaces):
+            n_faces_loop = nfaces
+            if (is_penalized):
+                n_faces_loop = nfaces + 4 # Added number of nodes
+            for face in xrange(0, n_faces_loop):
+                n_face = face
+                c_dim = 1 if (face <= 3) else 2
+                if (c_dim == 2):
+                    n_face = face - 4
                 # Not boundary face.
                 if (not g_b(face)):
                     d_count, \
                     o_count, \
                     s_i    , \
-                    n_neighs = check_neighbours(1                            ,
-                                                face                         ,
+                    n_neighs = check_neighbours(c_dim                        ,
+                                                n_face                       ,
                                                 octant                       ,
                                                 o_count                      ,
                                                 d_count                      ,
@@ -1422,7 +1432,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                      x[1]       ,
                                                      True       ,
                                                      x[2]       ,
-                                                     x[3])
+                                                     x[3]       ,
+                                                     True)
 
         b_c = lambda x: bil_coeffs(x[0],
                                    x[1])
@@ -2959,13 +2970,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
-    def new_find_right_neighbours(self             ,
-                                  current_octant   ,
-                                  start_octant     ,
-                                  inter_ring       ,
-                                  with_node = False,
-                                  n_node = None    ,
-                                  is_node_on_f_b = False):
+    def new_find_right_neighbours(self                  ,
+                                  current_octant        ,
+                                  start_octant          ,
+                                  inter_ring            ,
+                                  with_node = False     ,
+                                  n_node = None         ,
+                                  is_node_on_f_b = False,
+                                  # also covered indices
+                                  a_cov_indices = False):
         if (current_octant == "b_boundary"):
             # A \"numpy\" empty array (size == 0) of shape (2, 0).
             n_e_array = numpy.array([[], []])
@@ -2974,6 +2987,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         py_oct = octree.get_octant(current_octant)
         centers = []
         indices = []
+        cov_indices = []
         grid = self._proc_g
         l_ring = 3
         dimension = self._dim
@@ -3060,15 +3074,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             d_c_n = t_d
                             centers.append(cell_center[: dimension])
                             indices.append(m_index)
+                            cov_indices.append(index)
                         # Second neighbour case.
                         else:
                             if (t_d < d_c_n):
                                 d_c_n = t_d
                                 centers[-1] = cell_center[: dimension]
                                 indices[-1] = m_index
+                                cov_indices[-1] = index
                     else:
                         centers.append(cell_center[: dimension])
                         indices.append(m_index)
+                        cov_indices.append(index)
             # ...we need to evaluate boundary values (background) or not to
             # consider the indices and centers found (foreground).
             else:
@@ -3082,6 +3099,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                             h        ,
                                                             r_a_n_d = True)
                     indices.append(-1)
+                    cov_indices.append(-1)
                     centers.append(border_center[: dimension])
                     # TODO: for the moment, we do not consider this case. Think
                     #       better about it.
@@ -3103,8 +3121,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
         centers.append(c_c)
 
         indices.append(c_m_index)
+        cov_indices.append(current_octant + start_octant)
 
         numpy_centers = numpy.array(centers)
+
+        if (a_cov_indices):
+            return (numpy_centers, indices, cov_indices)
 
         return (numpy_centers, indices)
     # --------------------------------------------------------------------------
@@ -3146,35 +3168,89 @@ class Laplacian(BaseClass2D.BaseClass2D):
             for i in xrange(0, 2):
                 for j in xrange(0, len(n_cs_n_is[i][1])):
                     if (n_cs_n_is[i][1][j] == -1):
-                        #print("bongo")
-                        values_rhs = []
-                        indices_rhs = []
-                        nsolution = utilities.exact_sol(narray([[n_cs_n_is[i][0][j][0],
-                                                                 n_cs_n_is[i][0][j][1]]]),
-                                                        b_alpha              ,
-                                                        b_beta               ,
-                                                        dim = 2              ,
-                                                        apply_mapping = True)
-                        mult = 1.0
-                        if (labels[0]):
-                            mult = -1.0
-                        e_sol = nsolution[0]
-                        e_sol_coeff = coeffs_nodes[i][j]
-                        e_sol = mult * e_sol * e_sol_coeff
-                        values_rhs.append(e_sol)
-                        indices_rhs.append(r_indices[0])
-                        if (len(r_indices) == 2):
-                            values_rhs.append(e_sol * -1.0)
-                            indices_rhs.append(r_indices[1])
-                        self._rhs.setValues(indices_rhs,
-                                            values_rhs,
-                                            insert_mode)
-                        coeffs_nodes[i][j] = 0.0
+                        ##print("bongo")
+                        #values_rhs = []
+                        #indices_rhs = []
+                        #nsolution = utilities.exact_sol(narray([[n_cs_n_is[i][0][j][0],
+                        #                                         n_cs_n_is[i][0][j][1]]]),
+                        #                                b_alpha              ,
+                        #                                b_beta               ,
+                        #                                dim = 2              ,
+                        #                                apply_mapping = True)
+                        #mult = 1.0
+                        #if (labels[0]):
+                        #    mult = -1.0
+                        #e_sol = nsolution[0]
+                        #e_sol_coeff = coeffs_nodes[i][j]
+                        #e_sol = mult * e_sol * e_sol_coeff
+                        #values_rhs.append(e_sol)
+                        #indices_rhs.append(r_indices[0])
+                        #if (len(r_indices) == 2):
+                        #    values_rhs.append(e_sol * -1.0)
+                        #    indices_rhs.append(r_indices[1])
+                        #self._rhs.setValues(indices_rhs,
+                        #                    values_rhs,
+                        #                    insert_mode)
+                        #coeffs_nodes[i][j] = 0.0
                         #mult = -1.0
                         #if (labels[0]):
                         #    mult = 1.0
                         #value_to_store = value_to_store + (coeffs_nodes[i][j] * mult)
                         #coeffs_nodes[i][j] = 0.0
+                        p_g_index = n_cs_n_is[i][2][j]
+                        #if (p_g_index == 224):
+                        #    print(n_cs_n_is)
+                        #print(n_cs_n_is)
+                        #print(p_g_index)
+                        n_polygon = self._g_p_o_f_g[p_g_index]
+                        #print(n_cs_n_is)
+                        #print("p_g_index " + str(p_g_index) + " n_polygon " + str(n_polygon))
+                        #print(self._g_p_o_f_g)
+                        key = (n_polygon + 1, \
+                               p_g_index    , \
+                               0            , \
+                               0            , \
+                               0            , \
+                               0            , \
+                               0            , \
+                               0            , \
+                               0            , \
+                               0            , \
+                               0            , \
+                               0            , \
+                               0)
+
+                        stencil = self._edl.get(key)
+                        # Sometimes \"stencil\" is equal to \"None\" because
+                        # there are values of \"p_g_index\" which correspond to
+                        # ghost octant not included in the local octree, and in
+                        # the local \"self._edl\".
+                        # TODO: I think that with the add of the \"cur_proc_owner\" in
+                        #       the function \"fill_mat_and_rhs\", this \"if\" is no
+                        #       more useful.
+                        if (stencil):
+                            for q in xrange(0, len(r_indices)):
+                                n_p_g_index = g_o_norms_inter[labels[q]]
+                                #print(n_p_g_index)
+                                displ = 1 + dimension
+                                step = 2
+                                l_stencil = 21 if (dimension == 2) else 31
+
+                                mult = -1.0
+                                if (labels[q]):
+                                 mult = 1.0
+
+                                value_to_store = mult * coeffs_nodes[i][j]
+
+                                for k in xrange(displ, l_stencil, step):
+                                    if (stencil[k] == n_p_g_index):
+                                        #print(stencil)
+                                        #print("bella")
+                                        #print(stencil[k + 1])
+                                        stencil[k + 1] = stencil[k + 1] + value_to_store
+                                        break
+                        if (p_g_index == 224):
+                            print(stencil)
 
         # Columns indices for the \"PETSc\" matrix.
         c_indices = []
@@ -3357,7 +3433,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 p_g_index = g_o_norms_inter[1 - labels[0]]
                 # Not penalized global index, not masked.
                 n_p_g_index = g_o_norms_inter[labels[0]]
-                value_to_store = value_to_store + (n_coeffs[1 - labels[0]] * mult)
+                value_to_store = n_coeffs[1 - labels[0]] * mult
 
                 m_n_p_g_index = mask_octant(n_p_g_index)
                 #print(nodes_inter)
@@ -3420,7 +3496,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (stencil):
                     for k in xrange(displ, l_stencil, step):
                         if (stencil[k] == n_p_g_index):
-                            stencil[k + 1] = value_to_store
+                            stencil[k + 1] = stencil[k + 1] + value_to_store
                             break
             # We are on a boundary intersection; here normal is always
             # directed outside, so the owner is the one with the outer
