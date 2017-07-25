@@ -6,6 +6,7 @@ alias mpi1run='/usr/local/lib/openmpi-2.1.1/bin/mpirun -n 1'
 alias mpi2run='/usr/local/lib/openmpi-2.1.1/bin/mpirun -n 2'
 alias mpi4run='/usr/local/lib/openmpi-2.1.1/bin/mpirun -n 4'
 alias mpi6run='/usr/local/lib/openmpi-2.1.1/bin/mpirun -n 6'
+alias mpi8run='/usr/local/lib/openmpi-2.1.1/bin/mpirun -n 8'
 
 var1=4
 var2=5
