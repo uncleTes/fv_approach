@@ -572,6 +572,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         d_count += 1
             else:
                 if (not is_n_penalized):
+                    #if (get_global_idx(octant) == 200):
+                    #    print("index " + str(index) + " codim " + str(codim) + " f_o_n " + str(f_o_n))
                     stencil = self._edl.get(key)
                     stencil[s_i] = index
                     s_i += 2
@@ -584,6 +586,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
             self.log_msg(msg   ,
                          "info",
                          extra_msg)
+        #if (get_global_idx(octant) == 200):
+        #    print("index " + str(index) + " codim " + str(codim) + " f_o_n " + str(f_o_n))
 
         return (d_count,
                 o_count,
@@ -721,12 +725,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Faces' loop.
             n_faces_loop = nfaces
             if (is_penalized):
-                n_faces_loop = nfaces + 4 # Added number of nodes
-            for face in xrange(0, n_faces_loop):
+                for n_node in xrange(0, nfaces):
+                    c_dim = 2
+                    d_count, \
+                    o_count, \
+                    s_i    , \
+                    n_neighs = check_neighbours(c_dim                        ,
+                                                n_node                       ,
+                                                octant                       ,
+                                                o_count                      ,
+                                                d_count                      ,
+                                                s_i                          ,
+                                                key if is_penalized else None,
+                                                is_penalized                 ,
+                                                is_background)
+                    n_neighbours = n_neighbours + n_neighs
+            for face in xrange(0, nfaces):
                 n_face = face
-                c_dim = 1 if (face <= 3) else 2
-                if (c_dim == 2):
-                    n_face = face - 4
+                c_dim = 1
                 # Not boundary face.
                 if (not g_b(face)):
                     d_count, \
@@ -2307,7 +2323,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_oct_center  = get_center(local_idxs[idx]   ,
                                        ptr_octant = False,
                                        also_numpy_center = True)
-            #if (keys[idx][1] == 148):
+            #if (keys[idx][1] == 200):
             #    print(list_edg[idx])
             #    print(local_idxs[idx])
             h = octree.get_area(local_idxs[idx])
