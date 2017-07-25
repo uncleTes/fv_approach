@@ -1976,18 +1976,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
         ksp.setInitialGuessNonzero(True)
         # View the matrix.
         #self._b_mat.view()
-        #if (PETSc.COMM_WORLD.getSize() == 1):
-        #    # File viewer name
-        #    fv_name = "./data/matrix_bin_1_core.dat"
-        #else:
-        #    fv_name = "./data/matrix_bin.dat"
+        if (PETSc.COMM_WORLD.getSize() == 1):
+            # File viewer name
+            fv_name = "./data/matrix_bin_1_core.dat"
+        else:
+            fv_name = "./data/matrix_bin.dat"
         # https://fenicsproject.org/qa/7811/export-petsc-matrix-and-vector-in-file
         # https://pythonhosted.org/petsc4py/apiref/petsc4py.PETSc.Viewer-class.html
         # New binary viewer:
-        #nv = PETSc.Viewer().createBinary(name = fv_name                    ,
-        #                                 mode = PETSc.Viewer().Mode().WRITE,
-        #                                 comm = PETSc.COMM_WORLD)
-        #self._b_mat.view(nv)
+        nv = PETSc.Viewer().createBinary(name = fv_name                    ,
+                                         mode = PETSc.Viewer().Mode().WRITE,
+                                         comm = PETSc.COMM_WORLD)
+        self._b_mat.view(nv)
         # Solve the system.
         ksp.solve(self._rhs,
                   self._sol)
@@ -2228,6 +2228,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         #       foreground (if there are too few octants in general, for example
         #       the case I am running with refs 3, 3, 3).
         l_l_edg = len(list_edg)
+        #print(l_l_edg)
         #print(list_edg)
         # Length key.
         l_k = list_edg[0][0].size
@@ -2306,6 +2307,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_oct_center  = get_center(local_idxs[idx]   ,
                                        ptr_octant = False,
                                        also_numpy_center = True)
+            #if (keys[idx][1] == 148):
+            #    print(list_edg[idx])
+            #    print(local_idxs[idx])
             h = octree.get_area(local_idxs[idx])
             # TODO: pass also \"h\" of the background octants to be sure of their
             #       dimension carachteristic in case more complicated (here is just
@@ -2327,6 +2331,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 n_cs_n_is = f_r_n((local_idxs[idx],
                                    oct_ring       ,
                                    t_centers_inv[idx]))
+                #if (keys[idx][1] == 148):
+                #    print(oct_ring)
+                #    print(local_idxs[idx])
+                #    print(n_cs_n_is)
+                #if (keys[idx][1] == 148):
+                #    print(n_cs_n_is)
                 rec_sols = solution(n_cs_n_is[0],
                                     c_alpha     ,
                                     c_beta      ,
@@ -2334,6 +2344,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     apply_mapping = True)
                 coeffs = b_c(n_cs_n_is[0],
                              t_centers_inv[idx])
+                #if (keys[idx][1] == 148):
+                #    print(coeffs)
                 rec_sol_0 = rec_sols[0] * coeffs[0]
                 rec_sol_1 = rec_sols[1] * coeffs[1]
                 rec_sol_2 = rec_sols[2] * coeffs[2]
@@ -2371,6 +2383,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (rec_ord == 2):
                     n_copy_coeffs = numpy.copy(coeffs * value_to_multiply)
                     c_coeffs = n_copy_coeffs.tolist()
+                    #if (keys[idx][1] == 148):
+                    #    print(stencils[idx])
+                    #    print(value_to_multiply)
+                    #    print(c_coeffs)
                     #nsolutions = solution(n_cs_n_is[0],
                     #                      c_alpha     ,
                     #                      c_beta      ,
@@ -3005,6 +3021,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         index = current_octant
         # Current mask index.
         c_m_index = self.mask_octant(index + start_octant)
+        #if (not grid):
+        #    if ((index + g_d) != (index + start_octant)):
+        #        print("g_d = " + str(index + g_d))
+        #        print("start = " + str(index + start_octant))
 
         neighs, ghosts = ([] for i in range(0, 2))
 
@@ -3044,6 +3064,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         by_octant = False
                         index = neighs[j]
                         m_index = mask_octant(index + start_octant)
+                        cov_index = index + start_octant
                         py_ghost_oct = index
                     else:
                         by_octant = True
@@ -3055,6 +3076,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         # tree previously found and stored in \"index\".
                         py_ghost_oct = get_ghost_octant(neighs[j])
                         m_index = mask_octant(index + g_d)
+                        cov_index = index + g_d
                     # TODO: problem here: \"m_octant\" = -1 will be added to the
                     #       matrix, but PETSc will not add any coefficients, be-
                     #       cause \"-1\" is an its special sign to say to not insert
@@ -3074,18 +3096,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                             d_c_n = t_d
                             centers.append(cell_center[: dimension])
                             indices.append(m_index)
-                            cov_indices.append(index)
+                            cov_indices.append(cov_index)
                         # Second neighbour case.
                         else:
                             if (t_d < d_c_n):
                                 d_c_n = t_d
                                 centers[-1] = cell_center[: dimension]
                                 indices[-1] = m_index
-                                cov_indices[-1] = index
+                                cov_indices[-1] = cov_index
                     else:
                         centers.append(cell_center[: dimension])
                         indices.append(m_index)
-                        cov_indices.append(index)
+                        cov_indices.append(cov_index)
             # ...we need to evaluate boundary values (background) or not to
             # consider the indices and centers found (foreground).
             else:
@@ -3124,6 +3146,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         cov_indices.append(current_octant + start_octant)
 
         numpy_centers = numpy.array(centers)
+        #if (grid):
+        #    if (current_octant== 188):
+        #        print(cov_indices)
 
         if (a_cov_indices):
             return (numpy_centers, indices, cov_indices)
@@ -3202,6 +3227,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         #    print(n_cs_n_is)
                         #print(n_cs_n_is)
                         #print(p_g_index)
+                        #print(n_cs_n_is[i][2])
                         n_polygon = self._g_p_o_f_g[p_g_index]
                         #print(n_cs_n_is)
                         #print("p_g_index " + str(p_g_index) + " n_polygon " + str(n_polygon))
@@ -3229,6 +3255,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         #       the function \"fill_mat_and_rhs\", this \"if\" is no
                         #       more useful.
                         if (stencil):
+                            #if (p_g_index == 148):
+                            #    #print(str(stencil) + " " + str(key))
+                            #    print(p_g_index)
                             for q in xrange(0, len(r_indices)):
                                 n_p_g_index = g_o_norms_inter[labels[q]]
                                 #print(n_p_g_index)
@@ -3249,8 +3278,83 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         #print(stencil[k + 1])
                                         stencil[k + 1] = stencil[k + 1] + value_to_store
                                         break
-                        if (p_g_index == 224):
-                            print(stencil)
+                        else:
+                            key = (n_polygon + 1, \
+                                   p_g_index    , \
+                                   0            , \
+                                   0            , \
+                                   0            , \
+                                   0            , \
+                                   0            , \
+                                   0            , \
+                                   0            , \
+                                   0            , \
+                                   0            , \
+                                   0            , \
+                                   1)
+                            stencil = self._edl.get(key)
+                            if (stencil):
+                                for q in xrange(0, len(r_indices)):
+                                    n_p_g_index = g_o_norms_inter[labels[q]]
+                                    #print(n_p_g_index)
+                                    displ = 1 + dimension
+                                    step = 2
+                                    l_stencil = 21 if (dimension == 2) else 31
+
+                                    mult = -1.0
+                                    if (labels[q]):
+                                     mult = 1.0
+
+                                    value_to_store = mult * coeffs_nodes[i][j]
+
+                                    for k in xrange(displ, l_stencil, step):
+                                        if (stencil[k] == n_p_g_index):
+                                            #print(stencil)
+                                            #print("bella")
+                                            #print(stencil[k + 1])
+                                            stencil[k + 1] = stencil[k + 1] + value_to_store
+                                            break
+                                        elif (stencil[k] == -1):
+                                            stencil[k] = n_p_g_index
+                                            stencil[k + 1] = stencil[k + 1] + value_to_store
+                                            break
+                                        else:
+                                            pass
+                            else:
+                                h = octree.get_area(inter        ,
+                                                    is_ptr = True,
+                                                    is_inter = True)
+                                l_stencil = 21 if (dimension == 2) else 31
+                                stencil = [0, -1] * (l_stencil/2)
+                                stencil.append(0)
+                                stencil[0] = h
+                                #print(n_cs_n_is)
+                                for cen_coord in xrange(dimension):
+                                    stencil[cen_coord + 1] = n_cs_n_is[i][0][j][cen_coord]
+                                displ = 1 + dimension
+                                step = 0
+                                for q in xrange(0, len(r_indices)):
+                                    n_p_g_index = g_o_norms_inter[labels[q]]
+
+                                    mult = -1.0
+                                    if (labels[q]):
+                                     mult = 1.0
+
+                                    value_to_store = mult * coeffs_nodes[i][j]
+                                    stencil[displ + step] = n_p_g_index
+                                    stencil[displ + step + 1] = stencil[displ+step+1] + value_to_store
+                                    #print(value_to_store)
+                                    #print(stencil)
+                                    step = 2
+                                #print("prima " + str(self._edl))
+                                self._edl.update({key : stencil})
+                                #print("dopo " + str(self._edl))
+                                #print(stencil)
+                                #if (p_g_index == 148):
+                                #    print(self._edl)
+                                #    print(self._comm_w.Get_rank())
+                        #if (p_g_index == 224):
+                        #    print(stencil)
 
         # Columns indices for the \"PETSc\" matrix.
         c_indices = []
