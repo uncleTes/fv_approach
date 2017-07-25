@@ -45,6 +45,6 @@ if __name__ == '__main__':
             colidx = J[start : end]
             values = V[start : end]
             # formatted values
-            f_values = ["%.12e" % value for value in values]
+            f_values = ["%.10e" % value for value in values]
             str_to_print = 'row %d:' % i + str(zip(colidx, f_values))
             ascii_file.write("%s\n" % str_to_print)
