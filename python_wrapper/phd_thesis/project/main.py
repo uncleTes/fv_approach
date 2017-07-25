@@ -564,16 +564,16 @@ def compute(comm_dictionary     ,
          "_f_internal_nodes.txt"))
 
     if (n_grids > 1):
-        if (proc_grid):
-            n_norm_inf, \
-            n_norm_L2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
-                                                 laplacian.f_exact_on_bord   ,
-                                                 laplacian.h_s_inter_on_board,
-                                                 l2 = False                  ,
-                                                 r_n_d = True)
-            w_n((n_norm_inf,
-                 n_norm_L2 ,
-                 "_f_borders.txt"))
+        #if (proc_grid):
+        n_norm_inf, \
+        n_norm_L2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
+                                             laplacian.f_exact_on_bord   ,
+                                             laplacian.h_s_inter_on_board,
+                                             l2 = False                  ,
+                                             r_n_d = True)
+        w_n((n_norm_inf,
+             n_norm_L2 ,
+             "_f_borders.txt"))
 
     interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
