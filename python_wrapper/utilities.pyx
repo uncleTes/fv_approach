@@ -734,7 +734,7 @@ def get_points_local_ring(numpy.ndarray[dtype = numpy.float64_t, \
     cdef double y_c = oct_center[1]
     cdef double d_x = (x_p - x_c)
     cdef double d_y = (y_p - y_c)
-    cdef double tol = 1.0e-15
+    cdef double tol = 1.0e-12
     cdef numpy.ndarray[dtype = numpy.uint8_t, mode = "c", ndim = 1] l_ring = \
          numpy.zeros((3, ), dtype = numpy.uint8)
 
