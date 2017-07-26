@@ -478,6 +478,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
         else:
             m_g_octant = self._ngn[g_octant]
 
+        #if (m_g_octant == 4613):
+        #    print(g_octant)
         return m_g_octant
     # --------------------------------------------------------------------------
 
@@ -1971,6 +1973,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
     #from memory_profiler import profile
     #@profile(stream=mem_fp)
     def solve(self):
+        #print(self._masked_oct_bg_g)
         """Method which solves the system."""
         # Creating a "KSP" object.
         ksp = PETSc.KSP()
@@ -2323,7 +2326,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             n_oct_center  = get_center(local_idxs[idx]   ,
                                        ptr_octant = False,
                                        also_numpy_center = True)
-            #if (keys[idx][1] == 200):
+            #if (keys[idx][1] == 639):
             #    print(list_edg[idx])
             #    print(local_idxs[idx])
             h = octree.get_area(local_idxs[idx])
@@ -3239,7 +3242,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         #value_to_store = value_to_store + (coeffs_nodes[i][j] * mult)
                         #coeffs_nodes[i][j] = 0.0
                         p_g_index = n_cs_n_is[i][2][j]
-                        #if (p_g_index == 224):
+                        #if (p_g_index == 639):
+                        #    print(coeffs_nodes[i][j])
                         #    print(n_cs_n_is)
                         #print(n_cs_n_is)
                         #print(p_g_index)
@@ -3289,10 +3293,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                                 for k in xrange(displ, l_stencil, step):
                                     if (stencil[k] == n_p_g_index):
+                                        #if (p_g_index == 639):
+                                        #    if (n_p_g_index == 725):
+                                        #        print("prima = " + str(stencil))
+                                        #        print("value = " + str(value_to_store))
                                         #print(stencil)
                                         #print("bella")
                                         #print(stencil[k + 1])
                                         stencil[k + 1] = stencil[k + 1] + value_to_store
+                                        #if (p_g_index == 639):
+                                        #    if (n_p_g_index == 725):
+                                        #        print("dopo = " + str(stencil))
                                         break
                         else:
                             key = (n_polygon + 1, \
@@ -3322,13 +3333,23 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      mult = 1.0
 
                                     value_to_store = mult * coeffs_nodes[i][j]
+                                    #if (p_g_index == 639):
+                                    #    if (n_p_g_index == 725):
+                                    #        print(value_to_store)
 
                                     for k in xrange(displ, l_stencil, step):
                                         if (stencil[k] == n_p_g_index):
+                                            #if (p_g_index == 639):
+                                            #    if (n_p_g_index == 725):
+                                            #        print("prima = " + str(stencil))
+                                            #        print("value = " + str(value_to_store))
                                             #print(stencil)
                                             #print("bella")
                                             #print(stencil[k + 1])
                                             stencil[k + 1] = stencil[k + 1] + value_to_store
+                                            #if (p_g_index == 639):
+                                            #    if (n_p_g_index == 725):
+                                            #        print("dopo = " + str(stencil))
                                             break
                                         elif (stencil[k] == -1):
                                             stencil[k] = n_p_g_index
@@ -3336,6 +3357,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             break
                                         else:
                                             pass
+                                        #if (p_g_index == 639):
+                                        #    if (n_p_g_index == 725):
+                                        #        print(stencil[k+1])
+                                        #        print(stencil)
                             else:
                                 h = octree.get_area(inter        ,
                                                     is_ptr = True,
@@ -3357,6 +3382,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      mult = 1.0
 
                                     value_to_store = mult * coeffs_nodes[i][j]
+                                    #if (p_g_index == 639):
+                                    #    if (n_p_g_index == 725):
+                                    #        print(value_to_store)
                                     stencil[displ + step] = n_p_g_index
                                     stencil[displ + step + 1] = stencil[displ+step+1] + value_to_store
                                     #print(value_to_store)
@@ -3628,6 +3656,33 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         if (stencil[k] == n_p_g_index):
                             stencil[k + 1] = stencil[k + 1] + value_to_store
                             break
+                else:
+                    key = (n_polygon + 1, \
+                           p_g_index    , \
+                           0            , \
+                           0            , \
+                           0            , \
+                           0            , \
+                           0            , \
+                           0            , \
+                           0            , \
+                           0            , \
+                           0            , \
+                           0            , \
+                           1)
+
+                    stencil = self._edl.get(key)
+                    displ = 1 + dimension
+                    step = 2
+                    l_stencil = 21 if (dimension == 2) else 31
+                    if (stencil):
+                        for k in xrange(displ, l_stencil, step):
+                            if (stencil[k] == n_p_g_index):
+                                stencil[k + 1] = stencil[k + 1] + value_to_store
+                                break
+                    #if (p_g_index == 639):
+                    #    if (n_p_g_index == 725):
+                    #        print("brlla")
             # We are on a boundary intersection; here normal is always
             # directed outside, so the owner is the one with the outer
             # normal.
