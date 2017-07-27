@@ -17,7 +17,8 @@ END=6
 for ((i=START; i<=END; i++));
 do
 #    mpi1run python project/main.py
-    mpi2run python project/main.py
+#    mpi2run python project/main.py
+    mpi4run python project/main.py
     if (( i < END ));
     then
         sed -i "35s/$var1, $var2/$((var1+incr)), $((var2+incr))/" ./config/PABLO.ini
