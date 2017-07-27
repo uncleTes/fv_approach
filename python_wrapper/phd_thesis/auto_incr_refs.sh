@@ -8,11 +8,11 @@ alias mpi4run='/usr/local/lib/openmpi-2.1.1/bin/mpirun -n 4'
 alias mpi6run='/usr/local/lib/openmpi-2.1.1/bin/mpirun -n 6'
 alias mpi8run='/usr/local/lib/openmpi-2.1.1/bin/mpirun -n 8'
 
-var1=4
-var2=5
+var1=3
+var2=4
 incr=1
 START=1
-END=6
+END=7
 
 for ((i=START; i<=END; i++));
 do
