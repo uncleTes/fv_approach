@@ -376,6 +376,7 @@ def is_point_on_lines(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] point    
 def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
               numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha   ,
               numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta    ,
+              double time = 1.0                                        ,
               int dim = 2                                              ,
               bool apply_mapping = True):
     cdef int n_points = l_points.shape[0]
@@ -420,6 +421,7 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
 def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
                   numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha   ,
                   numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta    ,
+                  double time = 1.0                                        ,
                   int dim = 2                                              ,
                   bool apply_mapping = True):
     cdef int n_points = l_points.shape[0]
