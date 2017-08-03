@@ -59,6 +59,8 @@ class BaseClass2D(object):
                                               self.logger,
                                               type = "local")
         self._dim = kwargs["dimension"]
+        self._d_t = kwargs["d_t"]
+        self._t_steps = kwargs["t_steps"]
 
         initialized = True
         try:

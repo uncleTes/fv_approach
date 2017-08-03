@@ -1983,8 +1983,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     #@profile(stream=mem_fp)
     def solve(self):
         #print(self._masked_oct_bg_g)
-        d_t = 1.0
-        t_steps = 1
+        d_t = self._d_t
+        t_steps = self._t_steps
         self._b_mat.scale(d_t)
         n_ones = len(self._centers_not_penalized)
         #n_identity = numpy.ones(n_ones)
