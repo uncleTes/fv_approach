@@ -527,7 +527,9 @@ def compute(comm_dictionary     ,
     laplacian.update_values(intercomm_dictionary)
     #laplacian.mat.view()
     #laplacian.rhs.view()
-    laplacian.solve()
+    laplacian.solve(n_p_cs,
+                    h_s2  ,
+                    a_dets)
 
     comm_l = comm_dictionary["communicator"]
 

@@ -1981,12 +1981,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
     #mem_fp=open(mem_log_file,'w+')
     #from memory_profiler import profile
     #@profile(stream=mem_fp)
-    def solve(self):
+    def solve(self  ,
+              n_p_cs,
+              h_s2  ,
+              a_dets):
         #print(self._masked_oct_bg_g)
         d_t = self._d_t
         t_steps = self._t_steps
         self._b_mat.scale(d_t)
         n_ones = len(self._centers_not_penalized)
+        grid = self._proc_g
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
         #n_identity = numpy.ones(n_ones)
         n_identity = numpy.zeros(n_ones)
         petsc_identity = self.init_array("identity",
@@ -2031,6 +2037,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         #self._b_mat.view(nv)
         # Solve the system.
         for i in xrange(0, t_steps):
+            if (i >= 1):
+                self.init_rhs()
+                e_2nd_der = utilities.exact_2nd_der(n_p_cs,
+                                                    alpha ,
+                                                    beta  ,
+                                                    d_t)
+                self.add_rhs(e_2nd_der * h_s2 * a_dets)
             self.add_rhs(self._sol.getArray(),
                          d_t                 ,
                          do_axpy = False)
