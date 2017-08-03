@@ -1789,12 +1789,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
     def add_rhs(self       ,
                 numpy_array,
-                alpha = 1.0):
+                alpha = 1.0,
+                do_axpy = True):
         self.add_array(self._rhs        ,
                        numpy_array      ,
+                       alpha            ,
                        "right hand side",
                        True             ,
-                       alpha)
+                       do_axpy)
         msg = "Added array to \"rhs\""
         self.log_msg(msg,
                      "info")
@@ -1802,9 +1804,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def add_array(self             ,
                   vec              ,
                   array_to_add     ,
+                  alpha = 1.0      ,
                   a_name = ""      ,
                   petsc_size = True,
-                  alpha = 1.0):
+                  do_axpy = True):
         if (not petsc_size):
             n_oct = self._n_oct
             tot_oct = self._tot_oct
@@ -1817,7 +1820,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
             t_petsc = PETSc.Vec().createWithArray(array_to_add,
                                                   size = sizes,
                                                   comm = self._comm_w)
-            vec.axpy(alpha, t_petsc)
+            if (do_axpy):
+                vec.axpy(alpha, t_petsc)
+            else:
+                vec.aypx(alpha, t_petsc)
         except AssertionError:
             msg = "\"MPI Abort\" called during array's initialization"
             extra_msg = "Parameter \"array\" not an instance of " + \
@@ -1977,9 +1983,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
     #@profile(stream=mem_fp)
     def solve(self):
         #print(self._masked_oct_bg_g)
-        d_t = -1.0
+        d_t = 1.0
         t_steps = 1
-        self._b_mat.scale(-1.0 * d_t)
+        self._b_mat.scale(d_t)
         n_ones = len(self._centers_not_penalized)
         #n_identity = numpy.ones(n_ones)
         n_identity = numpy.zeros(n_ones)
@@ -2025,8 +2031,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         #self._b_mat.view(nv)
         # Solve the system.
         for i in xrange(0, t_steps):
-            self._rhs.aypx(-1.0 * d_t, self._sol)
-            #self.add_rhs(self._sol.getArray())
+            self.add_rhs(self._sol.getArray(),
+                         d_t                 ,
+                         do_axpy = False)
             print("before = " + str(self._sol.getArray()))
             ksp.solve(self._rhs,
                       self._sol)
