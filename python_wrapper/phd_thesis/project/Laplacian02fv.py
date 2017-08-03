@@ -1974,6 +1974,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
     #@profile(stream=mem_fp)
     def solve(self):
         #print(self._masked_oct_bg_g)
+        d_t = -1.0
+        t_steps = 1
+        self._b_mat.scale(-1.0 * d_t)
+        n_ones = len(self._centers_not_penalized)
+        #n_identity = numpy.ones(n_ones)
+        n_identity = numpy.zeros(n_ones)
+        petsc_identity = self.init_array("identity",
+                                         True      ,
+                                         n_identity)
+        insert_mode = PETSc.InsertMode.ADD_VALUES
+        self._b_mat.setDiagonal(petsc_identity,
+                                insert_mode)
+
         """Method which solves the system."""
         # Creating a "KSP" object.
         ksp = PETSc.KSP()
@@ -2008,11 +2021,16 @@ class Laplacian(BaseClass2D.BaseClass2D):
         #                                 comm = PETSc.COMM_WORLD)
         #self._b_mat.view(nv)
         # Solve the system.
-        ksp.solve(self._rhs,
-                  self._sol)
-        # How many iterations are done.
-        it_number = ksp.getIterationNumber()
-        print(ksp.getConvergedReason())
+        for i in xrange(0, t_steps):
+            self._rhs.aypx(-1.0 * d_t, self._sol)
+            #self.add_rhs(self._sol.getArray())
+            print("before = " + str(self._sol.getArray()))
+            ksp.solve(self._rhs,
+                      self._sol)
+            print("after = " + str(self._sol.getArray()))
+            # How many iterations are done.
+            it_number = ksp.getIterationNumber()
+            print(ksp.getConvergedReason())
 
         msg = "Evaluated solution"
         extra_msg = "Using \"" + str(it_number) + "\" iterations."
