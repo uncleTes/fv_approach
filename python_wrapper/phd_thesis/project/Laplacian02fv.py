@@ -1787,12 +1787,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
         return res_arr
     # --------------------------------------------------------------------------
 
-    def add_rhs(self,
-                numpy_array):
+    def add_rhs(self       ,
+                numpy_array,
+                alpha = 1.0):
         self.add_array(self._rhs        ,
                        numpy_array      ,
                        "right hand side",
-                       True)
+                       True             ,
+                       alpha)
         msg = "Added array to \"rhs\""
         self.log_msg(msg,
                      "info")
@@ -1801,7 +1803,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                   vec              ,
                   array_to_add     ,
                   a_name = ""      ,
-                  petsc_size = True):
+                  petsc_size = True,
+                  alpha = 1.0):
         if (not petsc_size):
             n_oct = self._n_oct
             tot_oct = self._tot_oct
@@ -1814,7 +1817,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
             t_petsc = PETSc.Vec().createWithArray(array_to_add,
                                                   size = sizes,
                                                   comm = self._comm_w)
-            vec.axpy(1.0, t_petsc)
+            vec.axpy(alpha, t_petsc)
         except AssertionError:
             msg = "\"MPI Abort\" called during array's initialization"
             extra_msg = "Parameter \"array\" not an instance of " + \
