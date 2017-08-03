@@ -2034,10 +2034,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
             self.add_rhs(self._sol.getArray(),
                          d_t                 ,
                          do_axpy = False)
-            print("before = " + str(self._sol.getArray()))
             ksp.solve(self._rhs,
                       self._sol)
-            print("after = " + str(self._sol.getArray()))
+            #self._sol.view()
             # How many iterations are done.
             it_number = ksp.getIterationNumber()
             print(ksp.getConvergedReason())
