@@ -18,12 +18,12 @@ import time
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
-class Laplacian(BaseClass2D.BaseClass2D):
-    """Class which evaluates the laplacian onto a grid.
+class HeatEquation(BaseClass2D.BaseClass2D):
+    """Class which evaluates the heat equation onto a grid.
 
     Attributes:
         _comm (MPI.Intracomm) : intracommunicator which identify the
-                                process where evaluate the laplacian.
+                                process where evaluate the heat equation.
         _octree (class_para_tree.Py_Class_Para_Tree_D2) : PABLO's ParaTree.
         _comm_w (MPI.Intracomm) : global intracommunicator.
         _over_l (boolean) : flag inndicating if we are in an overlapped or
@@ -49,7 +49,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # --------------------------------------------------------------------------
     def __init__(self,
                  kwargs = {}):
-        """Initialization method for the \"Laplacian\" class.
+        """Initialization method for the \"HeatEquation\" class.
 
         Arguments:
             kwargs (dictionary) : it must contains the following keys (in
@@ -63,7 +63,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                  \"f_bound\" or \"b_bound\" are \"None\"."""
 
         # http://stackoverflow.com/questions/19205916/how-to-call-base-classs-init-method-from-the-child-class
-        super(Laplacian, self).__init__(kwargs)
+        super(HeatEquation, self).__init__(kwargs)
         # If some arguments are not presents, function \"setdefault\" will set
         # them to the default value.
         # \"[[x_anchor, x_anchor + edge,
