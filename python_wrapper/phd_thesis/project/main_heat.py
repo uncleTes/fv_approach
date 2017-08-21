@@ -3,7 +3,7 @@
 import ConfigParser
 import copy
 import ExactSolution2D as ExactSolution2D
-import Laplacian02fv as Laplacian
+import HeatEquation as HeatEquation
 from   mpi4py import MPI
 import my_class_vtk
 import my_pablo_uniform
@@ -28,7 +28,7 @@ class ParsingFileException(Exception):
 # ------------------------------------------------------------------------------
 
 config_file = "./config/PABLO.ini"
-log_file = "./log/Laplacian.log"
+log_file = "./log/HeatEquation.log"
 # Initialize the parser for the configuration file and read it.
 config = ConfigParser.ConfigParser()
 files_list = config.read(config_file)
@@ -159,7 +159,7 @@ def set_comm_dict(n_grids  ,
                   octs_f_g):
     """Method which set a dictionary (\"comm_dictionary\") which is necessary 
        for the parallelized classes like \"ExactSolution2D\" or 
-       \"Laplacian\".
+       \"HeatEquation\".
        
        Arguments:
            n_grids (int) : number of grids present in the config file.
@@ -461,7 +461,7 @@ def compute(comm_dictionary     ,
             proc_grid           ,
             centers             ,
             logger):
-    """Method which compute all the calculation for the laplacian, exact 
+    """Method which compute all the calculation for the heat equation, exact
        solution and residuals.
 
        Arguments:
@@ -479,7 +479,7 @@ def compute(comm_dictionary     ,
            data_to_save (numpy.array) : array containings the data to be saved
                                         subsequently into the \"VTK\" file."""
 
-    laplacian = Laplacian.Laplacian(comm_dictionary)
+    heat_eq = HeatEquation.HeatEquation(comm_dictionary)
 
     t_coeffs = numpy.array(None)
     t_coeffs_adj = numpy.array(None)
@@ -492,13 +492,13 @@ def compute(comm_dictionary     ,
     alpha = trans_dictionary[proc_grid][1]
     beta = trans_dictionary[proc_grid][2]
     t_coeffs_adj = trans_adj_dictionary[proc_grid]
-    laplacian.init_trans_dict(trans_dictionary)
-    laplacian.init_trans_adj_dict(trans_adj_dictionary)
+    heat_eq.init_trans_dict(trans_dictionary)
+    heat_eq.init_trans_adj_dict(trans_adj_dictionary)
     d_nnz, \
     o_nnz, \
-    h_s = laplacian.create_mask()
+    h_s = heat_eq.create_mask()
     # Not penalized centers.
-    n_p_cs = numpy.array(laplacian.not_pen_centers)
+    n_p_cs = numpy.array(heat_eq.not_pen_centers)
     # TODO: change implementation of \"exact_sol\" and \"exact_2nd_der\" to
     #       do not copy anymore into the inner \numpy\" array of zeros, but to
     #       pass directly the values evaluated.
@@ -506,24 +506,24 @@ def compute(comm_dictionary     ,
                                 alpha ,
                                 beta)
     # Initial guess equal to exact solution.
-    #laplacian.init_sol(e_sol)
-    laplacian.init_sol()
+    #heat_eq.init_sol(e_sol)
+    heat_eq.init_sol()
     e_2nd_der = utilities.exact_2nd_der(n_p_cs,
                                         alpha ,
                                         beta)
-    laplacian.init_rhs()
-    laplacian.init_mat((d_nnz, o_nnz))
-    laplacian.fill_mat_and_rhs()
+    heat_eq.init_rhs()
+    heat_eq.init_mat((d_nnz, o_nnz))
+    heat_eq.fill_mat_and_rhs()
     # \"Numpy\" determinants.
     dets = numpy.linalg.det(utilities.jacobians_bil_mapping(n_p_cs, alpha, beta))
     # Absolute values \"numpy\" determinants.
     a_dets = numpy.absolute(dets)
     h_s2 = numpy.power(h_s, 2)
-    laplacian.add_rhs(e_2nd_der * h_s2 * a_dets)
-    laplacian.update_values(intercomm_dictionary)
-    #laplacian.mat.view()
-    #laplacian.rhs.view()
-    laplacian.solve()
+    heat_eq.add_rhs(e_2nd_der * h_s2 * a_dets)
+    heat_eq.update_values(intercomm_dictionary)
+    #heat_eq.mat.view()
+    #heat_eq.rhs.view()
+    heat_eq.solve()
 
     comm_l = comm_dictionary["communicator"]
 
@@ -534,31 +534,31 @@ def compute(comm_dictionary     ,
                                  x[2])
 
     n_norm_inf, \
-    n_norm_L2 = laplacian.evaluate_norms(e_sol                   ,
-                                         laplacian.sol.getArray(),
-                                         h_s                     ,
-                                         l2 = False              ,
-                                         r_n_d = True)
+    n_norm_L2 = heat_eq.evaluate_norms(e_sol                 ,
+                                       heat_eq.sol.getArray(),
+                                       h_s                   ,
+                                       l2 = False            ,
+                                       r_n_d = True)
     w_n((n_norm_inf,
          n_norm_L2 ,
          "_errors.txt"))
 
     n_norm_inf, \
-    n_norm_L2 = laplacian.evaluate_residual_norms(e_sol                   ,
-                                                  h_s                     ,
-                                                  petsc_size = True       ,
-                                                  l2 = False              ,
+    n_norm_L2 = heat_eq.evaluate_residual_norms(e_sol              ,
+                                                  h_s              ,
+                                                  petsc_size = True,
+                                                  l2 = False       ,
                                                   r_n_d = True)
     w_n((n_norm_inf,
          n_norm_L2 ,
          "_residuals.txt"))
 
     n_norm_inf, \
-    n_norm_L2 = laplacian.evaluate_norms(laplacian.f_nodes      ,
-                                         laplacian.f_nodes_exact,
-                                         laplacian.h_s_inter    ,
-                                         l2 = False             ,
-                                         r_n_d = True)
+    n_norm_L2 = heat_eq.evaluate_norms(heat_eq.f_nodes      ,
+                                       heat_eq.f_nodes_exact,
+                                       heat_eq.h_s_inter    ,
+                                       l2 = False           ,
+                                       r_n_d = True)
     w_n((n_norm_inf,
          n_norm_L2 ,
          "_f_internal_nodes.txt"))
@@ -566,21 +566,21 @@ def compute(comm_dictionary     ,
     if (n_grids > 1):
         #if (proc_grid):
         n_norm_inf, \
-        n_norm_L2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
-                                             laplacian.f_exact_on_bord   ,
-                                             laplacian.h_s_inter_on_board,
-                                             l2 = False                  ,
-                                             r_n_d = True)
+        n_norm_L2 = heat_eq.evaluate_norms(heat_eq.f_on_bord         ,
+                                           heat_eq.f_exact_on_bord   ,
+                                           heat_eq.h_s_inter_on_board,
+                                           l2 = False                ,
+                                           r_n_d = True)
         w_n((n_norm_inf,
              n_norm_L2 ,
              "_f_borders.txt"))
 
-    interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
+    interpolate_sol = heat_eq.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
                                 alpha  ,
                                 beta)
-    interpolate_res = laplacian.reset_partially_array(array_to_reset = "res")
-    #print(laplacian.residual.getArray().shape)
+    interpolate_res = heat_eq.reset_partially_array(array_to_reset = "res")
+    #print(heat_eq.residual.getArray().shape)
     data_to_save = numpy.array([e_sol                     ,
                                 interpolate_sol.getArray(),
                                 interpolate_res.getArray()])
@@ -727,13 +727,13 @@ def main():
                                         alpha    ,
                                         beta)
 
-    vtk = my_class_vtk.Py_My_Class_VTK(data_to_save            ,  # Data
-                                       pablo                   ,  # Octree
-                                       "./data/"               ,  # Dir
-                                       "laplacian_" + comm_name,  # Name
-                                       "ascii"                 ,  # Type
-                                       n_octs[0]               ,  # Ncells
-                                       n_nodes                 ,  # Nnodes
+    vtk = my_class_vtk.Py_My_Class_VTK(data_to_save          ,  # Data
+                                       pablo                 ,  # Octree
+                                       "./data/"             ,  # Dir
+                                       "heat_eq_" + comm_name,  # Name
+                                       "ascii"               ,  # Type
+                                       n_octs[0]             ,  # Ncells
+                                       n_nodes               ,  # Nnodes
                                        (2**dimension) * n_octs[0])# (Nnodes *
                                                                   #  pow(2,dim))
     #vtk.apply_trans(geo_nodes, ghost_geo_nodes) 
