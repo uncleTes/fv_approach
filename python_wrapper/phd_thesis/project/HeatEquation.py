@@ -1976,6 +1976,15 @@ class HeatEquation(BaseClass2D.BaseClass2D):
         #print(self._masked_oct_bg_g)
         d_t = self._d_t
         t_steps = self._t_steps
+        self._b_mat.scale(-1.0 * d_t)
+        n_ones = len(self._centers_not_penalized)
+        n_identity = numpy.ones(n_ones)
+        petsc_identity = self.init_array("identity",
+                                         True      ,
+                                         n_identity)
+        insert_mode = PETSc.InsertMode.ADD_VALUES
+        self._b_mat.setDiagonal(petsc_identity,
+                                insert_mode)
         """Method which solves the system."""
         # Creating a "KSP" object.
         ksp = PETSc.KSP()
@@ -1994,7 +2003,7 @@ class HeatEquation(BaseClass2D.BaseClass2D):
                           max_it = PETSc.DEFAULT) # Let's PETSc use DEAFULT
         ksp.setType("gmres")
         ksp.setFromOptions()
-        ksp.setInitialGuessNonzero(True)
+        ksp.setInitialGuessNonzero(False)
         # View the matrix.
         #self._b_mat.view()
         #if (PETSc.COMM_WORLD.getSize() == 1):
@@ -2012,9 +2021,10 @@ class HeatEquation(BaseClass2D.BaseClass2D):
         # Solve the system.
         ksp.solve(self._rhs,
                   self._sol)
+        self.add_rhs(self._sol.getArray())
         # How many iterations are done.
         it_number = ksp.getIterationNumber()
-        print(ksp.getConvergedReason())
+        #print(ksp.getConvergedReason())
 
         msg = "Evaluated solution"
         extra_msg = "Using \"" + str(it_number) + "\" iterations."

@@ -514,11 +514,11 @@ def compute(comm_dictionary     ,
         sol_initializer = numpy.ones(n_p_cs.shape[0])
     # Initial guess equal to exact solution.
     #heat_eq.init_sol(e_sol)
-    heat_eq.init_sol(sol_initializer)
+    heat_eq.init_sol()
     #e_2nd_der = utilities.exact_2nd_der(n_p_cs,
     #                                    alpha ,
     #                                    beta)
-    heat_eq.init_rhs()
+    heat_eq.init_rhs(sol_initializer)
     heat_eq.init_mat((d_nnz, o_nnz))
     heat_eq.fill_mat_and_rhs()
     # \"Numpy\" determinants.
