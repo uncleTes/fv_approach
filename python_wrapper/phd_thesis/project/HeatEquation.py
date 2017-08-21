@@ -1972,7 +1972,8 @@ class HeatEquation(BaseClass2D.BaseClass2D):
     #mem_fp=open(mem_log_file,'w+')
     #from memory_profiler import profile
     #@profile(stream=mem_fp)
-    def solve(self):
+
+    def pre_solve(self):
         #print(self._masked_oct_bg_g)
         d_t = self._d_t
         t_steps = self._t_steps
@@ -1987,23 +1988,23 @@ class HeatEquation(BaseClass2D.BaseClass2D):
                                 insert_mode)
         """Method which solves the system."""
         # Creating a "KSP" object.
-        ksp = PETSc.KSP()
+        self._ksp = PETSc.KSP()
         pc = PETSc.PC()
-        ksp.create(self._comm_w)
-        ksp.setOperators(self._b_mat,
-                         None)
+        self._ksp.create(self._comm_w)
+        self._ksp.setOperators(self._b_mat,
+                               None)
 
         # Setting tolerances.
 	# 1.0e-06 with level 9,9 is still ok for convergence
         #tol = 1.0e-06
         tol = 1.0e-09
-        ksp.setTolerances(rtol = tol            ,
-                          atol = tol            ,
-                          divtol = PETSc.DEFAULT, # Let's PETSc use DEAFULT
-                          max_it = PETSc.DEFAULT) # Let's PETSc use DEAFULT
-        ksp.setType("gmres")
-        ksp.setFromOptions()
-        ksp.setInitialGuessNonzero(False)
+        self._ksp.setTolerances(rtol = tol            ,
+                                atol = tol            ,
+                                divtol = PETSc.DEFAULT, # Let's PETSc use DEAFULT
+                                max_it = PETSc.DEFAULT) # Let's PETSc use DEAFULT
+        self._ksp.setType("gmres")
+        self._ksp.setFromOptions()
+        self._ksp.setInitialGuessNonzero(False)
         # View the matrix.
         #self._b_mat.view()
         #if (PETSc.COMM_WORLD.getSize() == 1):
@@ -2018,13 +2019,15 @@ class HeatEquation(BaseClass2D.BaseClass2D):
         #                                 mode = PETSc.Viewer().Mode().WRITE,
         #                                 comm = PETSc.COMM_WORLD)
         #self._b_mat.view(nv)
+
+    def solve(self):
         # Solve the system.
-        ksp.solve(self._rhs,
-                  self._sol)
+        self._ksp.solve(self._rhs,
+                        self._sol)
         self.add_rhs(self._sol.getArray())
         # How many iterations are done.
-        it_number = ksp.getIterationNumber()
-        #print(ksp.getConvergedReason())
+        it_number = self._ksp.getIterationNumber()
+        print(self._ksp.getConvergedReason())
 
         msg = "Evaluated solution"
         extra_msg = "Using \"" + str(it_number) + "\" iterations."
