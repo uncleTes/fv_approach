@@ -72,6 +72,8 @@ try:
                                                             "Refinements"), 
                                                  ",")
     dimension = config.getint("PROBLEM", "Dimension")
+    t_steps = config.getint("TIME", "TimeSteps")
+    d_t = config.getfloat("TIME", "DeltaT")
 
     assert (len(anchors) == n_grids)
     assert (len(edges) == n_grids)
@@ -215,6 +217,8 @@ def set_comm_dict(n_grids  ,
                             foreground_boundaries})
     comm_dictionary.update({"process grid" : proc_grid})
     comm_dictionary.update({"dimension" : dimension})
+    comm_dictionary.update({"d_t" : d_t})
+    comm_dictionary.update({"t_steps" : t_steps})
     comm_dictionary.update({"to log" : to_log})
     comm_dictionary.update({"log file" : log_file})
     comm_dictionary.update({"transformed points" : t_points})

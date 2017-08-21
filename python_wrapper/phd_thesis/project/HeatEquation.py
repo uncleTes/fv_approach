@@ -1974,6 +1974,8 @@ class HeatEquation(BaseClass2D.BaseClass2D):
     #@profile(stream=mem_fp)
     def solve(self):
         #print(self._masked_oct_bg_g)
+        d_t = self._d_t
+        t_steps = self._t_steps
         """Method which solves the system."""
         # Creating a "KSP" object.
         ksp = PETSc.KSP()
