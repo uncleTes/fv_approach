@@ -28,6 +28,12 @@ if [ "$EXECUTE_DIR_PATH" == "$CURRENT_DIR_PATH" ]; then
             rm -v ./data/*.vtu
         fi
 
+        count=`ls -1 ./data/*.vtm 2>/dev/null | wc -l`
+
+        if [ $count != 0 ]; then
+            rm -v ./data/*.vtm
+        fi
+
         count=`ls -1 ./data/*.pvtu 2>/dev/null | wc -l`
 
         if [ $count != 0 ]; then 
@@ -46,8 +52,6 @@ if [ "$EXECUTE_DIR_PATH" == "$CURRENT_DIR_PATH" ]; then
             rm -v ./data/*.info
         fi 
 
-        [ -f ./data/multiple_PABLO.vtm ] && rm -v ./data/multiple_PABLO.vtm
-        
     fi
 
     SUB_DIR="./log"

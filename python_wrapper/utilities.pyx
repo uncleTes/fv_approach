@@ -142,9 +142,9 @@ def find_files_in_dir(extension,
                       directory):
     files_founded = []
 
-    for file in os.listdir(directory):
-        if file.endswith(extension):
-            files_founded.append(file)
+    for file_name in os.listdir(directory):
+        if extension in file_name:
+            files_founded.append(file_name)
 
     return files_founded
 

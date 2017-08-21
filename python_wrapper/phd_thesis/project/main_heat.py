@@ -758,7 +758,8 @@ def main():
                                            pablo                 ,  # Octree
                                            "./data/"             ,  # Dir
                                            "heat_eq_" + comm_name + \
-                                           "_step_" + str(t_step) , # Name
+                                           "_step_" + str(t_step) + \
+                                           "_"                   , # Name
                                            "ascii"               ,  # Type
                                            n_octs[0]             ,  # Ncells
                                            n_nodes               ,  # Nnodes
@@ -838,18 +839,20 @@ if __name__ == "__main__":
     comm_w.Barrier()
 
     if rank_w == 0:
-        file_name = "multiple_PABLO.vtm"
-        files_vtu = utilities.find_files_in_dir(".vtu", 
-                                                "./data/")
+        for t_step in xrange(0, t_steps):
+            str_step = "_step_" + str(t_step) + "_"
+            file_name = "multiple_PABLO" + str_step + ".vtm"
+            files_vtu = utilities.find_files_in_dir(str_step,
+                                                    "./data/")
     
-        info_dictionary = {}
-        info_dictionary.update({"vtu_files" : files_vtu})
-        info_dictionary.update({"pablo_file_names" : comm_names})
-        info_dictionary.update({"file_name" : file_name})
-	info_dictionary.update({"directory" : "./data"})
+            info_dictionary = {}
+            info_dictionary.update({"vtu_files" : files_vtu})
+            info_dictionary.update({"pablo_file_names" : comm_names})
+            info_dictionary.update({"file_name" : file_name})
+	    info_dictionary.update({"directory" : "./data"})
     
-        #write_vtk_multi_block_data_set(**info_dictionary)
-        utilities.write_vtk_multi_block_data_set(info_dictionary)
+            #write_vtk_multi_block_data_set(**info_dictionary)
+            utilities.write_vtk_multi_block_data_set(info_dictionary)
     
         t_end = time.time()
 
