@@ -460,33 +460,14 @@ def write_norms(n_norm_inf ,
         f_d.close()
 # ------------------------------------------------------------------------------
 
-def compute(comm_dictionary     ,
-            intercomm_dictionary,
-            proc_grid           ,
-            centers             ,
-            logger):
-    """Method which compute all the calculation for the heat equation, exact
-       solution and residuals.
-
-       Arguments:
-           comm_dictionary (dict) : dictionary containing useful data for each
-                                    intra-communicator and grid.
-           intercomm_dictionary (dict) : dictionary containing the 
-                                         intercommunicators created.
-           proc_grid (int) : grid of the current process.
-           centers (list[lists]) : list containing lists of the centers of the
-                                   quadtree contained in the current process.
-           logger (utilities.Logger) : logger needed to log the 
-                                       intercommunicators created.
-
-       Returns:
-           data_to_save (numpy.array) : array containings the data to be saved
-                                        subsequently into the \"VTK\" file."""
-
+def pre_compute(comm_dictionary     ,
+                intercomm_dictionary,
+                proc_grid           ,
+                centers             ,
+                logger):
     heat_eq = HeatEquation.HeatEquation(comm_dictionary)
 
     t_coeffs = numpy.array(None)
-    t_coeffs_adj = numpy.array(None)
     
     trans_dictionary, trans_adj_dictionary = set_trans_dicts(n_grids  ,
                                                              dimension,
@@ -495,7 +476,6 @@ def compute(comm_dictionary     ,
     t_coeffs = trans_dictionary[proc_grid][0]
     alpha = trans_dictionary[proc_grid][1]
     beta = trans_dictionary[proc_grid][2]
-    t_coeffs_adj = trans_adj_dictionary[proc_grid]
     heat_eq.init_trans_dict(trans_dictionary)
     heat_eq.init_trans_adj_dict(trans_adj_dictionary)
     d_nnz, \
@@ -530,6 +510,38 @@ def compute(comm_dictionary     ,
     heat_eq.update_values(intercomm_dictionary)
     #heat_eq.mat.view()
     #heat_eq.rhs.view()
+    heat_eq.pre_solve()
+
+    return (heat_eq, trans_dictionary, alpha, beta)
+
+def compute(heat_eq         ,
+            trans_dictionary,
+            comm_dictionary ,
+            proc_grid       ,
+            centers         ,
+            logger):
+    """Method which compute all the calculation for the heat equation, exact
+       solution and residuals.
+
+       Arguments:
+           comm_dictionary (dict) : dictionary containing useful data for each
+                                    intra-communicator and grid.
+           intercomm_dictionary (dict) : dictionary containing the
+                                         intercommunicators created.
+           proc_grid (int) : grid of the current process.
+           centers (list[lists]) : list containing lists of the centers of the
+                                   quadtree contained in the current process.
+           logger (utilities.Logger) : logger needed to log the
+                                       intercommunicators created.
+
+       Returns:
+           data_to_save (numpy.array) : array containings the data to be saved
+                                        subsequently into the \"VTK\" file."""
+
+    t_coeffs = trans_dictionary[proc_grid][0]
+    alpha = trans_dictionary[proc_grid][1]
+    beta = trans_dictionary[proc_grid][2]
+
     heat_eq.solve()
 
     comm_l = comm_dictionary["communicator"]
@@ -590,7 +602,7 @@ def compute(comm_dictionary     ,
     #print(heat_eq.residual.getArray().shape)
     data_to_save = numpy.array([interpolate_sol.getArray()])
 
-    return (data_to_save, t_coeffs, alpha, beta)
+    return (data_to_save, t_coeffs)
 # ------------------------------------------------------------------------------
 
 # -------------------------------------MAIN-------------------------------------
@@ -717,13 +729,14 @@ def main():
     # \"data_to_save\" = evaluated and exact solution;
     # \"trans_coeff\" = matrix containing perspective transformation's 
     # coefficients.
-    data_to_save, trans_coeff, alpha, beta = compute(comm_dictionary     ,
-                                                     intercomm_dictionary,
-                                                     proc_grid           ,
-                                                     centers             ,
-                                                     logger)
-    #print(data_to_save.shape)
-
+    heat_eq         , \
+    trans_dictionary, \
+    alpha           , \
+    beta = pre_compute(comm_dictionary     ,
+                       intercomm_dictionary,
+                       proc_grid           ,
+                       centers             ,
+                       logger)
     #(geo_nodes, ghost_geo_nodes) = pablo.apply_persp_trans(dimension  ,
     #                                                       trans_coeff, 
     #                                                       logger     , 
@@ -731,36 +744,46 @@ def main():
     geo_nodes = pablo.apply_persp_trans(dimension,
                                         alpha    ,
                                         beta)
+    for t_step in xrange(0, t_steps):
+        data_to_save, \
+        trans_coeff = compute(heat_eq             ,
+                              trans_dictionary    ,
+                              comm_dictionary     ,
+                              proc_grid           ,
+                              centers             ,
+                              logger)
+        #print(data_to_save.shape)
 
-    vtk = my_class_vtk.Py_My_Class_VTK(data_to_save          ,  # Data
-                                       pablo                 ,  # Octree
-                                       "./data/"             ,  # Dir
-                                       "heat_eq_" + comm_name,  # Name
-                                       "ascii"               ,  # Type
-                                       n_octs[0]             ,  # Ncells
-                                       n_nodes               ,  # Nnodes
-                                       (2**dimension) * n_octs[0])# (Nnodes *
-                                                                  #  pow(2,dim))
-    #vtk.apply_trans(geo_nodes, ghost_geo_nodes) 
-    vtk.apply_trans(geo_nodes) 
-    ## Add data to "vtk" object to be written later.
-    vtk.add_data("evaluated", # Data
-                 1          , # Data dim
-                 "Float64"  , # Data type
-                 "Cell"     , # Cell or Point
-                 "ascii")     # File type
-    #vtk.add_data("exact"  ,
-    #             1        ,
-    #             "Float64",
-    #             "Cell"   ,
-    #             "ascii")
-    #vtk.add_data("residual"  ,
-    #             1           ,
-    #             "Float64"   ,
-    #             "Cell"      ,
-    #             "ascii")
-    # Call parallelization and writing onto file.
-    vtk.print_vtk()
+        vtk = my_class_vtk.Py_My_Class_VTK(data_to_save          ,  # Data
+                                           pablo                 ,  # Octree
+                                           "./data/"             ,  # Dir
+                                           "heat_eq_" + comm_name + \
+                                           "_step_" + str(t_step) , # Name
+                                           "ascii"               ,  # Type
+                                           n_octs[0]             ,  # Ncells
+                                           n_nodes               ,  # Nnodes
+                                           (2**dimension) * n_octs[0])# (Nnodes *
+                                                                      #  pow(2,dim))
+        #vtk.apply_trans(geo_nodes, ghost_geo_nodes)
+        vtk.apply_trans(geo_nodes)
+        ## Add data to "vtk" object to be written later.
+        vtk.add_data("evaluated", # Data
+                     1          , # Data dim
+                     "Float64"  , # Data type
+                     "Cell"     , # Cell or Point
+                     "ascii")     # File type
+        #vtk.add_data("exact"  ,
+        #             1        ,
+        #             "Float64",
+        #             "Cell"   ,
+        #             "ascii")
+        #vtk.add_data("residual"  ,
+        #             1           ,
+        #             "Float64"   ,
+        #             "Cell"      ,
+        #             "ascii")
+        # Call parallelization and writing onto file.
+        vtk.print_vtk()
 
     msg = utilities.join_strings("Ended function for local comm \""  ,
                                  comm_l_n                            ,
