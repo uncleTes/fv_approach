@@ -506,24 +506,27 @@ def compute(comm_dictionary     ,
     # TODO: change implementation of \"exact_sol\" and \"exact_2nd_der\" to
     #       do not copy anymore into the inner \numpy\" array of zeros, but to
     #       pass directly the values evaluated.
-    e_sol = utilities.exact_sol(n_p_cs,
-                                alpha ,
-                                beta)
+    #e_sol = utilities.exact_sol(n_p_cs,
+    #                            alpha ,
+    #                            beta)
+    sol_initializer = numpy.zeros(n_p_cs.shape[0])
+    if (proc_grid):
+        sol_initializer = numpy.ones(n_p_cs.shape[0])
     # Initial guess equal to exact solution.
     #heat_eq.init_sol(e_sol)
-    heat_eq.init_sol()
-    e_2nd_der = utilities.exact_2nd_der(n_p_cs,
-                                        alpha ,
-                                        beta)
+    heat_eq.init_sol(sol_initializer)
+    #e_2nd_der = utilities.exact_2nd_der(n_p_cs,
+    #                                    alpha ,
+    #                                    beta)
     heat_eq.init_rhs()
     heat_eq.init_mat((d_nnz, o_nnz))
     heat_eq.fill_mat_and_rhs()
     # \"Numpy\" determinants.
-    dets = numpy.linalg.det(utilities.jacobians_bil_mapping(n_p_cs, alpha, beta))
+    #dets = numpy.linalg.det(utilities.jacobians_bil_mapping(n_p_cs, alpha, beta))
     # Absolute values \"numpy\" determinants.
-    a_dets = numpy.absolute(dets)
-    h_s2 = numpy.power(h_s, 2)
-    heat_eq.add_rhs(e_2nd_der * h_s2 * a_dets)
+    #a_dets = numpy.absolute(dets)
+    #h_s2 = numpy.power(h_s, 2)
+    #heat_eq.add_rhs(e_2nd_der * h_s2 * a_dets)
     heat_eq.update_values(intercomm_dictionary)
     #heat_eq.mat.view()
     #heat_eq.rhs.view()
