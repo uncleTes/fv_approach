@@ -534,63 +534,61 @@ def compute(comm_dictionary     ,
 
     comm_l = comm_dictionary["communicator"]
 
-    w_n = lambda x : write_norms(x[0]     ,
-                                 x[1]     ,
-                                 comm_l   ,
-                                 proc_grid,
-                                 x[2])
+    #w_n = lambda x : write_norms(x[0]     ,
+    #                             x[1]     ,
+    #                             comm_l   ,
+    #                             proc_grid,
+    #                             x[2])
 
-    n_norm_inf, \
-    n_norm_L2 = heat_eq.evaluate_norms(e_sol                 ,
-                                       heat_eq.sol.getArray(),
-                                       h_s                   ,
-                                       l2 = False            ,
-                                       r_n_d = True)
-    w_n((n_norm_inf,
-         n_norm_L2 ,
-         "_errors.txt"))
+    #n_norm_inf, \
+    #n_norm_L2 = heat_eq.evaluate_norms(e_sol                 ,
+    #                                   heat_eq.sol.getArray(),
+    #                                   h_s                   ,
+    #                                   l2 = False            ,
+    #                                   r_n_d = True)
+    #w_n((n_norm_inf,
+    #     n_norm_L2 ,
+    #     "_errors.txt"))
 
-    n_norm_inf, \
-    n_norm_L2 = heat_eq.evaluate_residual_norms(e_sol              ,
-                                                  h_s              ,
-                                                  petsc_size = True,
-                                                  l2 = False       ,
-                                                  r_n_d = True)
-    w_n((n_norm_inf,
-         n_norm_L2 ,
-         "_residuals.txt"))
+    #n_norm_inf, \
+    #n_norm_L2 = heat_eq.evaluate_residual_norms(e_sol              ,
+    #                                              h_s              ,
+    #                                              petsc_size = True,
+    #                                              l2 = False       ,
+    #                                              r_n_d = True)
+    #w_n((n_norm_inf,
+    #     n_norm_L2 ,
+    #     "_residuals.txt"))
 
-    n_norm_inf, \
-    n_norm_L2 = heat_eq.evaluate_norms(heat_eq.f_nodes      ,
-                                       heat_eq.f_nodes_exact,
-                                       heat_eq.h_s_inter    ,
-                                       l2 = False           ,
-                                       r_n_d = True)
-    w_n((n_norm_inf,
-         n_norm_L2 ,
-         "_f_internal_nodes.txt"))
+    #n_norm_inf, \
+    #n_norm_L2 = heat_eq.evaluate_norms(heat_eq.f_nodes      ,
+    #                                   heat_eq.f_nodes_exact,
+    #                                   heat_eq.h_s_inter    ,
+    #                                   l2 = False           ,
+    #                                   r_n_d = True)
+    #w_n((n_norm_inf,
+    #     n_norm_L2 ,
+    #     "_f_internal_nodes.txt"))
 
-    if (n_grids > 1):
-        #if (proc_grid):
-        n_norm_inf, \
-        n_norm_L2 = heat_eq.evaluate_norms(heat_eq.f_on_bord         ,
-                                           heat_eq.f_exact_on_bord   ,
-                                           heat_eq.h_s_inter_on_board,
-                                           l2 = False                ,
-                                           r_n_d = True)
-        w_n((n_norm_inf,
-             n_norm_L2 ,
-             "_f_borders.txt"))
+    #if (n_grids > 1):
+    #    #if (proc_grid):
+    #    n_norm_inf, \
+    #    n_norm_L2 = heat_eq.evaluate_norms(heat_eq.f_on_bord         ,
+    #                                       heat_eq.f_exact_on_bord   ,
+    #                                       heat_eq.h_s_inter_on_board,
+    #                                       l2 = False                ,
+    #                                       r_n_d = True)
+    #    w_n((n_norm_inf,
+    #         n_norm_L2 ,
+    #         "_f_borders.txt"))
 
     interpolate_sol = heat_eq.reset_partially_array(array_to_reset = "sol")
-    e_sol = utilities.exact_sol(centers,
-                                alpha  ,
-                                beta)
-    interpolate_res = heat_eq.reset_partially_array(array_to_reset = "res")
+    #e_sol = utilities.exact_sol(centers,
+    #                            alpha  ,
+    #                            beta)
+    #interpolate_res = heat_eq.reset_partially_array(array_to_reset = "res")
     #print(heat_eq.residual.getArray().shape)
-    data_to_save = numpy.array([e_sol                     ,
-                                interpolate_sol.getArray(),
-                                interpolate_res.getArray()])
+    data_to_save = numpy.array([interpolate_sol.getArray()])
 
     return (data_to_save, t_coeffs, alpha, beta)
 # ------------------------------------------------------------------------------
@@ -751,16 +749,16 @@ def main():
                  "Float64"  , # Data type
                  "Cell"     , # Cell or Point
                  "ascii")     # File type
-    vtk.add_data("exact"  , 
-                 1        , 
-                 "Float64", 
-                 "Cell"   , 
-                 "ascii")
-    vtk.add_data("residual"  ,
-                 1           ,
-                 "Float64"   ,
-                 "Cell"      ,
-                 "ascii")
+    #vtk.add_data("exact"  ,
+    #             1        ,
+    #             "Float64",
+    #             "Cell"   ,
+    #             "ascii")
+    #vtk.add_data("residual"  ,
+    #             1           ,
+    #             "Float64"   ,
+    #             "Cell"      ,
+    #             "ascii")
     # Call parallelization and writing onto file.
     vtk.print_vtk()
 
