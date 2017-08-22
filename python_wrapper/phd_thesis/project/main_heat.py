@@ -600,7 +600,7 @@ def compute(heat_eq         ,
     #                            beta)
     #interpolate_res = heat_eq.reset_partially_array(array_to_reset = "res")
     #print(heat_eq.residual.getArray().shape)
-    data_to_save = numpy.array([interpolate_sol.getArray()])
+    data_to_save = numpy.array([interpolate_sol.getArray(), interpolate_sol.getArray()])
 
     return (data_to_save, t_coeffs)
 # ------------------------------------------------------------------------------
