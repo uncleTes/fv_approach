@@ -746,13 +746,14 @@ def main():
                                         beta)
     for t_step in xrange(0, t_steps):
         data_to_save, \
-        trans_coeff = compute(heat_eq             ,
-                              trans_dictionary    ,
-                              comm_dictionary     ,
-                              proc_grid           ,
-                              centers             ,
+        trans_coeff = compute(heat_eq         ,
+                              trans_dictionary,
+                              comm_dictionary ,
+                              proc_grid       ,
+                              centers         ,
                               logger)
         #print(data_to_save.shape)
+        #print(data_to_save)
 
         vtk = my_class_vtk.Py_My_Class_VTK(data_to_save          ,  # Data
                                            pablo                 ,  # Octree
