@@ -138,12 +138,13 @@ def log_msg(message ,
     logger.info(message.center(140, "-"))
     return logger
 
-def find_files_in_dir(extension, 
-                      directory):
+def find_files_in_dir(sub_str  ,
+                      directory,
+                      extension = ".vtu"):
     files_founded = []
 
     for file_name in os.listdir(directory):
-        if extension in file_name:
+        if ((sub_str in file_name) and (file_name.endswith(extension))):
             files_founded.append(file_name)
 
     return files_founded
