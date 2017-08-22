@@ -2024,7 +2024,9 @@ class HeatEquation(BaseClass2D.BaseClass2D):
         # Solve the system.
         self._ksp.solve(self._rhs,
                         self._sol)
-        self.add_rhs(self._sol.getArray())
+        #self._sol.view()
+        #self.add_rhs(self._sol.getArray())
+        self._rhs.aypx(0.0, self._sol)
         # How many iterations are done.
         it_number = self._ksp.getIterationNumber()
         print(self._ksp.getConvergedReason())
