@@ -389,7 +389,11 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
                      dtype = numpy.float64)
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 1] one =          \
-         numpy.ones(n_points                 , \
+         numpy.ones(n_points                  , \
+                    dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] zero =         \
+         numpy.zeros(n_points                 , \
                      dtype = numpy.float64)
 
     if (apply_mapping):
@@ -413,8 +417,9 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
 
     #return sol
     #return one
-    return nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
-                     npower(nadd(p_points[:, 1], -0.5), 2)))
+    return zero
+    #return nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
+    #                 npower(nadd(p_points[:, 1], -0.5), 2)))
 
 # TODO: extend to 3D.
 def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
