@@ -459,7 +459,6 @@ def write_norms(n_norm_inf ,
         f_d.write("\n")
         f_d.close()
 # ------------------------------------------------------------------------------
-
 def pre_compute(comm_dictionary     ,
                 intercomm_dictionary,
                 proc_grid           ,
@@ -726,6 +725,19 @@ def main():
 
     comm_dictionary.update({"octree" : pablo})
     comm_dictionary.update({"grid processes" : procs_l_lists[proc_grid]})
+    # https://stackoverflow.com/questions/23885147/how-do-i-use-line-profiler-from-robert-kern
+    # https://github.com/rkern/line_profiler#frequently-asked-questions
+    #from line_profiler import LineProfiler
+    #lp = LineProfiler()
+    #lp_wrapper = lp(pre_compute)
+    #lp_wrapper(comm_dictionary     ,
+    #           intercomm_dictionary,
+    #           proc_grid           ,
+    #           centers             ,
+    #           logger)
+    #lp.print_stats()
+    #dump_file = "line_profiling_proc_" +str(comm_w.Get_rank()) + ".lprof"
+    #lp.dump_stats(dump_file)
     # \"data_to_save\" = evaluated and exact solution;
     # \"trans_coeff\" = matrix containing perspective transformation's 
     # coefficients.
