@@ -2029,7 +2029,13 @@ class HeatEquation(BaseClass2D.BaseClass2D):
         self._rhs.aypx(0.0, self._sol)
         # How many iterations are done.
         it_number = self._ksp.getIterationNumber()
-        print(self._ksp.getConvergedReason())
+        conv_reas = self._ksp.getConvergedReason()
+        print(conv_reas)
+        # To flush the buffered output...
+        # https://stackoverflow.com/questions/10019456/usage-of-sys-stdout-flush-method
+        #sys.stdout.write("%d\n" % conv_reas)
+        #sys.stdout.flush()
+        #time.sleep(1)
 
         msg = "Evaluated solution"
         extra_msg = "Using \"" + str(it_number) + "\" iterations."
