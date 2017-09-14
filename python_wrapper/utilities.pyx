@@ -1028,7 +1028,8 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     for i in range(n_points):
         for j in range(dim):
             A[i][j] = points[i][j]
-        A[i][dim] = 1
+        A[i][dim] = points[i][0] * points[i][1]
+        A[i][dim + 1] = 1
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] At = A.T
@@ -1043,9 +1044,11 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     p[0, :] = p[0, :] * unknown_point[0]
     # Multiplying \"b\" time \"y\".
     p[1, :] = p[1, :] * unknown_point[1]
-    if (dim == 3):
-        # Multiplying \"c\" time \"z\".
-        p[2, :] = p[2, :] * unknown_point[2]
+    # Multiplying \"c\" time \"x*y\".
+    p[2, :] = p[2, :] * (unknown_point[0] * unknown_point[1])
+    #if (dim == 3):
+    #    # Multiplying \"c\" time \"z\".
+    #    p[2, :] = p[2, :] * unknown_point[2]
 
     coeffs = numpy.sum(p, axis = 0)
 
