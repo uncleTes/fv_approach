@@ -1014,7 +1014,7 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
     # approximation will be: \"ax + by + cz + d\".
     cdef int n_points = points.shape[0]
-    cdef int n_cols = dim + 1
+    cdef int n_cols = dim + 2
     cdef size_t i
     cdef size_t j
 
