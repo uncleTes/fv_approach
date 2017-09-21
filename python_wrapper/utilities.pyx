@@ -1053,7 +1053,63 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     coeffs = numpy.sum(p, axis = 0)
 
     return coeffs
-    
+
+def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
+                           numpy.ndarray[dtype = numpy.float64_t, ndim = 1] unknown_point,
+                           int dim = 2):
+    # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
+    # approximation will be: \"ax + by + cz + d\".
+    cdef int n_points = points.shape[0]
+    cdef int n_cols = dim + 2
+    cdef size_t i
+    cdef size_t j
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] A = \
+         numpy.zeros(shape = (n_points, n_cols), \
+                     dtype = numpy.float64)
+    # A \"numpy\" empty array (size == 0) of shape (0,).
+    cdef numpy.ndarray[dtype = numpy.float64_t,
+                       ndim = 1] n_e_array = \
+         numpy.array([], \
+                     dtype = numpy.float64)
+
+    if (points.size == 0):
+        return n_e_array
+
+    for i in range(n_points):
+        for j in range(dim):
+            A[i][j] = points[i][j]
+        A[i][dim] = points[i][0] * points[i][1]
+        A[i][dim + 1] = 1
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] At = A.T
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] AtA = numpy.dot(At, A)
+    # Pseudo-inverse matrix.
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] p = \
+         numpy.dot(numpy.linalg.inv(AtA), At)
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 1] coeffs_grad_x = \
+         numpy.zeros(n_points,                   \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 1] coeffs_grad_y = \
+         numpy.zeros(n_points,                   \
+                     dtype = numpy.float64)
+
+    numpy.copyto(coeffs_grad_x,
+                 numpy.add(p[0, :],
+                           p[2, :] * unknown_point[1]))
+    numpy.copyto(coeffs_grad_y,
+                 numpy.add(p[1, :],
+                           p[2, :] * unknown_point[0]))
+
+    return (coeffs_grad_x,
+            coeffs_grad_y)
+
 # Perspective transformation coefficients (linear coefficients).
 def p_t_coeffs(int dimension                                        ,
                numpy.ndarray[dtype = numpy.float64_t, ndim = 2] o_ps,  # Original points
