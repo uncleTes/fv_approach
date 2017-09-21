@@ -1066,6 +1066,132 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         return n_coeffs
 
+    def get_gradient_coefficients(self             ,
+                                  inter            ,  # pointer to the intersection
+                                  dimension        ,  # 2D/3D
+                                  nodes_inter      ,  # Coordinates of the nodes
+                                                      # of the intersection
+                                  owners_centers   ,  # Centers of the owners of
+                                                      # the intersection
+                                  l_s_coeffs       ,  # Least square coefficients
+                                  use_inter = True ,
+                                  h_given = 0      ,  # If \"use_inter\" is False,
+                                                      # then we use \"h_given\"
+                                                      # to evaluate the coeffs
+                                  n_axis_given = 0 ,  # Same explication as for
+                                  n_value_given = 0,  # \"h_given\".
+                                  grid = -1):
+        octree = self._octree
+        if (grid == -1):
+            grid = self._proc_g
+        alpha = self.get_trans(grid)[1]
+        beta = self.get_trans(grid)[2]
+        is_bound_inter = False
+        n_axis = n_axis_given
+        n_value = n_value_given
+        n_normal_inter = numpy.zeros((3, ),
+                                     dtype = numpy.int64)
+        n_normal_inter[n_axis] = n_value
+        h = h_given
+        if (use_inter):
+            is_bound_inter = octree.get_bound(inter,
+                                              0    ,
+                                              True)
+            # Normal to the intersection, and its numpy version.
+            normal_inter, \
+            n_normal_inter = octree.get_normal(inter,
+                                               True) # We want also a \"numpy\"
+                                                     # version
+            n_axis = numpy.nonzero(n_normal_inter)[0][0]
+            n_value = n_normal_inter[n_axis]
+            # evaluating length of the intersection.
+            h = octree.get_area(inter        ,
+                                is_ptr = True,
+                                is_inter = True)
+        h_inv = (1.0 / h)
+
+        d_nodes_x    , \
+        d_nodes_y    , \
+        c_inter      , \
+        d_o_centers_x, \
+        d_o_centers_y = self.get_interface_distances(dimension     ,
+                                                     h             ,
+                                                     nodes_inter   ,
+                                                     owners_centers,
+                                                     is_bound_inter,
+                                                     n_normal_inter)
+
+        #den = (d_o_centers_x * d_nodes_y) - \
+        #      (d_o_centers_y * d_nodes_x)
+        #den_inv = (1.0 / den)
+
+        #coeff_in_grad_x = d_nodes_y
+        #coeff_in_grad_y = -1.0 * d_nodes_x
+        #coeff_out_grad_x = -1.0 * coeff_in_grad_x
+        #coeff_out_grad_y = -1.0 * coeff_in_grad_y
+        #coeff_node_1_grad_x = -1.0 * d_o_centers_y
+        #coeff_node_1_grad_y = d_o_centers_x
+        #coeff_node_0_grad_x = -1.0 * coeff_node_1_grad_x
+        #coeff_node_0_grad_y = -1.0 * coeff_node_1_grad_y
+
+        grad_transf = utilities.jacobian_bil_mapping(numpy.array(c_inter),
+                                                     alpha               ,
+                                                     beta                ,
+                                                     dim = 2)
+        grad_transf_inv = numpy.linalg.inv(grad_transf)
+        grad_transf_det = numpy.linalg.det(grad_transf)
+        grad_transf_det_inv = (1.0 / grad_transf_det)
+        cofactors = (grad_transf_inv * grad_transf_det).T
+
+        coeffs_trans = numpy.dot(grad_transf_inv, cofactors)
+
+        coeff_trans_x = coeffs_trans[0][1] if (n_axis) else \
+                        coeffs_trans[0][0]
+        coeff_trans_y = coeffs_trans[1][1] if (n_axis) else \
+                        coeffs_trans[1][0]
+
+        return (coeff_trans_x * h * n_value,
+                coeff_trans_y * h * n_value)
+
+        #n_coeffs_grad_x = numpy.array([coeff_in_grad_x    ,
+        #                               coeff_out_grad_x   ,
+        #                               coeff_node_1_grad_x,
+        #                               coeff_node_0_grad_x])
+        #n_coeffs_grad_y = numpy.array([coeff_in_grad_y    ,
+        #                               coeff_out_grad_y   ,
+        #                               coeff_node_1_grad_y,
+        #                               coeff_node_0_grad_y])
+
+        #n_coeffs_grad_x = n_coeffs_grad_x * (den_inv               * \
+        #                                     h                     * \
+        #                                     coeff_trans_x         * \
+        #                                     n_value)
+        #n_coeffs_grad_y = n_coeffs_grad_y * (den_inv               * \
+        #                                     h                     * \
+        #                                     coeff_trans_y         * \
+        #                                     n_value)
+        #n_coeffs = n_coeffs_grad_x + n_coeffs_grad_y
+
+        #mult_node_1 = 1.0
+        #mult_node_0 = 1.0
+        ## If the nodes are not on the background boundary, we have evaluated
+        ## bilinear interpolation to interpolate the nodes, indeed. On the coun-
+        ## trary, being on the background border, it will have the exact value of
+        ## the solution on that node, so there will not be the interpolation
+        ## coefficients..
+        #if (l_s_coeffs[1].size):
+        #    mult_node_1 = l_s_coeffs[1]
+        #if (l_s_coeffs[0].size):
+        #    mult_node_0 = l_s_coeffs[0]
+
+        #coeffs_node_1 = mult_node_1 * n_coeffs[2]
+        #coeffs_node_0 = mult_node_0 * n_coeffs[3]
+
+        #return (n_coeffs     ,
+        #        coeffs_node_1,
+        #        coeffs_node_0)
+
+
     def get_interface_coefficients(self             ,
                                    inter            ,  # pointer to the intersection
                                    dimension        ,  # 2D/3D
