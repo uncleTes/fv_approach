@@ -2902,12 +2902,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 t_centers_inv = []
                 l_t_indices_inv = []
                 t_nodes_inv = []
+                nodes_inter = [stencils[i][1 : 3], stencils[i][3 : 5]]
+                owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
+                c_inter = [(nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
+                           (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0]
                 # Getting coordinates of the first neighbour (the one of the
                 # intersection) of the rings of the nodes (it will be the same
                 # for both the nodes).
                 displ = 1 + (dimension * 2)
+                #ncopyto(n_t_a_03[0][: dimension], \
+                #        stencils[i][displ : displ + dimension])
                 ncopyto(n_t_a_03[0][: dimension], \
-                        stencils[i][displ : displ + dimension])
+                        c_inter)
                 apply_bil_mapping(n_t_a_03,
                                   c_alpha ,
                                   c_beta  ,
@@ -2939,9 +2945,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #                      n_t_a_02,
                     #                      dimension)
                     #c_n_oct_center = ncopy(n_t_a_02[0])
-                    c_n_oct_center = ncopy(n_cell_center)
-                    t_centers_inv.append(c_n_oct_center[: dimension])
-                    l_t_indices_inv.append(m_index)
+                    if (m_index != -1):
+                        c_n_oct_center = ncopy(n_cell_center)
+                        t_centers_inv.append(c_n_oct_center[: dimension])
+                        l_t_indices_inv.append(m_index)
+                    else:
+                        print("bongo")
                     neighs, ghosts = ([] for i in range(0, 2))
                     for codim in xrange(1, 3):
                         for iface in xrange(0, 4):
@@ -3012,34 +3021,34 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
                                                          n_t_a_02[0][: dimension])
                                                          #n_t_a_03[0][: dimension])
-                    ncopyto(n_t_a_03[0][: dimension], \
-                            stencils[i][1 : 3])
-                    apply_bil_mapping(n_t_a_03,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      n_t_a_01,
-                                      dimension)
-                    apply_bil_mapping_inv(n_t_a_01,
-                                          b_alpha ,
-                                          b_beta  ,
-                                          n_t_a_02,
-                                          dimension)
-                    l_s_coeffs_node_0 = utilities.least_squares(narray(t_centers_inv),
-                                                                n_t_a_02[0][: dimension])
-                    ncopyto(n_t_a_03[0][: dimension], \
-                            stencils[i][3 : 5])
-                    apply_bil_mapping(n_t_a_03,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      n_t_a_01,
-                                      dimension)
-                    apply_bil_mapping_inv(n_t_a_01,
-                                          b_alpha ,
-                                          b_beta  ,
-                                          n_t_a_02,
-                                          dimension)
-                    l_s_coeffs_node_1 = utilities.least_squares(narray(t_centers_inv),
-                                                                n_t_a_02[0][: dimension])
+                    #ncopyto(n_t_a_03[0][: dimension], \
+                    #        stencils[i][1 : 3])
+                    #apply_bil_mapping(n_t_a_03,
+                    #                  c_alpha ,
+                    #                  c_beta  ,
+                    #                  n_t_a_01,
+                    #                  dimension)
+                    #apply_bil_mapping_inv(n_t_a_01,
+                    #                      b_alpha ,
+                    #                      b_beta  ,
+                    #                      n_t_a_02,
+                    #                      dimension)
+                    #l_s_coeffs_node_0 = utilities.least_squares(narray(t_centers_inv),
+                    #                                            n_t_a_02[0][: dimension])
+                    #ncopyto(n_t_a_03[0][: dimension], \
+                    #        stencils[i][3 : 5])
+                    #apply_bil_mapping(n_t_a_03,
+                    #                  c_alpha ,
+                    #                  c_beta  ,
+                    #                  n_t_a_01,
+                    #                  dimension)
+                    #apply_bil_mapping_inv(n_t_a_01,
+                    #                      b_alpha ,
+                    #                      b_beta  ,
+                    #                      n_t_a_02,
+                    #                      dimension)
+                    #l_s_coeffs_node_1 = utilities.least_squares(narray(t_centers_inv),
+                    #                                            n_t_a_02[0][: dimension])
                     displ = 1 + (2 * dimension)
                     # Coordinates of the node on the foreground boundary.
                     cs_n = stencils[i][displ : displ + dimension]
@@ -3067,19 +3076,47 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                     nodes_inter = [stencils[i][1 : 3], stencils[i][3 : 5]]
                     owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
+                    c_inter = [(nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
+                               (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0]
+                    ncopyto(n_t_a_03[0][: dimension], \
+                            c_inter)
+                    apply_bil_mapping(n_t_a_03,
+                                      c_alpha ,
+                                      c_beta  ,
+                                      n_t_a_01,
+                                      dimension)
+                    apply_bil_mapping_inv(n_t_a_01,
+                                          b_alpha ,
+                                          b_beta  ,
+                                          n_t_a_02,
+                                          dimension)
+                    l_s_coeffs_grad = utilities.least_squares_gradient(narray(t_centers_inv),
+                                                                       n_t_a_02[0][: dimension])
                     bil_coeffs_empty = numpy.array([[], []])
-                    n_coeffs     , \
-                    coeffs_node_1, \
-                    coeffs_node_0 = self.get_interface_coefficients(0                        ,
-                                                                    dimension                ,
-                                                                    nodes_inter              ,
-                                                                    owners_centers           ,
-                                                                    bil_coeffs_empty         ,
-                                                                    use_inter = False        ,
-                                                                    h_given = h_inter        ,
-                                                                    n_axis_given = keys[i][5],
-                                                                    n_value_given = keys[i][6],
-                                                                    grid = keys[i][0])
+                    coeffs_grad = self.get_gradient_coefficients(0                        ,
+                                                                 dimension                ,
+                                                                 nodes_inter              ,
+                                                                 owners_centers           ,
+                                                                 bil_coeffs_empty         ,
+                                                                 use_inter = False        ,
+                                                                 h_given = h_inter        ,
+                                                                 n_axis_given = keys[i][5],
+                                                                 n_value_given = keys[i][6],
+                                                                 grid = keys[i][0])
+                    l_s_coeffs_grad_x = l_s_coeffs_grad[0] * coeffs_grad[0]
+                    l_s_coeffs_grad_y = l_s_coeffs_grad[1] * coeffs_grad[1]
+                    #n_coeffs     , \
+                    #coeffs_node_1, \
+                    #coeffs_node_0 = self.get_interface_coefficients(0                        ,
+                    #                                                dimension                ,
+                    #                                                nodes_inter              ,
+                    #                                                owners_centers           ,
+                    #                                                bil_coeffs_empty         ,
+                    #                                                use_inter = False        ,
+                    #                                                h_given = h_inter        ,
+                    #                                                n_axis_given = keys[i][5],
+                    #                                                n_value_given = keys[i][6],
+                    #                                                grid = keys[i][0])
                     #insert_mode = PETSc.InsertMode.ADD_VALUES
                     #self._rhs.setValues(keys[i][1],
                     #                    ex_sol[0] * -1.0 * n_coeffs[0],
@@ -3108,18 +3145,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #self._rhs.setValues([keys[i][1]],
                     #                    [coeff_o]   ,
                     #                    insert_mode)
-                    coeffs_ghost = l_s_coeffs * n_coeffs[0]
-                    coeffs_ghost_node_0 = l_s_coeffs_node_0 * n_coeffs[3]
-                    coeffs_ghost_node_1 = l_s_coeffs_node_1 * n_coeffs[2]
+                    #coeffs_ghost = l_s_coeffs * n_coeffs[0]
+                    #coeffs_ghost_node_0 = l_s_coeffs_node_0 * n_coeffs[3]
+                    #coeffs_ghost_node_1 = l_s_coeffs_node_1 * n_coeffs[2]
                     columns = []
                     values = []
-                    values.append(n_coeffs[1])
-                    values.extend(coeffs_ghost.tolist())
-                    values.extend(coeffs_ghost_node_0.tolist())
-                    values.extend(coeffs_ghost_node_1.tolist())
-                    columns.append(keys[i][1])
-                    columns.extend(l_t_indices_inv)
-                    columns.extend(l_t_indices_inv)
+                    #values.append(n_coeffs[1])
+                    #values.extend(coeffs_ghost.tolist())
+                    #values.extend(coeffs_ghost_node_0.tolist())
+                    #values.extend(coeffs_ghost_node_1.tolist())
+                    values.extend(numpy.add(l_s_coeffs_grad_x, l_s_coeffs_grad_y).tolist())
+                    #columns.append(keys[i][1])
+                    #columns.extend(l_t_indices_inv)
+                    #columns.extend(l_t_indices_inv)
                     columns.extend(l_t_indices_inv)
                     apply_rest_prol_ops([keys[i][1]],
                                         columns     ,
