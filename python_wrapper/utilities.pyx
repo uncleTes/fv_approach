@@ -416,6 +416,58 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
     return nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
                      npower(nadd(p_points[:, 1], -0.5), 2)))
 
+def exact_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
+                   numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha   ,
+                   numpy.ndarray[dtype = numpy.float64_t, ndim = 1] beta    ,
+                   int dim = 2                                              ,
+                   bool apply_mapping = True):
+    cdef int n_points = l_points.shape[0]
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] grad =         \
+         numpy.zeros((dim, n_points)          , \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] p_points =     \
+         numpy.zeros((n_points, dim)          , \
+                     dtype = numpy.float64)
+
+    if (apply_mapping):
+        apply_bil_mapping(l_points,
+                          alpha   ,
+                          beta    ,
+                          p_points,
+                          dim)
+    else:
+        numpy.copyto(p_points, l_points)
+
+    ncos = numpy.cos
+    npower = numpy.power
+    nadd = numpy.add
+    nmul = numpy.multiply
+    ncopyto = numpy.compyto
+
+    ncopyto(grad[0],
+            nmul(2.0,
+                 nmul(nadd(p_points[:, 0],
+                           -0.5),
+                      ncos(nadd(npower(nadd(p_points[:, 0],
+                                            -0.5),
+                                       2.0),
+                                npower(nadd(p_points[:, 1],
+                                            -0.5),
+                                       2.0))))))
+    ncopyto(grad[1],
+            nmul(2.0,
+                 nmul(nadd(p_points[:, 1],
+                           -0.5),
+                      ncos(nadd(npower(nadd(p_points[:, 0],
+                                            -0.5),
+                                       2.0),
+                                npower(nadd(p_points[:, 1],
+                                            -0.5),
+                                       2.0))))))
+    return grad
+
 # TODO: extend to 3D.
 def exact_2nd_der(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
                   numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha   ,
