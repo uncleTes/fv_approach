@@ -444,7 +444,7 @@ def exact_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
     npower = numpy.power
     nadd = numpy.add
     nmul = numpy.multiply
-    ncopyto = numpy.compyto
+    ncopyto = numpy.copyto
 
     ncopyto(grad[0],
             nmul(2.0,
