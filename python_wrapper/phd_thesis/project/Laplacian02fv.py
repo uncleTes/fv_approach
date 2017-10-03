@@ -2312,9 +2312,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 status = MPI.Status()
                 mpi_request.Wait(status)
 
-            if (not is_background):
-                self.update_fg_grids(o_ranges,
-                                     ids_octree_contained)
+            #if (not is_background):
+            #    self.update_fg_grids(o_ranges,
+            #                         ids_octree_contained)
             else:
                 if (n_grids > 1):
                     self.update_bg_grids(o_ranges,
@@ -2906,6 +2906,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
                 c_inter = [(nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
                            (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0]
+                n_c_inter = narray([c_inter])
                 # Getting coordinates of the first neighbour (the one of the
                 # intersection) of the rings of the nodes (it will be the same
                 # for both the nodes).
@@ -3055,7 +3056,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # \"Numpy\" coordinates of the node on the foreground boun-
                     # dary.
                     n_cs_n = narray([cs_n])
-                    ex_sol = solution(n_cs_n,
+                    #ex_sol = solution(n_cs_n,
+                    ex_sol = solution(n_c_inter            ,
                                       c_alpha              ,
                                       c_beta               ,
                                       dim = dimension      ,
@@ -3377,29 +3379,29 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 for j in xrange(0, len(n_cs_n_is[i][1])):
                     if (n_cs_n_is[i][1][j] == -1):
                         ##print("bongo")
-                        #values_rhs = []
-                        #indices_rhs = []
-                        #nsolution = utilities.exact_sol(narray([[n_cs_n_is[i][0][j][0],
-                        #                                         n_cs_n_is[i][0][j][1]]]),
-                        #                                b_alpha              ,
-                        #                                b_beta               ,
-                        #                                dim = 2              ,
-                        #                                apply_mapping = True)
-                        #mult = 1.0
-                        #if (labels[0]):
-                        #    mult = -1.0
-                        #e_sol = nsolution[0]
-                        #e_sol_coeff = coeffs_nodes[i][j]
-                        #e_sol = mult * e_sol * e_sol_coeff
-                        #values_rhs.append(e_sol)
-                        #indices_rhs.append(r_indices[0])
-                        #if (len(r_indices) == 2):
-                        #    values_rhs.append(e_sol * -1.0)
-                        #    indices_rhs.append(r_indices[1])
-                        #self._rhs.setValues(indices_rhs,
-                        #                    values_rhs,
-                        #                    insert_mode)
-                        #coeffs_nodes[i][j] = 0.0
+                        values_rhs = []
+                        indices_rhs = []
+                        nsolution = utilities.exact_sol(narray([[n_cs_n_is[i][0][j][0],
+                                                                 n_cs_n_is[i][0][j][1]]]),
+                                                        b_alpha              ,
+                                                        b_beta               ,
+                                                        dim = 2              ,
+                                                        apply_mapping = True)
+                        mult = 1.0
+                        if (labels[0]):
+                            mult = -1.0
+                        e_sol = nsolution[0]
+                        e_sol_coeff = coeffs_nodes[i][j]
+                        e_sol = mult * e_sol * e_sol_coeff
+                        values_rhs.append(e_sol)
+                        indices_rhs.append(r_indices[0])
+                        if (len(r_indices) == 2):
+                            values_rhs.append(e_sol * -1.0)
+                            indices_rhs.append(r_indices[1])
+                        self._rhs.setValues(indices_rhs,
+                                            values_rhs,
+                                            insert_mode)
+                        coeffs_nodes[i][j] = 0.0
                         #mult = -1.0
                         #if (labels[0]):
                         #    mult = 1.0
@@ -3761,15 +3763,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #print(nodes_inter)
                 # Setting exact solution for centers of owners of background intersections,
                 # centers which are penalized.
-                #nsolution = utilities.exact_sol(narray([[owners_centers[1 - labels[0]][0],
-                #                                         owners_centers[1 - labels[0]][1]]]),
-                #                                       b_alpha              ,
-                #                                       b_beta               ,
-                #                                       dim = 2              ,
-                #                                       apply_mapping = True)
-                #self._rhs.setValues(m_n_p_g_index,
-                #                    value_to_store * -1.0 * nsolution[0],
-                #                    insert_mode)
+                nsolution = utilities.exact_sol(narray([[owners_centers[1 - labels[0]][0],
+                                                         owners_centers[1 - labels[0]][1]]]),
+                                                       b_alpha              ,
+                                                       b_beta               ,
+                                                       dim = 2              ,
+                                                       apply_mapping = True)
+                self._rhs.setValues(m_n_p_g_index,
+                                    value_to_store * -1.0 * nsolution[0],
+                                    insert_mode)
                 #nsolution = utilities.exact_sol(narray([[nodes_inter[0][0],
                 #                                         nodes_inter[0][1]]]),
                 #                                       b_alpha              ,
