@@ -1590,8 +1590,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._f_nodes_exact_on_inter_borders = []
         self._f_on_borders_exact = []
         self._f_on_borders = []
+        self._grad_exact_x = [0] * self._tot_oct
+        self._grad_exact_y = [0] * self._tot_oct
+        self._grad_x = [0] * self._tot_oct
+        self._grad_y = [0] * self._tot_oct
         self._h_s_inter = []
         self._h_s_inter_on_board = []
+        self._h_s_inter_grad = [0] * self._tot_oct
 
         for i in xrange(0, ninters):
             # Rows indices for the \"PETSc\" matrix.
@@ -1866,8 +1871,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
     # Interpolating the solution is necessary to be able to use the \"vtm\"
     # typology of files. For the moment, the value interpolated is substituted
     # by the fixed value \"0.0\".
-    def reset_partially_array(self,
-                              array_to_reset = "sol"):
+    def reset_partially_array(self                  ,
+                              array_to_reset = "sol",
+                              is_array = True       ,
+                              vector_to_reset = None):
         """Function which creates a \"new\" solution array, pushing in the
            octants covered by foreground meshes the values interpolated from the
            neighbours around them.
@@ -1891,15 +1898,25 @@ class Laplacian(BaseClass2D.BaseClass2D):
         elif (array_to_reset == "res"):
             array_name = "residual"
             to_reset = self._residual
+        elif (array_to_reset == "grad_x"):
+            array_name = "x_gradient"
+            to_reset = vector_to_reset
+        elif (array_to_reset == "grad_y"):
+            array_name = "y_gradient"
+            to_reset = vector_to_reset
         # Resetted array.
         res_arr = self.init_array("resetted partially " + \
                                   str(array_name),
                                   petsc_size = False)
+        #print(ids_octree_contained)
 
         for i in ids_octree_contained:
             arr_index = self.mask_octant(i)
             if (arr_index != -1):
-                arr_value = to_reset.getValue(arr_index)
+                if (is_array):
+                    arr_value = to_reset.getValue(arr_index)
+                else:
+                    arr_value = to_reset[arr_index]
                 res_arr.setValue(i, arr_value)
 
         res_arr.assemblyBegin()
@@ -2930,6 +2947,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (local_idx != uint32_max):
                     global_idx += o_ranges[0]
                     m_index = mask_octant(global_idx)
+                    m_index_grad = mask_octant(global_idx)
                     cell_center, \
                     n_cell_center = get_center(local_idx,
                                                False    ,
@@ -3094,6 +3112,32 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           dimension)
                     l_s_coeffs_grad = utilities.least_squares_gradient(narray(t_centers_inv),
                                                                        n_t_a_02[0][: dimension])
+                    #rec_grads = utilities.exact_gradient(narray(t_centers_inv),
+                    #                                     b_alpha  ,
+                    #                                     b_beta   ,
+                    #                                     dim = dimension,
+                    #                                     apply_mapping = True)
+                    rec_grad_x = 0
+                    rec_grad_y = 0
+                    #for k in xrange(0, rec_grads.shape[1]):
+                    for k in xrange(0, rec_sols.shape[0]):
+                        rec_grad_x += rec_sols[k] * l_s_coeffs_grad[0][k]
+                        rec_grad_y += rec_sols[k] * l_s_coeffs_grad[1][k]
+                        #rec_grad_x += rec_grads[0][k] * l_s_coeffs_grad[0][k]
+                        #rec_grad_y += rec_grads[1][k] * l_s_coeffs_grad[1][k]
+                    #print((m_index_grad, self._n_oct))
+                    if (self._grad_x[m_index_grad] < rec_grad_x):
+                        self._grad_x[m_index_grad] = rec_grad_x
+                    if (self._grad_y[m_index_grad] < rec_grad_y):
+                        self._grad_y[m_index_grad] = rec_grad_y
+                    ex_grad = utilities.exact_gradient(n_c_inter,
+                                                       c_alpha  ,
+                                                       c_beta   ,
+                                                       dim = dimension,
+                                                       apply_mapping = True)
+                    self._grad_exact_x[m_index_grad] = ex_grad[0][0]
+                    self._grad_exact_y[m_index_grad] = ex_grad[1][0]
+                    self._h_s_inter_grad[m_index_grad] = h_inter
                     bil_coeffs_empty = numpy.array([[], []])
                     coeffs_grad = self.get_gradient_coefficients(0                        ,
                                                                  dimension                ,
@@ -3107,6 +3151,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                  grid = keys[i][0])
                     l_s_coeffs_grad_x = l_s_coeffs_grad[0] * coeffs_grad[0]
                     l_s_coeffs_grad_y = l_s_coeffs_grad[1] * coeffs_grad[1]
+                    #l_s_coeffs_grad_x[l_s_coeffs_grad_x < 1.0e-12] = 0.0
+                    #l_s_coeffs_grad_y[l_s_coeffs_grad_y < 1.0e-12] = 0.0
+                    #print((l_s_coeffs_grad_x, l_s_coeffs_grad_y))
                     #n_coeffs     , \
                     #coeffs_node_1, \
                     #coeffs_node_0 = self.get_interface_coefficients(0                        ,
@@ -3161,6 +3208,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #columns.extend(l_t_indices_inv)
                     #columns.extend(l_t_indices_inv)
                     columns.extend(l_t_indices_inv)
+                    #print("columns = " + str(columns))
+                    #print("values = " + str(values))
                     apply_rest_prol_ops([keys[i][1]],
                                         columns     ,
                                         values)
@@ -4056,7 +4105,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                        h_s           ,
                        l2 = False    ,
                        # Return \"numpy\" data
-                       r_n_d = False):
+                       r_n_d = False ,
+                       r_n_array = False):
         """Function which evals the infinite and L2 norms of the error.
 
            Arguments:
@@ -4087,12 +4137,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self.log_msg(msg   ,
                      "info",
                      extra_msg)
+        if (r_n_array):
+            if (r_n_d):
+                return (numpy.array([norm_inf]),
+                        numpy.array([norm_X2]) ,
+                        numpy_difference)
 
-        if (r_n_d):
-            return (numpy.array([norm_inf]),
-                    numpy.array([norm_X2]))
+            return (norm_inf, norm_X2, numpy_difference)
+        else:
+            if (r_n_d):
+                return (numpy.array([norm_inf]),
+                        numpy.array([norm_X2]))
 
-        return (norm_inf, norm_X2)
+            return (norm_inf, norm_X2)
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
@@ -4236,4 +4293,24 @@ class Laplacian(BaseClass2D.BaseClass2D):
     @property
     def h_s_inter_on_board(self):
         return numpy.array(self._h_s_inter_on_board)
+
+    @property
+    def h_s_inter_grad(self):
+        return numpy.array(self._h_s_inter_grad)
+
+    @property
+    def grad_exact_x(self):
+        return numpy.array(self._grad_exact_x)
+
+    @property
+    def grad_exact_y(self):
+        return numpy.array(self._grad_exact_y)
+
+    @property
+    def grad_rec_x(self):
+        return numpy.array(self._grad_x)
+
+    @property
+    def grad_rec_y(self):
+        return numpy.array(self._grad_y)
 

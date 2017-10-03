@@ -574,6 +574,33 @@ def compute(comm_dictionary     ,
             w_n((n_norm_inf,
                  n_norm_L2 ,
                  "_f_borders.txt"))
+            #print(laplacian.grad_exact_x.shape)
+            #print(laplacian.grad_rec_x.shape)
+        n_norm_inf, \
+        n_norm_L2 , \
+        grad_x_array = laplacian.evaluate_norms(laplacian.grad_rec_x    ,
+                                                laplacian.grad_exact_x  ,
+                                                laplacian.h_s_inter_grad,
+                                                l2 = False              ,
+                                                r_n_d = True            ,
+                                                r_n_array = True)
+        w_n((n_norm_inf,
+             n_norm_L2 ,
+             "_grad_x.txt"))
+        n_norm_inf, \
+        n_norm_L2 , \
+        grad_y_array = laplacian.evaluate_norms(laplacian.grad_rec_y    ,
+                                                laplacian.grad_exact_y  ,
+                                                laplacian.h_s_inter_grad,
+                                                l2 = False              ,
+                                                r_n_d = True            ,
+                                                r_n_array = True)
+        w_n((n_norm_inf,
+             n_norm_L2 ,
+             "_grad_y.txt"))
+        #else:
+        #    grad_x_array = laplacian.grad_rec_x
+        #    grad_y_array = laplacian.grad_rec_y
 
     interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
@@ -581,9 +608,22 @@ def compute(comm_dictionary     ,
                                 beta)
     interpolate_res = laplacian.reset_partially_array(array_to_reset = "res")
     #print(laplacian.residual.getArray().shape)
+    interpolate_grad_x = laplacian.reset_partially_array(array_to_reset = "grad_x",
+                                                         is_array = False         ,
+                                                         vector_to_reset = grad_x_array)
+    interpolate_grad_y = laplacian.reset_partially_array(array_to_reset = "grad_y",
+                                                         is_array = False         ,
+                                                         vector_to_reset = grad_y_array)
+    #    print(interpolate_grad_x.getArray().shape)
+    #else:
+    #    print(grad_y_array.shape)
     data_to_save = numpy.array([e_sol                     ,
-                                interpolate_sol.getArray(),
-                                interpolate_res.getArray()])
+                                interpolate_grad_x.getArray(),
+                                interpolate_grad_y.getArray()])
+                                #interpolate_sol.getArray(),
+                                #interpolate_res.getArray()])
+
+    #print(data_to_save.shape)
 
     return (data_to_save, t_coeffs, alpha, beta)
 # ------------------------------------------------------------------------------
@@ -726,7 +766,7 @@ def main():
     geo_nodes = pablo.apply_persp_trans(dimension,
                                         alpha    ,
                                         beta)
-
+    comm_w.Barrier()
     vtk = my_class_vtk.Py_My_Class_VTK(data_to_save            ,  # Data
                                        pablo                   ,  # Octree
                                        "./data/"               ,  # Dir
