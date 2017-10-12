@@ -678,7 +678,8 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
                                         ndim = 1] beta         ,
                           numpy.ndarray[dtype = numpy.float64_t, \
                                         ndim = 2] l_points     , # logical points
-                          int dim = 2):
+                          int dim = 2                          ,
+                          bool temp_adjust = False):
     # Inverting the following equation (for the \"ys\" is the same but with
     # betas):
     # x = alpha_0 + alpha_1*l + alpha_2*m + alpha_3*l*m (2D)
@@ -754,18 +755,21 @@ def apply_bil_mapping_inv(numpy.ndarray[dtype = numpy.float64_t, \
             if (0.0 <= m_1[i] <= 1.0):
                 l_points[i, 1] = m_1[i]
             else:
-                if (nabs(m_2[i] - 0.0) <= 1.0e-12):
-                    m_2[i] = 0.0
-                if (nabs(m_2[i] - 1.0) <= 1.0e-12):
-                    m_2[i] = 1.0
-                if (0.0 <= m_2[i] <= 1.0):
-                    l_points[i, 1] = m_2[i]
+                if (temp_adjust):
+                    l_points[i, 1] = m_1[i]
                 else:
-                    print("m_1 " + str(m_1[i]))
-                    print("m_2 " + str(m_2[i]))
-                    print("a_m " + str(a_m))
-                    print("b_m " + str(b_m[i]))
-                    print("c_m " + str(c_m[i]))
+                    if (nabs(m_2[i] - 0.0) <= 1.0e-12):
+                        m_2[i] = 0.0
+                    if (nabs(m_2[i] - 1.0) <= 1.0e-12):
+                        m_2[i] = 1.0
+                    if (0.0 <= m_2[i] <= 1.0):
+                        l_points[i, 1] = m_2[i]
+                    else:
+                        print("m_1 " + str(m_1[i]))
+                        print("m_2 " + str(m_2[i]))
+                        print("a_m " + str(a_m))
+                        print("b_m " + str(b_m[i]))
+                        print("c_m " + str(c_m[i]))
     numpy.copyto(l_points[:, 0],
                  ntdivide(nadd(p_points[:, 0],
                                nadd(nmul(-1.0, alpha[0]),
@@ -1108,6 +1112,15 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
 
 def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
                            numpy.ndarray[dtype = numpy.float64_t, ndim = 1] unknown_point,
+                           numpy.ndarray[dtype = numpy.float64_t, ndim = 1] orig_unknown_point,
+                           numpy.ndarray[dtype = numpy.float64_t, \
+                                         ndim = 1] c_alpha        ,
+                           numpy.ndarray[dtype = numpy.float64_t, \
+                                         ndim = 1] c_beta         ,
+                           numpy.ndarray[dtype = numpy.float64_t, \
+                                         ndim = 1] b_alpha        ,
+                           numpy.ndarray[dtype = numpy.float64_t, \
+                                         ndim = 1] b_beta         ,
                            int dim = 2):
     # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
     # approximation will be: \"ax + by + cz + d\".
@@ -1120,20 +1133,46 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
                        ndim = 2] A = \
          numpy.zeros(shape = (n_points, n_cols), \
                      dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] fg_points = \
+         numpy.zeros(shape = (n_points, 3), \
+                     dtype = numpy.float64)
     # A \"numpy\" empty array (size == 0) of shape (0,).
     cdef numpy.ndarray[dtype = numpy.float64_t,
                        ndim = 1] n_e_array = \
          numpy.array([], \
                      dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 2] n_t_a_01 = numpy.zeros(shape = (n_points, 3), \
+                                                        dtype = numpy.float64)
 
     if (points.size == 0):
         return n_e_array
 
+#    apply_bil_mapping(points,
+#                      b_alpha ,
+#                      b_beta  ,
+#                      n_t_a_01,
+#                      dim)
+#    apply_bil_mapping_inv(n_t_a_01,
+#                          c_alpha ,
+#                          c_beta  ,
+#                          fg_points,
+#                          dim      ,
+#                          True)
+#
     for i in range(n_points):
         for j in range(dim):
+        #    A[i][j] = fg_points[i][j]
+        #A[i][dim] = fg_points[i][0] * fg_points[i][1]
             A[i][j] = points[i][j]
         A[i][dim] = points[i][0] * points[i][1]
         A[i][dim + 1] = 1
+    #for i in range(n_points):
+    #    A[i][0] = 1
+    #    for j in range(1, dim + 1):
+    #        A[i][j] = points[i][j - 1]
+    #    A[i][dim + 1] = points[i][0] * points[i][1]
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] At = A.T
@@ -1151,16 +1190,56 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
                        ndim = 1] coeffs_grad_y = \
          numpy.zeros(n_points,                   \
                      dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 1] coeffs_grad_x_def = \
+         numpy.zeros(n_points,                   \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 1] coeffs_grad_y_def = \
+         numpy.zeros(n_points,                   \
+                     dtype = numpy.float64)
 
+    #numpy.copyto(coeffs_grad_x,
+    #             numpy.add(p[1, :],
+    #                       p[3, :] * unknown_point[1]))
+    #numpy.copyto(coeffs_grad_y,
+    #             numpy.add(p[2, :],
+    #                       p[3, :] * unknown_point[0]))
     numpy.copyto(coeffs_grad_x,
                  numpy.add(p[0, :],
                            p[2, :] * unknown_point[1]))
     numpy.copyto(coeffs_grad_y,
                  numpy.add(p[1, :],
                            p[2, :] * unknown_point[0]))
+    #numpy.copyto(coeffs_grad_x,
+    #             numpy.add(p[0, :],
+    #                       p[2, :] * orig_unknown_point[1]))
+    #numpy.copyto(coeffs_grad_y,
+    #             numpy.add(p[1, :],
+    #                       p[2, :] * orig_unknown_point[0]))
 
-    return (coeffs_grad_x,
-            coeffs_grad_y)
+    #c_grad_transf = jacobian_bil_mapping(orig_unknown_point,
+    #                                     c_alpha        ,
+    #                                     c_beta         ,
+    #                                     dim = 2)
+    b_grad_transf = jacobian_bil_mapping(unknown_point,
+                                         b_alpha        ,
+                                         b_beta         ,
+                                         dim = 2)
+    #grad_transf_inv = numpy.linalg.inv(numpy.dot(b_grad_transf, c_grad_transf))
+    #grad_transf_inv = numpy.linalg.inv(c_grad_transf)
+    grad_transf_inv = numpy.linalg.inv(b_grad_transf)
+
+    numpy.copyto(coeffs_grad_x_def,
+                 numpy.add(coeffs_grad_x * grad_transf_inv[0][0],
+                           coeffs_grad_y * grad_transf_inv[1][0]))
+    numpy.copyto(coeffs_grad_y_def,
+                 numpy.add(coeffs_grad_x * grad_transf_inv[0][1],
+                           coeffs_grad_y * grad_transf_inv[1][1]))
+
+    return (coeffs_grad_x_def,
+            coeffs_grad_y_def,
+            fg_points)
 
 # Perspective transformation coefficients (linear coefficients).
 def p_t_coeffs(int dimension                                        ,

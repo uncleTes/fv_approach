@@ -1145,10 +1145,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         coeffs_trans = numpy.dot(grad_transf_inv, cofactors)
 
-        coeff_trans_x = coeffs_trans[0][1] if (n_axis) else \
-                        coeffs_trans[0][0]
-        coeff_trans_y = coeffs_trans[1][1] if (n_axis) else \
-                        coeffs_trans[1][0]
+        #coeff_trans_x = coeffs_trans[0][1] if (n_axis) else \
+        #                coeffs_trans[0][0]
+        #coeff_trans_y = coeffs_trans[1][1] if (n_axis) else \
+        #                coeffs_trans[1][0]
+        coeff_trans_x = cofactors[0][1] if (n_axis) else \
+                        cofactors[0][0]
+        coeff_trans_y = cofactors[1][1] if (n_axis) else \
+                        cofactors[1][0]
 
         return (coeff_trans_x * h * n_value,
                 coeff_trans_y * h * n_value)
@@ -2329,7 +2333,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 status = MPI.Status()
                 mpi_request.Wait(status)
 
-            #if (not is_background):
+            if (not is_background):
+                pass
             #    self.update_fg_grids(o_ranges,
             #                         ids_octree_contained)
             else:
@@ -3094,24 +3099,29 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         rec_sol += rec_sols[k] * l_s_coeffs[k]
                     self._f_on_borders.append(rec_sol)
 
-                    nodes_inter = [stencils[i][1 : 3], stencils[i][3 : 5]]
-                    owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
-                    c_inter = [(nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
-                               (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0]
-                    ncopyto(n_t_a_03[0][: dimension], \
-                            c_inter)
-                    apply_bil_mapping(n_t_a_03,
-                                      c_alpha ,
-                                      c_beta  ,
-                                      n_t_a_01,
-                                      dimension)
-                    apply_bil_mapping_inv(n_t_a_01,
-                                          b_alpha ,
-                                          b_beta  ,
-                                          n_t_a_02,
-                                          dimension)
+                    #nodes_inter = [stencils[i][1 : 3], stencils[i][3 : 5]]
+                    #owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
+                    #c_inter = [(nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
+                    #           (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0]
+                    #ncopyto(n_t_a_03[0][: dimension], \
+                    #        c_inter)
+                    #apply_bil_mapping(n_t_a_03,
+                    #                  c_alpha ,
+                    #                  c_beta  ,
+                    #                  n_t_a_01,
+                    #                  dimension)
+                    #apply_bil_mapping_inv(n_t_a_01,
+                    #                      b_alpha ,
+                    #                      b_beta  ,
+                    #                      n_t_a_02,
+                    #                      dimension)
                     l_s_coeffs_grad = utilities.least_squares_gradient(narray(t_centers_inv),
-                                                                       n_t_a_02[0][: dimension])
+                                                                       n_t_a_02[0][: dimension],
+                                                                       n_t_a_03[0][: dimension],
+                                                                       c_alpha,
+                                                                       c_beta,
+                                                                       b_alpha,
+                                                                       b_beta)
                     #rec_grads = utilities.exact_gradient(narray(t_centers_inv),
                     #                                     b_alpha  ,
                     #                                     b_beta   ,
@@ -3119,17 +3129,26 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #                                     apply_mapping = True)
                     rec_grad_x = 0
                     rec_grad_y = 0
+                    temp_rec_sols = solution(l_s_coeffs_grad[2]    ,
+                                             c_alpha               ,
+                                             c_beta                ,
+                                             #b_alpha              ,
+                                             #b_beta               ,
+                                             dim = dimension      ,
+                                             apply_mapping = True)
                     #for k in xrange(0, rec_grads.shape[1]):
-                    for k in xrange(0, rec_sols.shape[0]):
+                    for k in xrange(0, temp_rec_sols.shape[0]):
                         rec_grad_x += rec_sols[k] * l_s_coeffs_grad[0][k]
                         rec_grad_y += rec_sols[k] * l_s_coeffs_grad[1][k]
+                        #rec_grad_x += temp_rec_sols[k] * l_s_coeffs_grad[0][k]
+                        #rec_grad_y += temp_rec_sols[k] * l_s_coeffs_grad[1][k]
                         #rec_grad_x += rec_grads[0][k] * l_s_coeffs_grad[0][k]
                         #rec_grad_y += rec_grads[1][k] * l_s_coeffs_grad[1][k]
                     #print((m_index_grad, self._n_oct))
-                    if (self._grad_x[m_index_grad] < rec_grad_x):
-                        self._grad_x[m_index_grad] = rec_grad_x
-                    if (self._grad_y[m_index_grad] < rec_grad_y):
-                        self._grad_y[m_index_grad] = rec_grad_y
+                    #if (self._grad_x[m_index_grad] < rec_grad_x):
+                    self._grad_x[m_index_grad] = rec_grad_x
+                    #if (self._grad_y[m_index_grad] < rec_grad_y):
+                    self._grad_y[m_index_grad] = rec_grad_y
                     ex_grad = utilities.exact_gradient(n_c_inter,
                                                        c_alpha  ,
                                                        c_beta   ,
