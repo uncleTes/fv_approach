@@ -1594,13 +1594,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._f_nodes_exact_on_inter_borders = []
         self._f_on_borders_exact = []
         self._f_on_borders = []
-        self._grad_exact_x = [0] * self._tot_oct
-        self._grad_exact_y = [0] * self._tot_oct
-        self._grad_x = [0] * self._tot_oct
-        self._grad_y = [0] * self._tot_oct
+        self._grad_exact_x = []
+        self._grad_exact_y = []
+        self._grad_x = []
+        self._grad_y = []
         self._h_s_inter = []
         self._h_s_inter_on_board = []
-        self._h_s_inter_grad = [0] * self._tot_oct
+        self._h_s_inter_grad = []
 
         for i in xrange(0, ninters):
             # Rows indices for the \"PETSc\" matrix.
@@ -3146,17 +3146,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         #rec_grad_y += rec_grads[1][k] * l_s_coeffs_grad[1][k]
                     #print((m_index_grad, self._n_oct))
                     #if (self._grad_x[m_index_grad] < rec_grad_x):
-                    self._grad_x[m_index_grad] = rec_grad_x
+                    self._grad_x.append(rec_grad_x)
                     #if (self._grad_y[m_index_grad] < rec_grad_y):
-                    self._grad_y[m_index_grad] = rec_grad_y
+                    self._grad_y.append(rec_grad_y)
                     ex_grad = utilities.exact_gradient(n_c_inter,
                                                        c_alpha  ,
                                                        c_beta   ,
                                                        dim = dimension,
                                                        apply_mapping = True)
-                    self._grad_exact_x[m_index_grad] = ex_grad[0][0]
-                    self._grad_exact_y[m_index_grad] = ex_grad[1][0]
-                    self._h_s_inter_grad[m_index_grad] = h_inter
+                    self._grad_exact_x.append(ex_grad[0][0])
+                    self._grad_exact_y.append(ex_grad[1][0])
+                    self._h_s_inter_grad.append(h_inter)
                     bil_coeffs_empty = numpy.array([[], []])
                     coeffs_grad = self.get_gradient_coefficients(0                        ,
                                                                  dimension                ,
