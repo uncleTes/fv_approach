@@ -3042,6 +3042,62 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 t_centers_inv[-1][: dimension] = \
                                                 c_n_oct_center[: dimension]
                                                 l_t_indices_inv[-1] = m_index
+                    n_t_a_01_temp = numpy.zeros(shape = (1, 3), \
+                                                dtype = numpy.float64)
+                    n_t_a_02_temp = numpy.zeros(shape = (1, 3), \
+                                                dtype = numpy.float64)
+                    n_t_a_03_temp = numpy.zeros(shape = (1, 3), \
+                                                dtype = numpy.float64)
+                    ncopyto(n_t_a_03_temp[0][: dimension], \
+                            stencils[i][11 : 13])
+                    apply_bil_mapping(n_t_a_03_temp,
+                                      c_alpha ,
+                                      c_beta  ,
+                                      n_t_a_01_temp,
+                                      dimension)
+                    apply_bil_mapping_inv(n_t_a_01_temp,
+                                          b_alpha ,
+                                          b_beta  ,
+                                          n_t_a_02_temp,
+                                          dimension)
+                    c_n_oct_center_temp = ncopy(n_t_a_02_temp[0])
+                    t_centers_inv.append(c_n_oct_center_temp[: dimension])
+                    l_t_indices_inv.append(keys[i][1])
+                    if (keys[i][2] != -1):
+                        ncopyto(n_t_a_03_temp[0][: dimension], \
+                                stencils[i][9 : 11])
+                        apply_bil_mapping(n_t_a_03_temp,
+                                          c_alpha ,
+                                          c_beta  ,
+                                          n_t_a_01_temp,
+                                          dimension)
+                        apply_bil_mapping_inv(n_t_a_01_temp,
+                                              b_alpha ,
+                                              b_beta  ,
+                                              n_t_a_02_temp,
+                                              dimension)
+
+                        c_n_oct_center_temp = ncopy(n_t_a_02_temp[0])
+                        t_centers_inv.append(c_n_oct_center_temp[: dimension])
+                        l_t_indices_inv.append(keys[i][2])
+                    if (keys[i][4] != -1):
+                        ncopyto(n_t_a_03_temp[0][: dimension], \
+                                stencils[i][17 : 19])
+                        apply_bil_mapping(n_t_a_03_temp,
+                                          c_alpha ,
+                                          c_beta  ,
+                                          n_t_a_01_temp,
+                                          dimension)
+                        apply_bil_mapping_inv(n_t_a_01_temp,
+                                              b_alpha ,
+                                              b_beta  ,
+                                              n_t_a_02_temp,
+                                              dimension)
+
+                        c_n_oct_center_temp = ncopy(n_t_a_02_temp[0])
+                        t_centers_inv.append(c_n_oct_center_temp[: dimension])
+                        l_t_indices_inv.append(keys[i][4])
+
                     l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
                                                          n_t_a_02[0][: dimension])
                                                          #n_t_a_03[0][: dimension])
