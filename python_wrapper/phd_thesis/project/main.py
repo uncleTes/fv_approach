@@ -564,16 +564,16 @@ def compute(comm_dictionary     ,
          "_f_internal_nodes.txt"))
 
     if (n_grids > 1):
+        n_norm_inf, \
+        n_norm_L2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
+                                             laplacian.f_exact_on_bord   ,
+                                             laplacian.h_s_inter_on_board,
+                                             l2 = False                  ,
+                                             r_n_d = True)
+        w_n((n_norm_inf,
+             n_norm_L2 ,
+             "_f_borders.txt"))
         if (not proc_grid):
-            n_norm_inf, \
-            n_norm_L2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
-                                                 laplacian.f_exact_on_bord   ,
-                                                 laplacian.h_s_inter_on_board,
-                                                 l2 = False                  ,
-                                                 r_n_d = True)
-            w_n((n_norm_inf,
-                 n_norm_L2 ,
-                 "_f_borders.txt"))
             #print(laplacian.grad_exact_x.shape)
             #print(laplacian.grad_rec_x.shape)
             n_norm_inf, \
