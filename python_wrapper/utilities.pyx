@@ -1060,13 +1060,20 @@ def jacobian_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
 # https://it.wikipedia.org/wiki/Metodo_dei_minimi_quadrati
 def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       ,
                   numpy.ndarray[dtype = numpy.float64_t, ndim = 1] unknown_point,
-                  int dim = 2):
+                  int dim = 2                                                   ,
+                  bool bil_quad = False):
     # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
     # approximation will be: \"ax + by + cz + d\".
     cdef int n_points = points.shape[0]
     cdef int n_cols = dim + 2
     cdef size_t i
     cdef size_t j
+    if (bil_quad):
+        n_cols = n_points
+        if (n_points > 9):
+            #print("not grad " + str(n_points))
+            n_cols = 9
+            #print("not grad " + str(n_cols))
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] A = \
@@ -1081,30 +1088,57 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     if (points.size == 0):
         return n_e_array
 
-    for i in range(n_points):
-        for j in range(dim):
-            A[i][j] = points[i][j]
-        A[i][dim] = points[i][0] * points[i][1]
-        A[i][dim + 1] = 1
+    if (not bil_quad):
+        for i in range(n_points):
+            for j in range(dim):
+                A[i][j] = points[i][j]
+            A[i][dim] = points[i][0] * points[i][1]
+            A[i][dim + 1] = 1
+    else:
+        for i in range(n_points):
+            A[i][0] = points[i][0]
+            A[i][1] = points[i][1]
+            A[i][2] = points[i][0] * points[i][1]
+            A[i][3] = 1
+            A[i][4] = points[i][0] * points[i][0]
+            A[i][5] = points[i][1] * points[i][1]
+            if (n_points >= 7):
+                A[i][6] = points[i][0] * points[i][0] * points[i][1]
+            if (n_points >= 8):
+                A[i][7] = points[i][1] * points[i][1] * points[i][0]
+            if (n_points >= 9):
+                A[i][8] = points[i][1] * points[i][1] * points[i][0] * points[i][0]
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] At = A.T
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] AtA = numpy.dot(At, A)
+    if (bil_quad):
+      # Adding a term of regularization on the diagonal to avoid singular matrices.
+        numpy.fill_diagonal(AtA, AtA.diagonal() + 1.0e-6)
     # Pseudo-inverse matrix.
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] p = \
          numpy.dot(numpy.linalg.inv(AtA), At)
-
-    # Multiplying \"a\" time \"x\".
-    p[0, :] = p[0, :] * unknown_point[0]
-    # Multiplying \"b\" time \"y\".
-    p[1, :] = p[1, :] * unknown_point[1]
-    # Multiplying \"c\" time \"x*y\".
-    p[2, :] = p[2, :] * (unknown_point[0] * unknown_point[1])
-    #if (dim == 3):
-    #    # Multiplying \"c\" time \"z\".
-    #    p[2, :] = p[2, :] * unknown_point[2]
+    if (not bil_quad):
+        # Multiplying \"a\" time \"x\".
+        p[0, :] = p[0, :] * unknown_point[0]
+        # Multiplying \"b\" time \"y\".
+        p[1, :] = p[1, :] * unknown_point[1]
+        # Multiplying \"c\" time \"x*y\".
+        p[2, :] = p[2, :] * (unknown_point[0] * unknown_point[1])
+    else:
+        p[0, :] = p[0, :] * unknown_point[0]
+        p[1, :] = p[1, :] * unknown_point[1]
+        p[2, :] = p[2, :] * (unknown_point[0] * unknown_point[1])
+        p[4, :] = p[4, :] * (unknown_point[0] * unknown_point[0])
+        p[5, :] = p[5, :] * (unknown_point[1] * unknown_point[1])
+        if (n_points >= 7):
+            p[6, :] = p[6, :] * (unknown_point[0] * unknown_point[0] * unknown_point[1])
+        if (n_points >= 8):
+            p[7, :] = p[7, :] * (unknown_point[1] * unknown_point[1] * unknown_point[0])
+        if (n_points >= 9):
+            p[8, :] = p[8, :] * (unknown_point[1] * unknown_point[1] * unknown_point[0] * unknown_point[0])
 
     coeffs = numpy.sum(p, axis = 0)
 
@@ -1121,13 +1155,20 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
                                          ndim = 1] b_alpha        ,
                            numpy.ndarray[dtype = numpy.float64_t, \
                                          ndim = 1] b_beta         ,
-                           int dim = 2):
+                           int dim = 2                            ,
+                           bool bil_quad = False):
     # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
     # approximation will be: \"ax + by + cz + d\".
     cdef int n_points = points.shape[0]
     cdef int n_cols = dim + 2
     cdef size_t i
     cdef size_t j
+    if (bil_quad):
+        n_cols = n_points
+        if (n_points > 9):
+            #print("grad " + str(n_points))
+            n_cols = 9
+            #print("grad " + str(n_cols))
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] A = \
@@ -1149,35 +1190,45 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
     if (points.size == 0):
         return n_e_array
 
-#    apply_bil_mapping(points,
-#                      b_alpha ,
-#                      b_beta  ,
-#                      n_t_a_01,
-#                      dim)
-#    apply_bil_mapping_inv(n_t_a_01,
-#                          c_alpha ,
-#                          c_beta  ,
-#                          fg_points,
-#                          dim      ,
-#                          True)
-#
-    for i in range(n_points):
-        for j in range(dim):
-        #    A[i][j] = fg_points[i][j]
-        #A[i][dim] = fg_points[i][0] * fg_points[i][1]
-            A[i][j] = points[i][j]
-        A[i][dim] = points[i][0] * points[i][1]
-        A[i][dim + 1] = 1
-    #for i in range(n_points):
-    #    A[i][0] = 1
-    #    for j in range(1, dim + 1):
-    #        A[i][j] = points[i][j - 1]
-    #    A[i][dim + 1] = points[i][0] * points[i][1]
+    apply_bil_mapping(points,
+                      b_alpha ,
+                      b_beta  ,
+                      n_t_a_01,
+                      dim)
+    apply_bil_mapping_inv(n_t_a_01,
+                          c_alpha ,
+                          c_beta  ,
+                          fg_points,
+                          dim      ,
+                          True)
+    if (not bil_quad):
+        for i in range(n_points):
+            for j in range(dim):
+                A[i][j] = fg_points[i][j]
+            A[i][dim] = fg_points[i][0] * fg_points[i][1]
+            A[i][dim + 1] = 1
+    else:
+        for i in range(n_points):
+            A[i][0] = fg_points[i][0]
+            A[i][1] = fg_points[i][1]
+            A[i][2] = fg_points[i][0] * fg_points[i][1]
+            A[i][3] = 1
+            A[i][4] = fg_points[i][0] * fg_points[i][0]
+            A[i][5] = fg_points[i][1] * fg_points[i][1]
+            if (n_points >= 7):
+                A[i][6] = fg_points[i][0] * fg_points[i][0] * fg_points[i][1]
+            if (n_points >= 8):
+                A[i][7] = fg_points[i][1] * fg_points[i][1] * fg_points[i][0]
+            if (n_points >= 9):
+                A[i][8] = fg_points[i][1] * fg_points[i][1] * fg_points[i][0] * fg_points[i][0]
 
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] At = A.T
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] AtA = numpy.dot(At, A)
+    if (bil_quad):
+      # Adding a term of regularization on the diagonal to avoid singular matrices.
+        numpy.fill_diagonal(AtA, AtA.diagonal() + 1.0e-6)
     # Pseudo-inverse matrix.
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] p = \
@@ -1205,30 +1256,61 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
     #numpy.copyto(coeffs_grad_y,
     #             numpy.add(p[2, :],
     #                       p[3, :] * unknown_point[0]))
-    numpy.copyto(coeffs_grad_x,
-                 numpy.add(p[0, :],
-                           p[2, :] * unknown_point[1]))
-    numpy.copyto(coeffs_grad_y,
-                 numpy.add(p[1, :],
-                           p[2, :] * unknown_point[0]))
     #numpy.copyto(coeffs_grad_x,
     #             numpy.add(p[0, :],
-    #                       p[2, :] * orig_unknown_point[1]))
+    #                       p[2, :] * unknown_point[1]))
     #numpy.copyto(coeffs_grad_y,
     #             numpy.add(p[1, :],
-    #                       p[2, :] * orig_unknown_point[0]))
+    #                       p[2, :] * unknown_point[0]))
+    if (not bil_quad):
+        numpy.copyto(coeffs_grad_x,
+                     numpy.add(p[0, :],
+                               p[2, :] * orig_unknown_point[1]))
+        numpy.copyto(coeffs_grad_y,
+                     numpy.add(p[1, :],
+                               p[2, :] * orig_unknown_point[0]))
+    else:
+        numpy.copyto(coeffs_grad_x,
+                     numpy.add(p[0, :],
+                               numpy.add(p[2, :] * orig_unknown_point[1],
+                                         2 * p[4, :] * orig_unknown_point[0])))
+        numpy.copyto(coeffs_grad_y,
+                     numpy.add(p[1, :],
+                               numpy.add(p[2, :] * orig_unknown_point[0],
+                                         2 * p[5, :] * orig_unknown_point[1])))
+        if (n_points >= 7):
+            numpy.add(coeffs_grad_x,
+                      2 * p[6, :] * orig_unknown_point[0] * orig_unknown_point[1],
+                      coeffs_grad_x)
+            numpy.add(coeffs_grad_y,
+                      p[6, :] * orig_unknown_point[0] * orig_unknown_point[0],
+                      coeffs_grad_y)
+        if (n_points >= 8):
+            numpy.add(coeffs_grad_x,
+                      p[7, :] * orig_unknown_point[1] * orig_unknown_point[1],
+                      coeffs_grad_x)
+            numpy.add(coeffs_grad_y,
+                      2 * p[7, :] * orig_unknown_point[0] * orig_unknown_point[1],
+                      coeffs_grad_y)
+        if (n_points >= 9):
+            numpy.add(coeffs_grad_x,
+                      2 * p[8, :] * orig_unknown_point[0] * orig_unknown_point[1] * orig_unknown_point[1],
+                      coeffs_grad_x)
+            numpy.add(coeffs_grad_y,
+                      2 * p[8, :] * orig_unknown_point[0] * orig_unknown_point[0] * orig_unknown_point[1],
+                      coeffs_grad_y)
 
-    #c_grad_transf = jacobian_bil_mapping(orig_unknown_point,
-    #                                     c_alpha        ,
-    #                                     c_beta         ,
-    #                                     dim = 2)
-    b_grad_transf = jacobian_bil_mapping(unknown_point,
-                                         b_alpha        ,
-                                         b_beta         ,
+    c_grad_transf = jacobian_bil_mapping(orig_unknown_point,
+                                         c_alpha        ,
+                                         c_beta         ,
                                          dim = 2)
+    #b_grad_transf = jacobian_bil_mapping(unknown_point,
+    #                                     b_alpha        ,
+    #                                     b_beta         ,
+    #                                     dim = 2)
     #grad_transf_inv = numpy.linalg.inv(numpy.dot(b_grad_transf, c_grad_transf))
-    #grad_transf_inv = numpy.linalg.inv(c_grad_transf)
-    grad_transf_inv = numpy.linalg.inv(b_grad_transf)
+    grad_transf_inv = numpy.linalg.inv(c_grad_transf)
+    #grad_transf_inv = numpy.linalg.inv(b_grad_transf)
 
     numpy.copyto(coeffs_grad_x_def,
                  numpy.add(coeffs_grad_x * grad_transf_inv[0][0],

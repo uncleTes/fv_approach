@@ -3097,8 +3097,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         t_centers_inv.append(c_n_oct_center_temp[: dimension])
                         l_t_indices_inv.append(keys[i][4])
 
-                    l_s_coeffs = utilities.least_squares(narray(t_centers_inv),
-                                                         n_t_a_02[0][: dimension])
+                    l_s_coeffs = utilities.least_squares(narray(t_centers_inv)   ,
+                                                         n_t_a_02[0][: dimension],
+                                                         dim = 2                 ,
+                                                         bil_quad = True)
                                                          #n_t_a_03[0][: dimension])
                     #ncopyto(n_t_a_03[0][: dimension], \
                     #        stencils[i][1 : 3])
@@ -3176,7 +3178,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                        c_alpha,
                                                                        c_beta,
                                                                        b_alpha,
-                                                                       b_beta)
+                                                                       b_beta,
+                                                                       dim = 2,
+                                                                       bil_quad = True)
                     #rec_grads = utilities.exact_gradient(narray(t_centers_inv),
                     #                                     b_alpha  ,
                     #                                     b_beta   ,
