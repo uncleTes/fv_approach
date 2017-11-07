@@ -1080,7 +1080,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                        # to evaluate the coeffs
                                    n_axis_given = 0 ,  # Same explication as for
                                    n_value_given = 0,  # \"h_given\".
-                                   grid = -1):
+                                   grid = -1        ,
+                                   also_grads_coeffs = False):
         octree = self._octree
         if (grid == -1):
             grid = self._proc_g
@@ -1149,24 +1150,28 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         coeffs_trans[0][0]
         coeff_trans_y = coeffs_trans[1][1] if (n_axis) else \
                         coeffs_trans[1][0]
+        grad_transf_inv_x = grad_transf_inv[0][1] if (n_axis) else \
+                            grad_transf_inv[0][0]
+        grad_transf_inv_y = grad_transf_inv[1][1] if (n_axis) else \
+                            grad_transf_inv[1][0]
 
-        n_coeffs_grad_x = numpy.array([coeff_in_grad_x    ,
-                                       coeff_out_grad_x   ,
-                                       coeff_node_1_grad_x,
-                                       coeff_node_0_grad_x])
-        n_coeffs_grad_y = numpy.array([coeff_in_grad_y    ,
-                                       coeff_out_grad_y   ,
-                                       coeff_node_1_grad_y,
-                                       coeff_node_0_grad_y])
+        n_coeffs_grad_x_0 = numpy.array([coeff_in_grad_x    ,
+                                         coeff_out_grad_x   ,
+                                         coeff_node_1_grad_x,
+                                         coeff_node_0_grad_x])
+        n_coeffs_grad_y_0 = numpy.array([coeff_in_grad_y    ,
+                                         coeff_out_grad_y   ,
+                                         coeff_node_1_grad_y,
+                                         coeff_node_0_grad_y])
 
-        n_coeffs_grad_x = n_coeffs_grad_x * (den_inv               * \
-                                             h                     * \
-                                             coeff_trans_x         * \
-                                             n_value)
-        n_coeffs_grad_y = n_coeffs_grad_y * (den_inv               * \
-                                             h                     * \
-                                             coeff_trans_y         * \
-                                             n_value)
+        n_coeffs_grad_x = n_coeffs_grad_x_0 * (den_inv               * \
+                                               h                     * \
+                                               coeff_trans_x         * \
+                                               n_value)
+        n_coeffs_grad_y = n_coeffs_grad_y_0 * (den_inv               * \
+                                               h                     * \
+                                               coeff_trans_y         * \
+                                               n_value)
         n_coeffs = n_coeffs_grad_x + n_coeffs_grad_y
 
         mult_node_1 = 1.0
@@ -1183,6 +1188,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
         coeffs_node_1 = mult_node_1 * n_coeffs[2]
         coeffs_node_0 = mult_node_0 * n_coeffs[3]
+
+        if (also_grads_coeffs):
+            return (n_coeffs         ,
+                    coeffs_node_1    ,
+                    coeffs_node_0    ,
+                    n_coeffs_grad_x_0 * grad_transf_inv_x,
+                    n_coeffs_grad_y_0 * grad_transf_inv_y)
+                    #numpy.add(n_coeffs_grad_x_0 * grad_transf_inv[0][0],
+                    #          n_coeffs_grad_y_0 * grad_transf_inv[1][0]),
+                    #numpy.add(n_coeffs_grad_x_0 * grad_transf_inv[0][1],
+                    #          n_coeffs_grad_y_0 * grad_transf_inv[1][1]))
 
         return (n_coeffs     ,
                 coeffs_node_1,
@@ -1464,8 +1480,13 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._f_nodes_exact_on_inter_borders = []
         self._f_on_borders_exact = []
         self._f_on_borders = []
+        self._grad_exact_x = []
+        self._grad_exact_y = []
+        self._grad_x = []
+        self._grad_y = []
         self._h_s_inter = []
         self._h_s_inter_on_board = []
+        self._h_s_inter_grad = []
 
         for i in xrange(0, ninters):
             # Rows indices for the \"PETSc\" matrix.
@@ -2776,6 +2797,11 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 t_centers_inv = []
                 l_t_indices_inv = []
                 t_nodes_inv = []
+                nodes_inter = [stencils[i][1 : 3], stencils[i][3 : 5]]
+                owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
+                c_inter = [(nodes_inter[1][0] + nodes_inter[0][0]) / 2.0,
+                           (nodes_inter[1][1] + nodes_inter[0][1]) / 2.0]
+                n_c_inter = narray([c_inter])
                 # Getting coordinates of the first neighbour (the one of the
                 # intersection) of the rings of the nodes (it will be the same
                 # for both the nodes).
@@ -2944,16 +2970,67 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     bil_coeffs_empty = numpy.array([[], []])
                     n_coeffs     , \
                     coeffs_node_1, \
-                    coeffs_node_0 = self.get_interface_coefficients(0                        ,
-                                                                    dimension                ,
-                                                                    nodes_inter              ,
-                                                                    owners_centers           ,
-                                                                    bil_coeffs_empty         ,
-                                                                    use_inter = False        ,
-                                                                    h_given = h_inter        ,
-                                                                    n_axis_given = keys[i][5],
-                                                                    n_value_given = keys[i][6],
-                                                                    grid = keys[i][0])
+                    coeffs_node_0, \
+                    coeffs_grads_x,\
+                    coeffs_grads_y = self.get_interface_coefficients(0                        ,
+                                                                     dimension                ,
+                                                                     nodes_inter              ,
+                                                                     owners_centers           ,
+                                                                     bil_coeffs_empty         ,
+                                                                     use_inter = False        ,
+                                                                     h_given = h_inter        ,
+                                                                     n_axis_given = keys[i][5],
+                                                                     n_value_given = keys[i][6],
+                                                                     grid = keys[i][0]         ,
+                                                                     also_grads_coeffs = True)
+                    rec_grad_x = 0
+                    rec_grad_y = 0
+                    for k in xrange(0, rec_sols.shape[0]):
+                        rec_grad_x += coeffs_grads_x[0] * rec_sols[k] * l_s_coeffs[k]
+                        rec_grad_y += coeffs_grads_y[0] * rec_sols[k] * l_s_coeffs[k]
+                        rec_grad_x += coeffs_grads_x[3] * rec_sols[k] * l_s_coeffs_node_0[k]
+                        rec_grad_y += coeffs_grads_y[3] * rec_sols[k] * l_s_coeffs_node_0[k]
+                        rec_grad_x += coeffs_grads_x[2] * rec_sols[k] * l_s_coeffs_node_1[k]
+                        rec_grad_y += coeffs_grads_y[2] * rec_sols[k] * l_s_coeffs_node_1[k]
+
+
+                    cs_n_1 = stencils[i][11 : 13]
+                    #ncopyto(n_t_a_03[0][: dimension], \
+                    #        cs_n_1)
+                    #apply_bil_mapping(n_t_a_03,
+                    #                  c_alpha ,
+                    #                  c_beta  ,
+                    #                  n_t_a_01,
+                    #                  dimension)
+                    #apply_bil_mapping_inv(n_t_a_01,
+                    #                      b_alpha ,
+                    #                      b_beta  ,
+                    #                      n_t_a_02,
+                    #                      dimension)
+                    n_cs_n_1 = narray([cs_n_1])
+                    ex_sol_1 = solution(n_cs_n_1,
+                    #ex_sol_1 = solution(n_t_a_02,
+                                        c_alpha              ,
+                                        c_beta               ,
+                    #                    b_alpha              ,
+                    #                    b_beta               ,
+                                        dim = dimension      ,
+                                        apply_mapping = True)
+                    #rec_grad_x += coeffs_grads_x[1] * ex_sol_1
+                    #rec_grad_y += coeffs_grads_y[1] * ex_sol_1
+
+                    self._grad_x.append(rec_grad_x)
+                    self._grad_y.append(rec_grad_y)
+
+                    ex_grad = utilities.exact_gradient(n_c_inter,
+                                                       c_alpha  ,
+                                                       c_beta   ,
+                                                       dim = dimension,
+                                                       apply_mapping = True)
+                    self._grad_exact_x.append(ex_grad[0][0])
+                    self._grad_exact_y.append(ex_grad[1][0])
+                    self._h_s_inter_grad.append(h_inter)
+
                     #insert_mode = PETSc.InsertMode.ADD_VALUES
                     #self._rhs.setValues(keys[i][1],
                     #                    ex_sol[0] * -1.0 * n_coeffs[0],
@@ -4071,3 +4148,22 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def h_s_inter_on_board(self):
         return numpy.array(self._h_s_inter_on_board)
 
+    @property
+    def h_s_inter_grad(self):
+        return numpy.array(self._h_s_inter_grad)
+
+    @property
+    def grad_exact_x(self):
+        return numpy.array(self._grad_exact_x)
+
+    @property
+    def grad_exact_y(self):
+        return numpy.array(self._grad_exact_y)
+
+    @property
+    def grad_rec_x(self):
+        return numpy.array(self._grad_x)
+
+    @property
+    def grad_rec_y(self):
+        return numpy.array(self._grad_y)

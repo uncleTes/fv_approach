@@ -574,6 +574,25 @@ def compute(comm_dictionary     ,
         w_n((n_norm_inf,
              n_norm_L2 ,
              "_f_borders.txt"))
+        if (not proc_grid):
+            n_norm_inf, \
+            n_norm_L2 = laplacian.evaluate_norms(laplacian.grad_rec_x    ,
+                                                 laplacian.grad_exact_x  ,
+                                                 laplacian.h_s_inter_grad,
+                                                 l2 = False              ,
+                                                 r_n_d = True)
+            w_n((n_norm_inf,
+                 n_norm_L2 ,
+                 "_grad_x.txt"))
+            n_norm_inf, \
+            n_norm_L2 = laplacian.evaluate_norms(laplacian.grad_rec_y    ,
+                                                 laplacian.grad_exact_y  ,
+                                                 laplacian.h_s_inter_grad,
+                                                 l2 = False              ,
+                                                 r_n_d = True)
+            w_n((n_norm_inf,
+                 n_norm_L2 ,
+                 "_grad_y.txt"))
 
     interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
