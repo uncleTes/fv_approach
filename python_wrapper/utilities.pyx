@@ -1065,7 +1065,8 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
     # approximation will be: \"ax + by + cz + d\".
     cdef int n_points = points.shape[0]
-    cdef int n_cols = dim + 2
+    #cdef int n_cols = dim + 2
+    cdef int n_cols = dim + 1
     cdef size_t i
     cdef size_t j
     if (bil_quad):
@@ -1092,8 +1093,9 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
         for i in range(n_points):
             for j in range(dim):
                 A[i][j] = points[i][j]
-            A[i][dim] = points[i][0] * points[i][1]
-            A[i][dim + 1] = 1
+            #A[i][dim] = points[i][0] * points[i][1]
+            #A[i][dim + 1] = 1
+            A[i][dim] = 1
     else:
         for i in range(n_points):
             A[i][0] = points[i][0]
@@ -1126,7 +1128,7 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
         # Multiplying \"b\" time \"y\".
         p[1, :] = p[1, :] * unknown_point[1]
         # Multiplying \"c\" time \"x*y\".
-        p[2, :] = p[2, :] * (unknown_point[0] * unknown_point[1])
+        #p[2, :] = p[2, :] * (unknown_point[0] * unknown_point[1])
     else:
         p[0, :] = p[0, :] * unknown_point[0]
         p[1, :] = p[1, :] * unknown_point[1]
@@ -1160,7 +1162,8 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
     # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
     # approximation will be: \"ax + by + cz + d\".
     cdef int n_points = points.shape[0]
-    cdef int n_cols = dim + 2
+    #cdef int n_cols = dim + 2
+    cdef int n_cols = dim + 1
     cdef size_t i
     cdef size_t j
     if (bil_quad):
@@ -1176,7 +1179,7 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
                      dtype = numpy.float64)
     cdef numpy.ndarray[dtype = numpy.float64_t, \
                        ndim = 2] fg_points = \
-         numpy.zeros(shape = (n_points, 3), \
+         numpy.zeros(shape = (n_points, 2), \
                      dtype = numpy.float64)
     # A \"numpy\" empty array (size == 0) of shape (0,).
     cdef numpy.ndarray[dtype = numpy.float64_t,
@@ -1190,23 +1193,25 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
     if (points.size == 0):
         return n_e_array
 
-    apply_bil_mapping(points,
-                      b_alpha ,
-                      b_beta  ,
-                      n_t_a_01,
-                      dim)
-    apply_bil_mapping_inv(n_t_a_01,
-                          c_alpha ,
-                          c_beta  ,
-                          fg_points,
-                          dim      ,
-                          True)
+    #apply_bil_mapping(points,
+    #                  b_alpha ,
+    #                  b_beta  ,
+    #                  n_t_a_01,
+    #                  dim)
+    #apply_bil_mapping_inv(n_t_a_01,
+    #                      c_alpha ,
+    #                      c_beta  ,
+    #                      fg_points,
+    #                      dim      ,
+    #                      True)
+    numpy.copyto(fg_points, points)
     if (not bil_quad):
         for i in range(n_points):
             for j in range(dim):
                 A[i][j] = fg_points[i][j]
-            A[i][dim] = fg_points[i][0] * fg_points[i][1]
-            A[i][dim + 1] = 1
+            #A[i][dim] = fg_points[i][0] * fg_points[i][1]
+            #A[i][dim + 1] = 1
+            A[i][dim] = 1
     else:
         for i in range(n_points):
             A[i][0] = fg_points[i][0]
@@ -1263,12 +1268,16 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
     #             numpy.add(p[1, :],
     #                       p[2, :] * unknown_point[0]))
     if (not bil_quad):
+        #numpy.copyto(coeffs_grad_x,
+        #             numpy.add(p[0, :],
+        #                       p[2, :] * unknown_point[1]))
+        #numpy.copyto(coeffs_grad_y,
+        #             numpy.add(p[1, :],
+        #                       p[2, :] * unknown_point[0]))
         numpy.copyto(coeffs_grad_x,
-                     numpy.add(p[0, :],
-                               p[2, :] * orig_unknown_point[1]))
+                     p[0, :])
         numpy.copyto(coeffs_grad_y,
-                     numpy.add(p[1, :],
-                               p[2, :] * orig_unknown_point[0]))
+                     p[1, :])
     else:
         numpy.copyto(coeffs_grad_x,
                      numpy.add(p[0, :],
@@ -1300,17 +1309,17 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
                       2 * p[8, :] * orig_unknown_point[0] * orig_unknown_point[0] * orig_unknown_point[1],
                       coeffs_grad_y)
 
-    c_grad_transf = jacobian_bil_mapping(orig_unknown_point,
-                                         c_alpha        ,
-                                         c_beta         ,
-                                         dim = 2)
-    #b_grad_transf = jacobian_bil_mapping(unknown_point,
-    #                                     b_alpha        ,
-    #                                     b_beta         ,
+    #c_grad_transf = jacobian_bil_mapping(orig_unknown_point,
+    #                                     c_alpha        ,
+    #                                     c_beta         ,
     #                                     dim = 2)
+    b_grad_transf = jacobian_bil_mapping(unknown_point,
+                                         b_alpha        ,
+                                         b_beta         ,
+                                         dim = 2)
     #grad_transf_inv = numpy.linalg.inv(numpy.dot(b_grad_transf, c_grad_transf))
-    grad_transf_inv = numpy.linalg.inv(c_grad_transf)
-    #grad_transf_inv = numpy.linalg.inv(b_grad_transf)
+    #grad_transf_inv = numpy.linalg.inv(c_grad_transf)
+    grad_transf_inv = numpy.linalg.inv(b_grad_transf)
 
     numpy.copyto(coeffs_grad_x_def,
                  numpy.add(coeffs_grad_x * grad_transf_inv[0][0],
