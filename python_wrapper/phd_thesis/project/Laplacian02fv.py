@@ -3928,6 +3928,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     stencil[displ + step + 1] = stencil[displ+step+1] + value_to_store
                                     stencil[displ + step + 2] = codim
                                     stencil[displ + step + 3] = face_or_node_idx
+                                    if (codim == 1):
+                                        normal_inter, \
+                                        n_normal_inter = octree.get_normal(inter                  ,
+                                                                           also_numpy_normal = True,
+                                                                           is_ptr = True)
+                                        n_axis = numpy.nonzero(n_normal_inter)[0][0]
+                                        n_value = n_normal_inter[n_axis]
+                                        stencil[displ +  step + 3] = \
+                                            stencil[displ + step + 3] * n_value
                                     #print(value_to_store)
                                     #print(stencil)
                                     #step = 2
