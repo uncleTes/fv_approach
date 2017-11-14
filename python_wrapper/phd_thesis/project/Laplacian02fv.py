@@ -578,7 +578,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #    print("index " + str(index) + " codim " + str(codim) + " f_o_n " + str(f_o_n))
                     stencil = self._edl.get(key)
                     stencil[s_i] = index
-                    s_i += 2
+                    stencil[s_i + 2] = codim
+                    stencil[s_i + 3] = f_o_n
+                    if (codim == 1):
+                        normal_inter, \
+                        n_normal_inter = octree.get_normal(octant                  ,
+                                                           also_numpy_normal = True,
+                                                           is_ptr = False          ,
+                                                           iface = f_o_n)
+                        n_axis = numpy.nonzero(n_normal_inter)[0][0]
+                        n_value = n_normal_inter[n_axis]
+                        stencil[s_i + 3] = stencil[s_i + 3] * n_value
+                    s_i += 4
+                    #s_i += 2
 
             extra_msg = ""
 
@@ -703,7 +715,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # coefficients to multiply approximation (being in a case of a
                 # possible jump of 1 level between elements, we have to store
                 # two possible neighbours for each face of the current octant).
-                l_stencil = 21 if (dimension == 2) else 31
+                #l_stencil = 21 if (dimension == 2) else 31
+                l_stencil = 35
                 stencil = [0, -1] * (l_stencil/2)
                 stencil.append(0)
                 stencil[0] = h
@@ -1080,12 +1093,17 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                       # to evaluate the coeffs
                                   n_axis_given = 0 ,  # Same explication as for
                                   n_value_given = 0,  # \"h_given\".
-                                  grid = -1):
+                                  grid = -1        ,
+                                  inter_center = None):
         octree = self._octree
         if (grid == -1):
             grid = self._proc_g
         alpha = self.get_trans(grid)[1]
         beta = self.get_trans(grid)[2]
+        if (inter_center):
+            alpha = self.get_trans(0)[1]
+            beta = self.get_trans(0)[2]
+
         is_bound_inter = False
         n_axis = n_axis_given
         n_value = n_value_given
@@ -1108,18 +1126,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
             h = octree.get_area(inter        ,
                                 is_ptr = True,
                                 is_inter = True)
-        h_inv = (1.0 / h)
+        if (not inter_center):
+            h_inv = (1.0 / h)
 
-        d_nodes_x    , \
-        d_nodes_y    , \
-        c_inter      , \
-        d_o_centers_x, \
-        d_o_centers_y = self.get_interface_distances(dimension     ,
-                                                     h             ,
-                                                     nodes_inter   ,
-                                                     owners_centers,
-                                                     is_bound_inter,
-                                                     n_normal_inter)
+            d_nodes_x    , \
+            d_nodes_y    , \
+            c_inter      , \
+            d_o_centers_x, \
+            d_o_centers_y = self.get_interface_distances(dimension     ,
+                                                         h             ,
+                                                         nodes_inter   ,
+                                                         owners_centers,
+                                                         is_bound_inter,
+                                                         n_normal_inter)
+        else:
+            c_inter = inter_center
 
         #den = (d_o_centers_x * d_nodes_y) - \
         #      (d_o_centers_y * d_nodes_x)
@@ -2212,31 +2233,57 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._n_edg = None
         # TODO: check to see if is better to use int64 or uint64.
         if not is_background:
-            self._d_type_s = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
+            self._d_type_s = numpy.dtype('(1, 13)i8, (1, 35)f8') if \
                              (dimension == 2) else                 \
                              numpy.dtype('(1, 13)i8, (1, 31)f8')
-            blocks_length_s = [13, 21] if (dimension == 2) else [13, 31]
+            blocks_length_s = [13, 35] if (dimension == 2) else [13, 31]
             blocks_displacement_s = [0, 104]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
+            self._d_type_r = numpy.dtype('(1, 13)i8, (1, 35)f8') if \
                              (dimension == 2) else                 \
                              numpy.dtype('(1, 13)i8, (1, 31)f8')
-            blocks_length_r = [13, 21] if (dimension == 2) else [13, 31]
+            blocks_length_r = [13, 35] if (dimension == 2) else [13, 31]
             blocks_displacement_r = [0, 104]
         else:
-            self._d_type_s = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
+            self._d_type_s = numpy.dtype('(1, 13)i8, (1, 35)f8') if \
                              (dimension == 2) else                 \
                              numpy.dtype('(1, 13)i8, (1, 31)f8')
-            blocks_length_s = [13, 21] if (dimension == 2) else [13, 31]
+            blocks_length_s = [13, 35] if (dimension == 2) else [13, 31]
             blocks_displacement_s = [0, 104]
             mpi_datatypes = [MPI.INT64_T,
                              MPI.DOUBLE]
-            self._d_type_r = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
+            self._d_type_r = numpy.dtype('(1, 13)i8, (1, 35)f8') if \
                              (dimension == 2) else                 \
                              numpy.dtype('(1, 13)i8, (1,31)f8')
-            blocks_length_r = [13, 21] if (dimension == 2) else [13, 31]
+            blocks_length_r = [13, 35] if (dimension == 2) else [13, 31]
             blocks_displacement_r = [0, 104]
+        #if not is_background:
+        #    self._d_type_s = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
+        #                     (dimension == 2) else                 \
+        #                     numpy.dtype('(1, 13)i8, (1, 31)f8')
+        #    blocks_length_s = [13, 21] if (dimension == 2) else [13, 31]
+        #    blocks_displacement_s = [0, 104]
+        #    mpi_datatypes = [MPI.INT64_T,
+        #                     MPI.DOUBLE]
+        #    self._d_type_r = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
+        #                     (dimension == 2) else                 \
+        #                     numpy.dtype('(1, 13)i8, (1, 31)f8')
+        #    blocks_length_r = [13, 21] if (dimension == 2) else [13, 31]
+        #    blocks_displacement_r = [0, 104]
+        #else:
+        #    self._d_type_s = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
+        #                     (dimension == 2) else                 \
+        #                     numpy.dtype('(1, 13)i8, (1, 31)f8')
+        #    blocks_length_s = [13, 21] if (dimension == 2) else [13, 31]
+        #    blocks_displacement_s = [0, 104]
+        #    mpi_datatypes = [MPI.INT64_T,
+        #                     MPI.DOUBLE]
+        #    self._d_type_r = numpy.dtype('(1, 13)i8, (1, 21)f8') if \
+        #                     (dimension == 2) else                 \
+        #                     numpy.dtype('(1, 13)i8, (1,31)f8')
+        #    blocks_length_r = [13, 21] if (dimension == 2) else [13, 31]
+        #    blocks_displacement_r = [0, 104]
         # MPI data type to send.
         self._mpi_d_t_s = MPI.Datatype.Create_struct(blocks_length_s      ,
                                                      blocks_displacement_s,
@@ -2469,117 +2516,309 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # \"idxs[0]\" because is a numpy array, so to select the array we have
         # to use the index notation.
         for idx in idxs[0]:
-            oct_center, \
-            n_oct_center  = get_center(local_idxs[idx]   ,
-                                       ptr_octant = False,
-                                       also_numpy_center = True)
-            #if (keys[idx][1] == 639):
-            #    print(list_edg[idx])
-            #    print(local_idxs[idx])
-            h = octree.get_area(local_idxs[idx])
-            # TODO: pass also \"h\" of the background octants to be sure of their
-            #       dimension carachteristic in case more complicated (here is just
-            #       two time the \"h\" of the foreground octants).
-            self._h_s_inter_on_board.append(stencils[idx][0])
-            self._f_on_borders_exact.append(ex_sols[idx])
-            n_rec_sol = solution(narray([n_oct_center]),
-                                 c_alpha               ,
-                                 c_beta                ,
-                                 dim = 2               ,
-                                 apply_mapping = True)
-            rec_sol = n_rec_sol[0]
-            if (rec_ord == 2):
-                # TODO: check correctness of the ring and of the indices found
-                #       (understand if \"n_cs_n_is[1]\" has to be masked or not).
-                oct_ring = get_points_local_ring(t_centers_inv[idx],
-                                                 n_oct_center)
-                # Neighbour centers neighbour indices.
-                n_cs_n_is = f_r_n((local_idxs[idx],
-                                   oct_ring       ,
-                                   t_centers_inv[idx]))
-                #if (keys[idx][1] == 148):
-                #    print(oct_ring)
-                #    print(local_idxs[idx])
-                #    print(n_cs_n_is)
-                #if (keys[idx][1] == 148):
-                #    print(n_cs_n_is)
-                rec_sols = solution(n_cs_n_is[0],
-                                    c_alpha     ,
-                                    c_beta      ,
-                                    dim = 2     ,
-                                    apply_mapping = True)
-                coeffs = b_c(n_cs_n_is[0],
-                             t_centers_inv[idx])
-                #if (keys[idx][1] == 148):
-                #    print(coeffs)
-                rec_sol_0 = rec_sols[0] * coeffs[0]
-                rec_sol_1 = rec_sols[1] * coeffs[1]
-                rec_sol_2 = rec_sols[2] * coeffs[2]
-                rec_sol_3 = 0.0
-                if (n_cs_n_is[0].shape[0] == 4):
-                    rec_sol_3 = rec_sols[3] * coeffs[3]
-                rec_sol = rec_sol_0 + rec_sol_1 + rec_sol_2 + rec_sol_3
-            self._f_on_borders.append(rec_sol)
-
-            # Checkout how the \"stencil\" is created in the function
-            # \"create_mask\".
-            displ = 1 + dimension
-            step = 2
-            row_indices = []
-            col_indices = []
-            col_values = []
-            for i in xrange(displ, len(stencils[idx]), step):
-                row_index = int(stencils[idx][i])
-                if (row_index == -1):
+            for id_stencil in xrange(5, l_s, 4): # start, stop, step
+                codim = stencils[idx][id_stencil]
+                if (codim == -1):
                     break
-                # Masked row index (in function \"create_mask\", they are not
-                # still masked).
-                m_row_index = self._ngn[row_index]
-                row_indices.append(m_row_index)
-                value_to_multiply = stencils[idx][i + 1]
-                # Current coefficients.
-                c_coeffs = value_to_multiply
-                #nsolution = utilities.exact_sol(narray([[stencils[idx][0],
-                #                                         stencils[idx][1]]]),
-                #                                       b_alpha              ,
-                #                                       b_beta               ,
-                #                                       dim = 2              ,
-                #                                       apply_mapping = True)
-                #c_coeffs = c_coeffs * nsolution * -1.0
-                if (rec_ord == 2):
-                    n_copy_coeffs = numpy.copy(coeffs * value_to_multiply)
-                    c_coeffs = n_copy_coeffs.tolist()
-                    #if (keys[idx][1] == 148):
-                    #    print(stencils[idx])
-                    #    print(value_to_multiply)
-                    #    print(c_coeffs)
-                    #nsolutions = solution(n_cs_n_is[0],
-                    #                      c_alpha     ,
-                    #                      c_beta      ,
-                    #                      dim = 2     ,
-                    #                      apply_mapping = True)
-                    #n_sol_0 = nsolutions[0] * coeffs[0] * -1
-                    #n_sol_1 = nsolutions[1] * coeffs[1] * -1
-                    #n_sol_2 = nsolutions[2] * coeffs[2] * -1
-                    #n_sol_3 = 0.0
-                    #if (n_cs_n_is[0].shape[0] == 4):
-                    #    n_sol_3 = nsolutions[3] * coeffs[3] * -1
-                    #n_sol = n_sol_0 + n_sol_1 + n_sol_2 + n_sol_3
-                    #c_coeffs = n_sol
-                col_values.append(c_coeffs)
-            if (rec_ord == 2):
-                col_indices.extend(n_cs_n_is[1])
-            else:
-                col_index = mask_octant(global_idxs[idx])
-                col_indices.append(col_index)
-            if (row_indices):
-                #insert_mode = PETSc.InsertMode.ADD_VALUES
-                #self._rhs.setValues(row_indices,
-                #                    col_values ,
-                #                    insert_mode)
-                apply_rest_prol_ops(row_indices,
-                                    col_indices,
-                                    col_values)
+                elif (codim == 2):
+                    oct_center, \
+                    n_oct_center  = get_center(local_idxs[idx]   ,
+                                               ptr_octant = False,
+                                               also_numpy_center = True)
+                    #if (keys[idx][1] == 639):
+                    #    print(list_edg[idx])
+                    #    print(local_idxs[idx])
+                    h = octree.get_area(local_idxs[idx])
+                    # TODO: pass also \"h\" of the background octants to be sure of their
+                    #       dimension carachteristic in case more complicated (here is just
+                    #       two time the \"h\" of the foreground octants).
+                    self._h_s_inter_on_board.append(stencils[idx][0])
+                    self._f_on_borders_exact.append(ex_sols[idx])
+                    n_rec_sol = solution(narray([n_oct_center]),
+                                         c_alpha               ,
+                                         c_beta                ,
+                                         dim = 2               ,
+                                         apply_mapping = True)
+                    rec_sol = n_rec_sol[0]
+                    if (rec_ord == 2):
+                        # TODO: check correctness of the ring and of the indices found
+                        #       (understand if \"n_cs_n_is[1]\" has to be masked or not).
+                        oct_ring = get_points_local_ring(t_centers_inv[idx],
+                                                         n_oct_center)
+                        # Neighbour centers neighbour indices.
+                        n_cs_n_is = f_r_n((local_idxs[idx],
+                                           oct_ring       ,
+                                           t_centers_inv[idx]))
+                        #if (keys[idx][1] == 148):
+                        #    print(oct_ring)
+                        #    print(local_idxs[idx])
+                        #    print(n_cs_n_is)
+                        #if (keys[idx][1] == 148):
+                        #    print(n_cs_n_is)
+                        rec_sols = solution(n_cs_n_is[0],
+                                            c_alpha     ,
+                                            c_beta      ,
+                                            dim = 2     ,
+                                            apply_mapping = True)
+                        coeffs = b_c(n_cs_n_is[0],
+                                     t_centers_inv[idx])
+                        #if (keys[idx][1] == 148):
+                        #    print(coeffs)
+                        rec_sol_0 = rec_sols[0] * coeffs[0]
+                        rec_sol_1 = rec_sols[1] * coeffs[1]
+                        rec_sol_2 = rec_sols[2] * coeffs[2]
+                        rec_sol_3 = 0.0
+                        if (n_cs_n_is[0].shape[0] == 4):
+                            rec_sol_3 = rec_sols[3] * coeffs[3]
+                        rec_sol = rec_sol_0 + rec_sol_1 + rec_sol_2 + rec_sol_3
+                    self._f_on_borders.append(rec_sol)
+
+                    # Checkout how the \"stencil\" is created in the function
+                    # \"create_mask\".
+                    displ = 1 + dimension
+                    #step = 2
+                    step = 4
+                    row_indices = []
+                    col_indices = []
+                    col_values = []
+                    for i in xrange(displ, len(stencils[idx]), step):
+                        row_index = int(stencils[idx][i])
+                        if (row_index == -1):
+                            break
+                        # Masked row index (in function \"create_mask\", they are not
+                        # still masked).
+                        m_row_index = self._ngn[row_index]
+                        row_indices.append(m_row_index)
+                        value_to_multiply = stencils[idx][i + 1]
+                        # Current coefficients.
+                        c_coeffs = value_to_multiply
+                        #nsolution = utilities.exact_sol(narray([[stencils[idx][0],
+                        #                                         stencils[idx][1]]]),
+                        #                                       b_alpha              ,
+                        #                                       b_beta               ,
+                        #                                       dim = 2              ,
+                        #                                       apply_mapping = True)
+                        #c_coeffs = c_coeffs * nsolution * -1.0
+                        if (rec_ord == 2):
+                            n_copy_coeffs = numpy.copy(coeffs * value_to_multiply)
+                            c_coeffs = n_copy_coeffs.tolist()
+                            #if (keys[idx][1] == 148):
+                            #    print(stencils[idx])
+                            #    print(value_to_multiply)
+                            #    print(c_coeffs)
+                            #nsolutions = solution(n_cs_n_is[0],
+                            #                      c_alpha     ,
+                            #                      c_beta      ,
+                            #                      dim = 2     ,
+                            #                      apply_mapping = True)
+                            #n_sol_0 = nsolutions[0] * coeffs[0] * -1
+                            #n_sol_1 = nsolutions[1] * coeffs[1] * -1
+                            #n_sol_2 = nsolutions[2] * coeffs[2] * -1
+                            #n_sol_3 = 0.0
+                            #if (n_cs_n_is[0].shape[0] == 4):
+                            #    n_sol_3 = nsolutions[3] * coeffs[3] * -1
+                            #n_sol = n_sol_0 + n_sol_1 + n_sol_2 + n_sol_3
+                            #c_coeffs = n_sol
+                        col_values.append(c_coeffs)
+                    if (rec_ord == 2):
+                        col_indices.extend(n_cs_n_is[1])
+                    else:
+                        col_index = mask_octant(global_idxs[idx])
+                        col_indices.append(col_index)
+                    if (row_indices):
+                        #insert_mode = PETSc.InsertMode.ADD_VALUES
+                        #self._rhs.setValues(row_indices,
+                        #                    col_values ,
+                        #                    insert_mode)
+                        apply_rest_prol_ops(row_indices,
+                                            col_indices,
+                                            col_values)
+                # Codim == 1, so neighbour of face.
+                else:
+                    ncopyto = numpy.copyto
+                    t_centers_inv_loc = []
+                    l_t_indices_inv_loc = []
+                    t_nodes_inv_loc = []
+                    id_face = stencils[idx][id_stencil + 1]
+                    n_value = 1.0
+                    if (id_face < 0.0):
+                        n_value = -1.0
+                        id_face = abs(id_face)
+                    c_c = []
+                    c_c = stencils[idx][1 : 3]
+                    h_bg = stencils[idx][0]
+                    #print("codim = " + str(codim))
+                    #print("id_face = " + str(id_face))
+                    border_center, \
+                    numpy_border_center = self.neighbour_centers(c_c    ,
+                                                                 int(codim)  ,
+                                                                 int(id_face),
+                                                                 h_bg   ,
+                                                                 r_a_n_d = True)
+                    c_inter = [(border_center[0] + c_c[0]) / 2.0,
+                               (border_center[1] + c_c[1]) / 2.0]
+                    n_c_inter = narray([c_inter])
+                    # \"numpy\" temporary array 01.
+                    n_t_a_01 = numpy.zeros(shape = (1, 3), \
+                                           dtype = numpy.float64)
+                    # \"numpy\" temporary array 02.
+                    n_t_a_02 = numpy.zeros(shape = (1, 3), \
+                                           dtype = numpy.float64)
+                    # \"numpy\" temporary array 03.
+                    n_t_a_03 = numpy.zeros(shape = (1, 3), \
+                                           dtype = numpy.float64)
+                    ncopyto(n_t_a_03[0][: dimension], \
+                            c_inter)
+                    apply_bil_mapping(n_t_a_03,
+                                      b_alpha ,
+                                      b_beta  ,
+                                      n_t_a_01,
+                                      dimension)
+                    apply_bil_mapping_inv(n_t_a_01,
+                                          c_alpha ,
+                                          c_beta  ,
+                                          n_t_a_02,
+                                          dimension)
+                    neighs, ghosts = ([] for i in range(0, 2))
+                    for i in xrange(1, 3):
+                        for j in xrange(0, 4):
+                            (neighs, \
+                             ghosts) = octree.find_neighbours(local_idxs[idx],
+                                                              j              ,
+                                                              i              ,
+                                                              neighs         ,
+                                                              ghosts)
+                            n_neighs = len(neighs)
+                            if (neighs):
+                                # Distance center node.
+                                d_c_n = 0.0
+                                for j in xrange(0, n_neighs):
+                                    # Neighbour is into the same process, so is local.
+                                    if (not ghosts[j]):
+                                        by_octant = False
+                                        index = neighs[j]
+                                        m_index = mask_octant(index + o_ranges[0])
+                                        py_ghost_oct = index
+                                    else:
+                                        by_octant = True
+                                        # In this case, the quas(/oc)tree is no more local into
+                                        # the current process, so we have to find it globally.
+                                        index = octree.get_ghost_global_idx(neighs[j])
+                                        # \".index\" give us the \"self._global_ghosts\" index
+                                        # that contains the index of the global ghost quad(/oc)-
+                                        # tree previously found and stored in \"index\".
+                                        py_ghost_oct = octree.get_ghost_octant(neighs[j])
+                                        m_index = mask_octant(index)
+                                    if (m_index != -1):
+                                        cell_center, \
+                                        n_cell_center = get_center(py_ghost_oct,
+                                                                   by_octant   ,
+                                                                   True)
+                                        n_n_cell_center = narray([n_cell_center])
+                                        #apply_bil_mapping(n_n_cell_center,
+                                        #                  b_alpha        ,
+                                        #                  b_beta         ,
+                                        #                  n_t_a_01       ,
+                                        #                  dimension)
+                                        #apply_bil_mapping_inv(n_t_a_01,
+                                        #                      c_alpha ,
+                                        #                      c_beta  ,
+                                        #                      n_t_a_02,
+                                        #                      dimension)
+                                        # Temporary distance.
+                                        #t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
+                                        #                        n_t_a_03[0][: dimension])
+                                        t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
+                                                                n_cell_center[: dimension])
+                                        # \"j\" == 0...first neighbour.
+                                        if (not j):
+                                            d_c_n = t_d
+                                            #c_n_oct_center = ncopy(n_t_a_02[0])
+                                            c_n_oct_center = ncopy(n_cell_center)
+                                            t_centers_inv_loc.append(c_n_oct_center[: dimension])
+                                            l_t_indices_inv_loc.append(m_index)
+                                        # Second neighbour case.
+                                        else:
+                                            if (t_d < d_c_n):
+                                                d_c_n = t_d
+                                                c_n_oct_center = ncopy(n_cell_center)
+                                                #c_n_oct_center = ncopy(n_t_a_02[0])
+                                                t_centers_inv_loc[-1][: dimension] = \
+                                                c_n_oct_center[: dimension]
+                                                l_t_indices_inv_loc[-1] = m_index
+                    l_s_coeffs = utilities.least_squares(narray(t_centers_inv_loc)   ,
+                                                         n_t_a_02[0][: dimension],
+                                                         dim = 2                 ,
+                                                         bil_quad = False)
+                    ex_sol = solution(n_c_inter            ,
+                                      b_alpha              ,
+                                      b_beta               ,
+                                      dim = dimension      ,
+                                      apply_mapping = True)
+                    self._f_on_borders_exact.append(ex_sol[0])
+                    self._h_s_inter_on_board.append(h_bg)
+                    rec_sols = solution(narray(t_centers_inv_loc),
+                                        c_alpha              ,
+                                        c_beta               ,
+                                        #b_alpha              ,
+                                        #b_beta               ,
+                                        dim = dimension      ,
+                                        apply_mapping = True)
+                    rec_sol = 0
+                    for k in xrange(0, rec_sols.shape[0]):
+                        rec_sol += rec_sols[k] * l_s_coeffs[k]
+                    self._f_on_borders.append(rec_sol)
+                    l_s_coeffs_grad = utilities.least_squares_gradient(narray(t_centers_inv_loc),
+                                                                       n_t_a_02[0][: dimension],
+                                                                       n_t_a_03[0][: dimension],
+                                                                       b_alpha,
+                                                                       b_beta,
+                                                                       c_alpha,
+                                                                       c_beta,
+                                                                       dim = 2,
+                                                                       bil_quad = False)
+                    rec_grad_x = 0
+                    rec_grad_y = 0
+                    #print(rec_sols.shape[0])
+                    for k in xrange(0, rec_sols.shape[0]):
+                        rec_grad_x += rec_sols[k] * l_s_coeffs_grad[0][k]
+                        rec_grad_y += rec_sols[k] * l_s_coeffs_grad[1][k]
+                    self._grad_x.append(rec_grad_x)
+                    self._grad_y.append(rec_grad_y)
+                    ex_grad = utilities.exact_gradient(n_c_inter,
+                                                       b_alpha  ,
+                                                       b_beta   ,
+                                                       dim = dimension,
+                                                       apply_mapping = True)
+                    self._grad_exact_x.append(ex_grad[0][0])
+                    self._grad_exact_y.append(ex_grad[1][0])
+                    self._h_s_inter_grad.append(h_bg)
+                    bil_coeffs_empty = numpy.array([[], []])
+                    nodes_inter = []
+                    owners_centers = []
+                    n_axis = 1 if (id_face >= 2) else 0 
+                    coeffs_grad = self.get_gradient_coefficients(0                        ,
+                                                                 dimension                ,
+                                                                 nodes_inter              ,
+                                                                 owners_centers           ,
+                                                                 bil_coeffs_empty         ,
+                                                                 use_inter = False        ,
+                                                                 h_given = h_bg           ,
+                                                                 n_axis_given = n_axis    ,
+                                                                 n_value_given = n_value  ,
+                                                                 grid = keys[i][0]        ,
+                                                                 inter_center = c_inter)
+                    l_s_coeffs_grad_x = l_s_coeffs_grad[0] * coeffs_grad[0]
+                    l_s_coeffs_grad_y = l_s_coeffs_grad[1] * coeffs_grad[1]
+                    columns = []
+                    values = []
+                    values.extend(numpy.add(l_s_coeffs_grad_x, l_s_coeffs_grad_y).tolist())
+                    columns.extend(l_t_indices_inv_loc)
+                    row_index = int(stencils[idx][id_stencil - 2])
+                    m_row_index = self._ngn[row_index]
+                    apply_rest_prol_ops([m_row_index],
+                                        columns      ,
+                                        values)
 
         msg = "Updated prolongation blocks"
         self.log_msg(msg   ,
@@ -3575,8 +3814,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 n_p_g_index = g_o_norms_inter[labels[q]]
                                 #print(n_p_g_index)
                                 displ = 1 + dimension
-                                step = 2
-                                l_stencil = 21 if (dimension == 2) else 31
+                                #step = 2
+                                step = 4
+                                #l_stencil = 21 if (dimension == 2) else 31
+                                l_stencil = 35
 
                                 mult = -1.0
                                 if (labels[q]):
@@ -3618,8 +3859,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     n_p_g_index = g_o_norms_inter[labels[q]]
                                     #print(n_p_g_index)
                                     displ = 1 + dimension
-                                    step = 2
-                                    l_stencil = 21 if (dimension == 2) else 31
+                                    #step = 2
+                                    step = 4
+                                    #l_stencil = 21 if (dimension == 2) else 31
+                                    l_stencil = 35
 
                                     mult = -1.0
                                     if (labels[q]):
@@ -3658,9 +3901,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 h = octree.get_area(inter        ,
                                                     is_ptr = True,
                                                     is_inter = True)
-                                l_stencil = 21 if (dimension == 2) else 31
+                                #l_stencil = 21 if (dimension == 2) else 31
+                                l_stencil = 35
                                 stencil = [0, -1] * (l_stencil/2)
                                 stencil.append(0)
+                                codim = 2 if (j == 1) else 1
+                                face_or_node_idx = rings[i][j] 
                                 stencil[0] = h
                                 #print(n_cs_n_is)
                                 for cen_coord in xrange(dimension):
@@ -3680,9 +3926,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     #        print(value_to_store)
                                     stencil[displ + step] = n_p_g_index
                                     stencil[displ + step + 1] = stencil[displ+step+1] + value_to_store
+                                    stencil[displ + step + 2] = codim
+                                    stencil[displ + step + 3] = face_or_node_idx
                                     #print(value_to_store)
                                     #print(stencil)
-                                    step = 2
+                                    #step = 2
+                                    step = 4
                                 #print("prima " + str(self._edl))
                                 self._edl.update({key : stencil})
                                 #print("dopo " + str(self._edl))
@@ -3759,7 +4008,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                    key_10,
                    key_11,
                    key_12)
-            l_stencil = 21 if (dimension == 2) else 31
+            #l_stencil = 21 if (dimension == 2) else 31
+            l_stencil = 35
             stencil = [-1] * l_stencil
             h = octree.get_area(inter        ,
                                 is_ptr = True,
@@ -3936,7 +4186,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 stencil = self._edl.get(key)
                 displ = 1 + dimension
                 step = 2
-                l_stencil = 21 if (dimension == 2) else 31
+                #l_stencil = 21 if (dimension == 2) else 31
+                l_stencil = 35
                 # Sometimes \"stencil\" is equal to \"None\" because
                 # there are values of \"p_g_index\" which correspond to
                 # ghost octant not included in the local octree, and in
@@ -3967,7 +4218,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     stencil = self._edl.get(key)
                     displ = 1 + dimension
                     step = 2
-                    l_stencil = 21 if (dimension == 2) else 31
+                    #l_stencil = 21 if (dimension == 2) else 31
+                    l_stencil = 35
                     if (stencil):
                         for k in xrange(displ, l_stencil, step):
                             if (stencil[k] == n_p_g_index):
