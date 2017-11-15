@@ -588,7 +588,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                            iface = f_o_n)
                         n_axis = numpy.nonzero(n_normal_inter)[0][0]
                         n_value = n_normal_inter[n_axis]
-                        stencil[s_i + 3] = stencil[s_i + 3] * n_value
+                        # Multiplying for \"-1\" because we need to apply the value to the
+                        # neighbours, so is the opposite value of the normal.
+                        stencil[s_i + 3] = stencil[s_i + 3] * n_value * - 1
                     s_i += 4
                     #s_i += 2
 
@@ -2517,7 +2519,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # to use the index notation.
         for idx in idxs[0]:
             for id_stencil in xrange(5, l_s, 4): # start, stop, step
-                codim = stencils[idx][id_stencil]
+                codim = int(stencils[idx][id_stencil])
                 if (codim == -1):
                     break
                 elif (codim == 2):
@@ -2639,9 +2641,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     t_centers_inv_loc = []
                     l_t_indices_inv_loc = []
                     t_nodes_inv_loc = []
-                    id_face = stencils[idx][id_stencil + 1]
+                    id_face = int(stencils[idx][id_stencil + 1])
                     n_value = 1.0
-                    if (id_face < 0.0):
+                    if (id_face < 0):
                         n_value = -1.0
                         id_face = abs(id_face)
                     c_c = []
@@ -2651,8 +2653,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #print("id_face = " + str(id_face))
                     border_center, \
                     numpy_border_center = self.neighbour_centers(c_c    ,
-                                                                 int(codim)  ,
-                                                                 int(id_face),
+                                                                 codim  ,
+                                                                 id_face,
                                                                  h_bg   ,
                                                                  r_a_n_d = True)
                     c_inter = [(border_center[0] + c_c[0]) / 2.0,
@@ -3935,8 +3937,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                            is_ptr = True)
                                         n_axis = numpy.nonzero(n_normal_inter)[0][0]
                                         n_value = n_normal_inter[n_axis]
+                                        # Multiplying for \"-1\" because we need to apply the value
+                                        # to th eneighbours, so is the opposite value of the normal.
                                         stencil[displ +  step + 3] = \
-                                            stencil[displ + step + 3] * n_value
+                                            stencil[displ + step + 3] * n_value * -1
                                     #print(value_to_store)
                                     #print(stencil)
                                     #step = 2
