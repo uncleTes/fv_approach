@@ -4205,7 +4205,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                 stencil = self._edl.get(key)
                 displ = 1 + dimension
-                step = 2
+                #step = 2
+                step = 4
                 #l_stencil = 21 if (dimension == 2) else 31
                 l_stencil = 35
                 # Sometimes \"stencil\" is equal to \"None\" because
@@ -4237,7 +4238,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                     stencil = self._edl.get(key)
                     displ = 1 + dimension
-                    step = 2
+                    #step = 2
+                    step = 4
                     #l_stencil = 21 if (dimension == 2) else 31
                     l_stencil = 35
                     if (stencil):
