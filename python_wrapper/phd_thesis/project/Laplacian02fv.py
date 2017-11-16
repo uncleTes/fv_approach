@@ -3741,6 +3741,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # Setting exact solution for bilinear background centers wich are penalized
         # by the foreground and used to interpolate nodes of background intersections.
         value_to_store = 0
+
+        mat_set_values = True
+
         if (not grid):
             if (len(r_indices) == 2):
                 #print(n_cs_n_is)
@@ -4138,118 +4141,119 @@ class Laplacian(BaseClass2D.BaseClass2D):
             # Here we can be only on the background, where some octants
             # are penalized.
             if (not is_bound_inter):
-                if (node_1_interpolated):
-                    n_t_array = numpy.append(n_t_array,
-                                             coeffs_node_1)
-                if (node_0_interpolated):
-                    n_t_array = numpy.append(n_t_array,
-                                             coeffs_node_0)
-                mult = -1.0
-                # Owner with the outer normal is not penalized, so we
-                # have to add the coefficients in the corresponding row,
-                # instead of subtract them.
-                if (labels[0]):
-                    mult = 1.0
-                # Penalized global index, not masked.
-                p_g_index = g_o_norms_inter[1 - labels[0]]
-                # Not penalized global index, not masked.
-                n_p_g_index = g_o_norms_inter[labels[0]]
-                value_to_store = n_coeffs[1 - labels[0]] * mult
+                mat_set_values = False
+                #if (node_1_interpolated):
+                #    n_t_array = numpy.append(n_t_array,
+                #                             coeffs_node_1)
+                #if (node_0_interpolated):
+                #    n_t_array = numpy.append(n_t_array,
+                #                             coeffs_node_0)
+                #mult = -1.0
+                ## Owner with the outer normal is not penalized, so we
+                ## have to add the coefficients in the corresponding row,
+                ## instead of subtract them.
+                #if (labels[0]):
+                #    mult = 1.0
+                ## Penalized global index, not masked.
+                #p_g_index = g_o_norms_inter[1 - labels[0]]
+                ## Not penalized global index, not masked.
+                #n_p_g_index = g_o_norms_inter[labels[0]]
+                #value_to_store = n_coeffs[1 - labels[0]] * mult
 
-                m_n_p_g_index = mask_octant(n_p_g_index)
-                #print(nodes_inter)
-                # Setting exact solution for centers of owners of background intersections,
-                # centers which are penalized.
-                #nsolution = utilities.exact_sol(narray([[owners_centers[1 - labels[0]][0],
-                #                                         owners_centers[1 - labels[0]][1]]]),
-                #                                       b_alpha              ,
-                #                                       b_beta               ,
-                #                                       dim = 2              ,
-                #                                       apply_mapping = True)
-                #self._rhs.setValues(m_n_p_g_index,
-                #                    value_to_store * -1.0 * nsolution[0],
-                #                    insert_mode)
-                #nsolution = utilities.exact_sol(narray([[nodes_inter[0][0],
-                #                                         nodes_inter[0][1]]]),
-                #                                       b_alpha              ,
-                #                                       b_beta               ,
-                #                                       dim = 2              ,
-                #                                       apply_mapping = True)
-                #self._rhs.setValues(m_n_p_g_index,
-                #                    n_coeffs[3] * -1.0 * nsolution[0] * mult,
-                #                    insert_mode)
-                #nsolution = utilities.exact_sol(narray([[nodes_inter[1][0],
-                #                                         nodes_inter[1][1]]]),
-                #                                       b_alpha              ,
-                #                                       b_beta               ,
-                #                                       dim = 2              ,
-                #                                       apply_mapping = True)
-                #self._rhs.setValues(m_n_p_g_index,
-                #                    n_coeffs[2] * -1.0 * nsolution[0] * mult,
-                #                    insert_mode)
+                #m_n_p_g_index = mask_octant(n_p_g_index)
+                ##print(nodes_inter)
+                ## Setting exact solution for centers of owners of background intersections,
+                ## centers which are penalized.
+                ##nsolution = utilities.exact_sol(narray([[owners_centers[1 - labels[0]][0],
+                ##                                         owners_centers[1 - labels[0]][1]]]),
+                ##                                       b_alpha              ,
+                ##                                       b_beta               ,
+                ##                                       dim = 2              ,
+                ##                                       apply_mapping = True)
+                ##self._rhs.setValues(m_n_p_g_index,
+                ##                    value_to_store * -1.0 * nsolution[0],
+                ##                    insert_mode)
+                ##nsolution = utilities.exact_sol(narray([[nodes_inter[0][0],
+                ##                                         nodes_inter[0][1]]]),
+                ##                                       b_alpha              ,
+                ##                                       b_beta               ,
+                ##                                       dim = 2              ,
+                ##                                       apply_mapping = True)
+                ##self._rhs.setValues(m_n_p_g_index,
+                ##                    n_coeffs[3] * -1.0 * nsolution[0] * mult,
+                ##                    insert_mode)
+                ##nsolution = utilities.exact_sol(narray([[nodes_inter[1][0],
+                ##                                         nodes_inter[1][1]]]),
+                ##                                       b_alpha              ,
+                ##                                       b_beta               ,
+                ##                                       dim = 2              ,
+                ##                                       apply_mapping = True)
+                ##self._rhs.setValues(m_n_p_g_index,
+                ##                    n_coeffs[2] * -1.0 * nsolution[0] * mult,
+                ##                    insert_mode)
 
 
-                key = (n_polygon + 1, \
-                       p_g_index    , \
-                       0            , \
-                       0            , \
-                       0            , \
-                       0            , \
-                       0            , \
-                       0            , \
-                       0            , \
-                       0            , \
-                       0            , \
-                       0            , \
-                       0)
+                #key = (n_polygon + 1, \
+                #       p_g_index    , \
+                #       0            , \
+                #       0            , \
+                #       0            , \
+                #       0            , \
+                #       0            , \
+                #       0            , \
+                #       0            , \
+                #       0            , \
+                #       0            , \
+                #       0            , \
+                #       0)
 
-                stencil = self._edl.get(key)
-                displ = 1 + dimension
-                #step = 2
-                step = 4
-                #l_stencil = 21 if (dimension == 2) else 31
-                l_stencil = 35
-                # Sometimes \"stencil\" is equal to \"None\" because
-                # there are values of \"p_g_index\" which correspond to
-                # ghost octant not included in the local octree, and in
-                # the local \"self._edl\".
-                # TODO: I think that with the add of the \"cur_proc_owner\" in
-                #       the function \"fill_mat_and_rhs\", this \"if\" is no
-                #       more useful.
-                if (stencil):
-                    for k in xrange(displ, l_stencil, step):
-                        if (stencil[k] == n_p_g_index):
-                            stencil[k + 1] = stencil[k + 1] + value_to_store
-                            break
-                else:
-                    key = (n_polygon + 1, \
-                           p_g_index    , \
-                           0            , \
-                           0            , \
-                           0            , \
-                           0            , \
-                           0            , \
-                           0            , \
-                           0            , \
-                           0            , \
-                           0            , \
-                           0            , \
-                           1)
+                #stencil = self._edl.get(key)
+                #displ = 1 + dimension
+                ##step = 2
+                #step = 4
+                ##l_stencil = 21 if (dimension == 2) else 31
+                #l_stencil = 35
+                ## Sometimes \"stencil\" is equal to \"None\" because
+                ## there are values of \"p_g_index\" which correspond to
+                ## ghost octant not included in the local octree, and in
+                ## the local \"self._edl\".
+                ## TODO: I think that with the add of the \"cur_proc_owner\" in
+                ##       the function \"fill_mat_and_rhs\", this \"if\" is no
+                ##       more useful.
+                #if (stencil):
+                #    for k in xrange(displ, l_stencil, step):
+                #        if (stencil[k] == n_p_g_index):
+                #            stencil[k + 1] = stencil[k + 1] + value_to_store
+                #            break
+                #else:
+                #    key = (n_polygon + 1, \
+                #           p_g_index    , \
+                #           0            , \
+                #           0            , \
+                #           0            , \
+                #           0            , \
+                #           0            , \
+                #           0            , \
+                #           0            , \
+                #           0            , \
+                #           0            , \
+                #           0            , \
+                #           1)
 
-                    stencil = self._edl.get(key)
-                    displ = 1 + dimension
-                    #step = 2
-                    step = 4
-                    #l_stencil = 21 if (dimension == 2) else 31
-                    l_stencil = 35
-                    if (stencil):
-                        for k in xrange(displ, l_stencil, step):
-                            if (stencil[k] == n_p_g_index):
-                                stencil[k + 1] = stencil[k + 1] + value_to_store
-                                break
-                    #if (p_g_index == 639):
-                    #    if (n_p_g_index == 725):
-                    #        print("brlla")
+                #    stencil = self._edl.get(key)
+                #    displ = 1 + dimension
+                #    #step = 2
+                #    step = 4
+                #    #l_stencil = 21 if (dimension == 2) else 31
+                #    l_stencil = 35
+                #    if (stencil):
+                #        for k in xrange(displ, l_stencil, step):
+                #            if (stencil[k] == n_p_g_index):
+                #                stencil[k + 1] = stencil[k + 1] + value_to_store
+                #                break
+                #    #if (p_g_index == 639):
+                #    #    if (n_p_g_index == 725):
+                #    #        print("brlla")
             # We are on a boundary intersection; here normal is always
             # directed outside, so the owner is the one with the outer
             # normal.
@@ -4277,11 +4281,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 #    if (stencil):
                 #        stencil[(2 * dimension) + 1] = value_to_store
 
-            values = (n_t_array * mult).tolist()
-        self._b_mat.setValues(r_indices, # Row
-                              c_indices, # Columns
-                              values   , # Values to be inserted
-                              insert_mode)
+                values = (n_t_array * mult).tolist()
+        if (mat_set_values):
+            self._b_mat.setValues(r_indices, # Row
+                                  c_indices, # Columns
+                                  values   , # Values to be inserted
+                                  insert_mode)
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------
