@@ -2583,45 +2583,44 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     row_indices = []
                     col_indices = []
                     col_values = []
-                    for i in xrange(displ, len(stencils[idx]), step):
-                        row_index = int(stencils[idx][i])
-                        if (row_index == -1):
-                            break
-                        # Masked row index (in function \"create_mask\", they are not
-                        # still masked).
-                        m_row_index = self._ngn[row_index]
-                        row_indices.append(m_row_index)
-                        value_to_multiply = stencils[idx][i + 1]
-                        # Current coefficients.
-                        c_coeffs = value_to_multiply
-                        #nsolution = utilities.exact_sol(narray([[stencils[idx][0],
-                        #                                         stencils[idx][1]]]),
-                        #                                       b_alpha              ,
-                        #                                       b_beta               ,
-                        #                                       dim = 2              ,
-                        #                                       apply_mapping = True)
-                        #c_coeffs = c_coeffs * nsolution * -1.0
-                        if (rec_ord == 2):
-                            n_copy_coeffs = numpy.copy(coeffs * value_to_multiply)
-                            c_coeffs = n_copy_coeffs.tolist()
-                            #if (keys[idx][1] == 148):
-                            #    print(stencils[idx])
-                            #    print(value_to_multiply)
-                            #    print(c_coeffs)
-                            #nsolutions = solution(n_cs_n_is[0],
-                            #                      c_alpha     ,
-                            #                      c_beta      ,
-                            #                      dim = 2     ,
-                            #                      apply_mapping = True)
-                            #n_sol_0 = nsolutions[0] * coeffs[0] * -1
-                            #n_sol_1 = nsolutions[1] * coeffs[1] * -1
-                            #n_sol_2 = nsolutions[2] * coeffs[2] * -1
-                            #n_sol_3 = 0.0
-                            #if (n_cs_n_is[0].shape[0] == 4):
-                            #    n_sol_3 = nsolutions[3] * coeffs[3] * -1
-                            #n_sol = n_sol_0 + n_sol_1 + n_sol_2 + n_sol_3
-                            #c_coeffs = n_sol
-                        col_values.append(c_coeffs)
+                    row_index = int(stencils[idx][id_stencil - 2])
+                    #if (row_index == -1):
+                    #    break
+                    # Masked row index (in function \"create_mask\", they are not
+                    # still masked).
+                    m_row_index = self._ngn[row_index]
+                    row_indices.append(m_row_index)
+                    value_to_multiply = stencils[idx][id_stencil - 1]
+                    # Current coefficients.
+                    c_coeffs = value_to_multiply
+                    #nsolution = utilities.exact_sol(narray([[stencils[idx][0],
+                    #                                         stencils[idx][1]]]),
+                    #                                       b_alpha              ,
+                    #                                       b_beta               ,
+                    #                                       dim = 2              ,
+                    #                                       apply_mapping = True)
+                    #c_coeffs = c_coeffs * nsolution * -1.0
+                    if (rec_ord == 2):
+                        n_copy_coeffs = numpy.copy(coeffs * value_to_multiply)
+                        c_coeffs = n_copy_coeffs.tolist()
+                        #if (keys[idx][1] == 148):
+                        #    print(stencils[idx])
+                        #    print(value_to_multiply)
+                        #    print(c_coeffs)
+                        #nsolutions = solution(n_cs_n_is[0],
+                        #                      c_alpha     ,
+                        #                      c_beta      ,
+                        #                      dim = 2     ,
+                        #                      apply_mapping = True)
+                        #n_sol_0 = nsolutions[0] * coeffs[0] * -1
+                        #n_sol_1 = nsolutions[1] * coeffs[1] * -1
+                        #n_sol_2 = nsolutions[2] * coeffs[2] * -1
+                        #n_sol_3 = 0.0
+                        #if (n_cs_n_is[0].shape[0] == 4):
+                        #    n_sol_3 = nsolutions[3] * coeffs[3] * -1
+                        #n_sol = n_sol_0 + n_sol_1 + n_sol_2 + n_sol_3
+                        #c_coeffs = n_sol
+                    col_values.append(c_coeffs)
                     if (rec_ord == 2):
                         col_indices.extend(n_cs_n_is[1])
                     else:
