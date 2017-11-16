@@ -2522,7 +2522,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 codim = int(stencils[idx][id_stencil])
                 if (codim == -1):
                     break
-                elif (codim == 2):
+                if ((codim == 2) or (codim == 3)):
                     oct_center, \
                     n_oct_center  = get_center(local_idxs[idx]   ,
                                                ptr_octant = False,
@@ -2636,7 +2636,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             col_indices,
                                             col_values)
                 # Codim == 1, so neighbour of face.
-                else:
+                if ((codim == 1) or (codim == 3)):
                     ncopyto = numpy.copyto
                     t_centers_inv_loc = []
                     l_t_indices_inv_loc = []
@@ -3742,106 +3742,51 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # by the foreground and used to interpolate nodes of background intersections.
         value_to_store = 0
         if (not grid):
-            #print(n_cs_n_is)
-            for i in xrange(0, 2):
-                for j in xrange(0, len(n_cs_n_is[i][1])):
-                    if (n_cs_n_is[i][1][j] == -1):
-                        ##print("bongo")
-                        #values_rhs = []
-                        #indices_rhs = []
-                        #nsolution = utilities.exact_sol(narray([[n_cs_n_is[i][0][j][0],
-                        #                                         n_cs_n_is[i][0][j][1]]]),
-                        #                                b_alpha              ,
-                        #                                b_beta               ,
-                        #                                dim = 2              ,
-                        #                                apply_mapping = True)
-                        #mult = 1.0
-                        #if (labels[0]):
-                        #    mult = -1.0
-                        #e_sol = nsolution[0]
-                        #e_sol_coeff = coeffs_nodes[i][j]
-                        #e_sol = mult * e_sol * e_sol_coeff
-                        #values_rhs.append(e_sol)
-                        #indices_rhs.append(r_indices[0])
-                        #if (len(r_indices) == 2):
-                        #    values_rhs.append(e_sol * -1.0)
-                        #    indices_rhs.append(r_indices[1])
-                        #self._rhs.setValues(indices_rhs,
-                        #                    values_rhs,
-                        #                    insert_mode)
-                        #coeffs_nodes[i][j] = 0.0
-                        #mult = -1.0
-                        #if (labels[0]):
-                        #    mult = 1.0
-                        #value_to_store = value_to_store + (coeffs_nodes[i][j] * mult)
-                        #coeffs_nodes[i][j] = 0.0
-                        p_g_index = n_cs_n_is[i][2][j]
-                        #if (p_g_index == 639):
-                        #    print(coeffs_nodes[i][j])
-                        #    print(n_cs_n_is)
-                        #print(n_cs_n_is)
-                        #print(p_g_index)
-                        #print(n_cs_n_is[i][2])
-                        n_polygon = self._g_p_o_f_g[p_g_index]
-                        #print(n_cs_n_is)
-                        #print("p_g_index " + str(p_g_index) + " n_polygon " + str(n_polygon))
-                        #print(self._g_p_o_f_g)
-                        key = (n_polygon + 1, \
-                               p_g_index    , \
-                               0            , \
-                               0            , \
-                               0            , \
-                               0            , \
-                               0            , \
-                               0            , \
-                               0            , \
-                               0            , \
-                               0            , \
-                               0            , \
-                               0)
-
-                        stencil = self._edl.get(key)
-                        # Sometimes \"stencil\" is equal to \"None\" because
-                        # there are values of \"p_g_index\" which correspond to
-                        # ghost octant not included in the local octree, and in
-                        # the local \"self._edl\".
-                        # TODO: I think that with the add of the \"cur_proc_owner\" in
-                        #       the function \"fill_mat_and_rhs\", this \"if\" is no
-                        #       more useful.
-                        if (stencil):
-                            #if (p_g_index == 148):
-                            #    #print(str(stencil) + " " + str(key))
-                            #    print(p_g_index)
-                            for q in xrange(0, len(r_indices)):
-                                n_p_g_index = g_o_norms_inter[labels[q]]
-                                #print(n_p_g_index)
-                                displ = 1 + dimension
-                                #step = 2
-                                step = 4
-                                #l_stencil = 21 if (dimension == 2) else 31
-                                l_stencil = 35
-
-                                mult = -1.0
-                                if (labels[q]):
-                                 mult = 1.0
-
-                                value_to_store = mult * coeffs_nodes[i][j]
-
-                                for k in xrange(displ, l_stencil, step):
-                                    if (stencil[k] == n_p_g_index):
-                                        #if (p_g_index == 639):
-                                        #    if (n_p_g_index == 725):
-                                        #        print("prima = " + str(stencil))
-                                        #        print("value = " + str(value_to_store))
-                                        #print(stencil)
-                                        #print("bella")
-                                        #print(stencil[k + 1])
-                                        stencil[k + 1] = stencil[k + 1] + value_to_store
-                                        #if (p_g_index == 639):
-                                        #    if (n_p_g_index == 725):
-                                        #        print("dopo = " + str(stencil))
-                                        break
-                        else:
+            if (len(r_indices) == 2):
+                #print(n_cs_n_is)
+                for i in xrange(0, 2):
+                    for j in xrange(0, len(n_cs_n_is[i][1])):
+                        if (n_cs_n_is[i][1][j] == -1):
+                            ##print("bongo")
+                            #values_rhs = []
+                            #indices_rhs = []
+                            #nsolution = utilities.exact_sol(narray([[n_cs_n_is[i][0][j][0],
+                            #                                         n_cs_n_is[i][0][j][1]]]),
+                            #                                b_alpha              ,
+                            #                                b_beta               ,
+                            #                                dim = 2              ,
+                            #                                apply_mapping = True)
+                            #mult = 1.0
+                            #if (labels[0]):
+                            #    mult = -1.0
+                            #e_sol = nsolution[0]
+                            #e_sol_coeff = coeffs_nodes[i][j]
+                            #e_sol = mult * e_sol * e_sol_coeff
+                            #values_rhs.append(e_sol)
+                            #indices_rhs.append(r_indices[0])
+                            #if (len(r_indices) == 2):
+                            #    values_rhs.append(e_sol * -1.0)
+                            #    indices_rhs.append(r_indices[1])
+                            #self._rhs.setValues(indices_rhs,
+                            #                    values_rhs,
+                            #                    insert_mode)
+                            #coeffs_nodes[i][j] = 0.0
+                            #mult = -1.0
+                            #if (labels[0]):
+                            #    mult = 1.0
+                            #value_to_store = value_to_store + (coeffs_nodes[i][j] * mult)
+                            #coeffs_nodes[i][j] = 0.0
+                            p_g_index = n_cs_n_is[i][2][j]
+                            #if (p_g_index == 639):
+                            #    print(coeffs_nodes[i][j])
+                            #    print(n_cs_n_is)
+                            #print(n_cs_n_is)
+                            #print(p_g_index)
+                            #print(n_cs_n_is[i][2])
+                            n_polygon = self._g_p_o_f_g[p_g_index]
+                            #print(n_cs_n_is)
+                            #print("p_g_index " + str(p_g_index) + " n_polygon " + str(n_polygon))
+                            #print(self._g_p_o_f_g)
                             key = (n_polygon + 1, \
                                    p_g_index    , \
                                    0            , \
@@ -3854,9 +3799,20 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                    0            , \
                                    0            , \
                                    0            , \
-                                   1)
+                                   0)
+
                             stencil = self._edl.get(key)
+                            # Sometimes \"stencil\" is equal to \"None\" because
+                            # there are values of \"p_g_index\" which correspond to
+                            # ghost octant not included in the local octree, and in
+                            # the local \"self._edl\".
+                            # TODO: I think that with the add of the \"cur_proc_owner\" in
+                            #       the function \"fill_mat_and_rhs\", this \"if\" is no
+                            #       more useful.
                             if (stencil):
+                                #if (p_g_index == 148):
+                                #    #print(str(stencil) + " " + str(key))
+                                #    print(p_g_index)
                                 for q in xrange(0, len(r_indices)):
                                     n_p_g_index = g_o_norms_inter[labels[q]]
                                     #print(n_p_g_index)
@@ -3871,9 +3827,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      mult = 1.0
 
                                     value_to_store = mult * coeffs_nodes[i][j]
-                                    #if (p_g_index == 639):
-                                    #    if (n_p_g_index == 725):
-                                    #        print(value_to_store)
 
                                     for k in xrange(displ, l_stencil, step):
                                         if (stencil[k] == n_p_g_index):
@@ -3885,75 +3838,129 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             #print("bella")
                                             #print(stencil[k + 1])
                                             stencil[k + 1] = stencil[k + 1] + value_to_store
+                                            if (stencil[k + 2] == 1):
+                                                stencil[k + 2] = 3
                                             #if (p_g_index == 639):
                                             #    if (n_p_g_index == 725):
                                             #        print("dopo = " + str(stencil))
                                             break
-                                        elif (stencil[k] == -1):
-                                            stencil[k] = n_p_g_index
-                                            stencil[k + 1] = stencil[k + 1] + value_to_store
-                                            break
-                                        else:
-                                            pass
+                            else:
+                                key = (n_polygon + 1, \
+                                       p_g_index    , \
+                                       0            , \
+                                       0            , \
+                                       0            , \
+                                       0            , \
+                                       0            , \
+                                       0            , \
+                                       0            , \
+                                       0            , \
+                                       0            , \
+                                       0            , \
+                                       1)
+                                stencil = self._edl.get(key)
+                                if (stencil):
+                                    for q in xrange(0, len(r_indices)):
+                                        n_p_g_index = g_o_norms_inter[labels[q]]
+                                        #print(n_p_g_index)
+                                        displ = 1 + dimension
+                                        #step = 2
+                                        step = 4
+                                        #l_stencil = 21 if (dimension == 2) else 31
+                                        l_stencil = 35
+
+                                        mult = -1.0
+                                        if (labels[q]):
+                                         mult = 1.0
+
+                                        value_to_store = mult * coeffs_nodes[i][j]
                                         #if (p_g_index == 639):
                                         #    if (n_p_g_index == 725):
-                                        #        print(stencil[k+1])
-                                        #        print(stencil)
-                            else:
-                                h = octree.get_area(inter        ,
-                                                    is_ptr = True,
-                                                    is_inter = True)
-                                #l_stencil = 21 if (dimension == 2) else 31
-                                l_stencil = 35
-                                stencil = [0, -1] * (l_stencil/2)
-                                stencil.append(0)
-                                codim = 2 if (j == 1) else 1
-                                face_or_node_idx = rings[i][j] 
-                                stencil[0] = h
-                                #print(n_cs_n_is)
-                                for cen_coord in xrange(dimension):
-                                    stencil[cen_coord + 1] = n_cs_n_is[i][0][j][cen_coord]
-                                displ = 1 + dimension
-                                step = 0
-                                for q in xrange(0, len(r_indices)):
-                                    n_p_g_index = g_o_norms_inter[labels[q]]
+                                        #        print(value_to_store)
 
-                                    mult = -1.0
-                                    if (labels[q]):
-                                     mult = 1.0
+                                        for k in xrange(displ, l_stencil, step):
+                                            if (stencil[k] == n_p_g_index):
+                                                #if (p_g_index == 639):
+                                                #    if (n_p_g_index == 725):
+                                                #        print("prima = " + str(stencil))
+                                                #        print("value = " + str(value_to_store))
+                                                #print(stencil)
+                                                #print("bella")
+                                                #print(stencil[k + 1])
+                                                stencil[k + 1] = stencil[k + 1] + value_to_store
+                                                #stencil[k + 2] = 3
+                                                #if (p_g_index == 639):
+                                                #    if (n_p_g_index == 725):
+                                                #        print("dopo = " + str(stencil))
+                                                break
+                                            elif (stencil[k] == -1):
+                                                stencil[k] = n_p_g_index
+                                                stencil[k + 1] = stencil[k + 1] + value_to_store
+                                                stencil[k + 2] = 2
+                                                break
+                                            else:
+                                                pass
+                                            #if (p_g_index == 639):
+                                            #    if (n_p_g_index == 725):
+                                            #        print(stencil[k+1])
+                                            #        print(stencil)
+                                else:
+                                    h = octree.get_area(inter        ,
+                                                        is_ptr = True,
+                                                        is_inter = True)
+                                    #l_stencil = 21 if (dimension == 2) else 31
+                                    l_stencil = 35
+                                    stencil = [0, -1] * (l_stencil/2)
+                                    stencil.append(0)
+                                    #codim = 3 if ((j == 1) or (j == 3)) else 1
+                                    codim = 2 if (j == 1) else 1
+                                    face_or_node_idx = rings[i][j]
+                                    stencil[0] = h
+                                    #print(n_cs_n_is)
+                                    for cen_coord in xrange(dimension):
+                                        stencil[cen_coord + 1] = n_cs_n_is[i][0][j][cen_coord]
+                                    displ = 1 + dimension
+                                    step = 0
+                                    for q in xrange(0, len(r_indices)):
+                                        n_p_g_index = g_o_norms_inter[labels[q]]
 
-                                    value_to_store = mult * coeffs_nodes[i][j]
-                                    #if (p_g_index == 639):
-                                    #    if (n_p_g_index == 725):
-                                    #        print(value_to_store)
-                                    stencil[displ + step] = n_p_g_index
-                                    stencil[displ + step + 1] = stencil[displ+step+1] + value_to_store
-                                    stencil[displ + step + 2] = codim
-                                    stencil[displ + step + 3] = face_or_node_idx
-                                    if (codim == 1):
-                                        normal_inter, \
-                                        n_normal_inter = octree.get_normal(inter                  ,
-                                                                           also_numpy_normal = True,
-                                                                           is_ptr = True)
-                                        n_axis = numpy.nonzero(n_normal_inter)[0][0]
-                                        n_value = n_normal_inter[n_axis]
-                                        # Multiplying for \"-1\" because we need to apply the value
-                                        # to th eneighbours, so is the opposite value of the normal.
-                                        stencil[displ +  step + 3] = \
-                                            stencil[displ + step + 3] * n_value * -1
-                                    #print(value_to_store)
+                                        mult = -1.0
+                                        if (labels[q]):
+                                         mult = 1.0
+
+                                        value_to_store = mult * coeffs_nodes[i][j]
+                                        #if (p_g_index == 639):
+                                        #    if (n_p_g_index == 725):
+                                        #        print(value_to_store)
+                                        stencil[displ + step] = n_p_g_index
+                                        stencil[displ + step + 1] = stencil[displ+step+1] + value_to_store
+                                        #stencil[displ + step + 2] = 3
+                                        stencil[displ + step + 2] = 2
+                                        #stencil[displ + step + 3] = face_or_node_idx
+                                        #if (codim == 1):
+                                        #    normal_inter, \
+                                        #    n_normal_inter = octree.get_normal(inter                  ,
+                                        #                                       also_numpy_normal = True,
+                                        #                                       is_ptr = True)
+                                        #    n_axis = numpy.nonzero(n_normal_inter)[0][0]
+                                        #    n_value = n_normal_inter[n_axis]
+                                        #    # Multiplying for \"-1\" because we need to apply the value
+                                        #    # to th eneighbours, so is the opposite value of the normal.
+                                        #    stencil[displ +  step + 3] = \
+                                        #        stencil[displ + step + 3] * n_value * -1
+                                        #print(value_to_store)
+                                        #print(stencil)
+                                        #step = 2
+                                        step = 4
+                                    #print("prima " + str(self._edl))
+                                    self._edl.update({key : stencil})
+                                    #print("dopo " + str(self._edl))
                                     #print(stencil)
-                                    #step = 2
-                                    step = 4
-                                #print("prima " + str(self._edl))
-                                self._edl.update({key : stencil})
-                                #print("dopo " + str(self._edl))
-                                #print(stencil)
-                                #if (p_g_index == 148):
-                                #    print(self._edl)
-                                #    print(self._comm_w.Get_rank())
-                        #if (p_g_index == 224):
-                        #    print(stencil)
+                                    #if (p_g_index == 148):
+                                    #    print(self._edl)
+                                    #    print(self._comm_w.Get_rank())
+                            #if (p_g_index == 224):
+                            #    print(stencil)
 
         # Columns indices for the \"PETSc\" matrix.
         c_indices = []
