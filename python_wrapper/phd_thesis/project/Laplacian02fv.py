@@ -2637,6 +2637,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             col_values)
                 # Codim == 1, so neighbour of face.
                 if ((codim == 1) or (codim == 3)):
+                    true_codim = 1
                     ncopyto = numpy.copyto
                     t_centers_inv_loc = []
                     l_t_indices_inv_loc = []
@@ -2652,10 +2653,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #print("codim = " + str(codim))
                     #print("id_face = " + str(id_face))
                     border_center, \
-                    numpy_border_center = self.neighbour_centers(c_c    ,
-                                                                 codim  ,
-                                                                 id_face,
-                                                                 h_bg   ,
+                    numpy_border_center = self.neighbour_centers(c_c       ,
+                                                                 true_codim,
+                                                                 id_face   ,
+                                                                 h_bg      ,
                                                                  r_a_n_d = True)
                     c_inter = [(border_center[0] + c_c[0]) / 2.0,
                                (border_center[1] + c_c[1]) / 2.0]
