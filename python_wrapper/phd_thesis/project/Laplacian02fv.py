@@ -2641,6 +2641,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     t_centers_inv_loc = []
                     l_t_indices_inv_loc = []
                     t_nodes_inv_loc = []
+                    m_index = mask_octant(global_idxs[idx])
+                    cell_center, \
+                    n_cell_center = get_center(local_idxs[idx],
+                                               False    ,
+                                               True)
+                    c_n_oct_center = ncopy(n_cell_center)
+                    t_centers_inv_loc.append(c_n_oct_center[: dimension])
+                    l_t_indices_inv_loc.append(m_index)
+
                     id_face = int(stencils[idx][id_stencil + 1])
                     n_value = 1.0
                     if (id_face < 0):
@@ -2683,10 +2692,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           dimension)
                     neighs, ghosts = ([] for i in range(0, 2))
                     for i in xrange(1, 3):
-                        for j in xrange(0, 4):
+                        for k in xrange(0, 4):
                             (neighs, \
                              ghosts) = octree.find_neighbours(local_idxs[idx],
-                                                              j              ,
+                                                              k              ,
                                                               i              ,
                                                               neighs         ,
                                                               ghosts)
@@ -2710,7 +2719,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         # that contains the index of the global ghost quad(/oc)-
                                         # tree previously found and stored in \"index\".
                                         py_ghost_oct = octree.get_ghost_octant(neighs[j])
-                                        m_index = mask_octant(index)
+                                        m_index = mask_octant(index + len(self._ngn))
                                     if (m_index != -1):
                                         cell_center, \
                                         n_cell_center = get_center(py_ghost_oct,
