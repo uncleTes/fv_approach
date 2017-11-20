@@ -1624,6 +1624,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         self._h_s_inter = []
         self._h_s_inter_on_board = []
         self._h_s_inter_grad = []
+        self._grads_indices = []
 
         for i in xrange(0, ninters):
             # Rows indices for the \"PETSc\" matrix.
@@ -1937,14 +1938,18 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                   petsc_size = False)
         #print(ids_octree_contained)
 
-        for i in ids_octree_contained:
-            arr_index = self.mask_octant(i)
-            if (arr_index != -1):
-                if (is_array):
-                    arr_value = to_reset.getValue(arr_index)
-                else:
-                    arr_value = to_reset[arr_index]
-                res_arr.setValue(i, arr_value)
+        if ((array_name == "x_gradient") or (array_name == "y_gradient")):
+            for i in xrange(len(self._grads_indices)):
+                res_arr.setValue(self._grads_indices[i], to_reset[i])
+        else:
+            for i in ids_octree_contained:
+                arr_index = self.mask_octant(i)
+                if (arr_index != -1):
+                    if (is_array):
+                        arr_value = to_reset.getValue(arr_index)
+                    else:
+                        arr_value = to_reset[arr_index]
+                    res_arr.setValue(i, arr_value)
 
         res_arr.assemblyBegin()
         res_arr.assemblyEnd()
@@ -2796,6 +2801,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         rec_grad_y += rec_sols[k] * l_s_coeffs_grad[1][k]
                     self._grad_x.append(rec_grad_x)
                     self._grad_y.append(rec_grad_y)
+                    self._grads_indices.append(global_idxs[idx])
                     ex_grad = utilities.exact_gradient(n_c_inter,
                                                        b_alpha  ,
                                                        b_beta   ,
@@ -3458,6 +3464,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     self._grad_x.append(rec_grad_x)
                     #if (self._grad_y[m_index_grad] < rec_grad_y):
                     self._grad_y.append(rec_grad_y)
+                    self._grads_indices.append(global_idx)
                     ex_grad = utilities.exact_gradient(n_c_inter,
                                                        c_alpha  ,
                                                        c_beta   ,

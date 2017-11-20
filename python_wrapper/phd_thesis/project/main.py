@@ -608,20 +608,20 @@ def compute(comm_dictionary     ,
                                 beta)
     interpolate_res = laplacian.reset_partially_array(array_to_reset = "res")
     #print(laplacian.residual.getArray().shape)
-    #interpolate_grad_x = laplacian.reset_partially_array(array_to_reset = "grad_x",
-    #                                                     is_array = False         ,
-    #                                                     vector_to_reset = grad_x_array)
-    #interpolate_grad_y = laplacian.reset_partially_array(array_to_reset = "grad_y",
-    #                                                     is_array = False         ,
-    #                                                     vector_to_reset = grad_y_array)
+    interpolate_grad_x = laplacian.reset_partially_array(array_to_reset = "grad_x",
+                                                         is_array = False         ,
+                                                         vector_to_reset = grad_x_array)
+    interpolate_grad_y = laplacian.reset_partially_array(array_to_reset = "grad_y",
+                                                         is_array = False         ,
+                                                         vector_to_reset = grad_y_array)
     #    print(interpolate_grad_x.getArray().shape)
     #else:
     #    print(grad_y_array.shape)
     data_to_save = numpy.array([e_sol                     ,
-                                #interpolate_grad_x.getArray(),
-                                #interpolate_grad_y.getArray()])
                                 interpolate_sol.getArray(),
-                                interpolate_res.getArray()])
+                                interpolate_res.getArray(),
+                                interpolate_grad_x.getArray(),
+                                interpolate_grad_y.getArray()])
 
     #print(data_to_save.shape)
 
@@ -790,6 +790,16 @@ def main():
                  "Cell"   , 
                  "ascii")
     vtk.add_data("residual"  ,
+                 1           ,
+                 "Float64"   ,
+                 "Cell"      ,
+                 "ascii")
+    vtk.add_data("grad_x"  ,
+                 1           ,
+                 "Float64"   ,
+                 "Cell"      ,
+                 "ascii")
+    vtk.add_data("grad_y"  ,
                  1           ,
                  "Float64"   ,
                  "Cell"      ,

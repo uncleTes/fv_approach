@@ -185,6 +185,20 @@ public:
                     str << endl;
                 }
             }
+            else if (name == "grad_x") {
+                for (index = nElements * 3; index < nElements * 4; ++index) {
+                    genericIO::flushASCII(str, indent);
+                    genericIO::flushASCII(str, data[index]);
+                    str << endl;
+                }
+            }
+            else if (name == "grad_y") {
+                for (index = nElements * 4; index < nElements * 5; ++index) {
+                    genericIO::flushASCII(str, indent);
+                    genericIO::flushASCII(str, data[index]);
+                    str << endl;
+                }
+            }
         }
         else {
             if (name == "Points") {
