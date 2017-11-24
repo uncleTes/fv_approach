@@ -2683,6 +2683,21 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # \"numpy\" temporary array 03.
                     n_t_a_03 = numpy.zeros(shape = (1, 3), \
                                            dtype = numpy.float64)
+                    #l_t_indices_inv_loc.append(self._ngn[int(stencils[idx][id_stencil-2])])
+                    #ncopyto(n_t_a_03[0][: dimension], \
+                    #        border_center[: dimension])
+                    #apply_bil_mapping(n_t_a_03,
+                    #                  b_alpha ,
+                    #                  b_beta  ,
+                    #                  n_t_a_01,
+                    #                  dimension)
+                    #apply_bil_mapping_inv(n_t_a_01,
+                    #                      c_alpha ,
+                    #                      c_beta  ,
+                    #                      n_t_a_02,
+                    #                      dimension,
+                    #                      temp_adjust = True)
+                    #t_centers_inv_loc.append(n_t_a_02[0][: dimension])
                     ncopyto(n_t_a_03[0][: dimension], \
                             c_inter)
                     apply_bil_mapping(n_t_a_03,
