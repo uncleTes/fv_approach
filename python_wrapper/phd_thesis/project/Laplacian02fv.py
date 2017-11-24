@@ -2156,7 +2156,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         ksp.create(self._comm_w)
         ksp.setOperators(self._b_mat,
                          None)
-
+        #                 self._b_mat)
+        #pc = ksp.getPC()
+        #pc.setType("lu")
+        #pc.setFromOptions()
         # Setting tolerances.
 	# 1.0e-06 with level 9,9 is still ok for convergence
         #tol = 1.0e-06
@@ -2190,6 +2193,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
         print(ksp.getConvergedReason())
 
         msg = "Evaluated solution"
+        #extra_msg = ""
         extra_msg = "Using \"" + str(it_number) + "\" iterations."
         self.log_msg(msg   ,
                      "info",
