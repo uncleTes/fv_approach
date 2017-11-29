@@ -2395,7 +2395,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
             if (not is_background):
                 self.update_fg_grids(o_ranges,
-                                     ids_octree_contained)
+                                     ids_octree_contained,
+                                     rec_ord = 1)
             else:
                 if (n_grids > 1):
                     self.update_bg_grids(o_ranges,
@@ -2545,8 +2546,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # TODO: pass also \"h\" of the background octants to be sure of their
                     #       dimension carachteristic in case more complicated (here is just
                     #       two time the \"h\" of the foreground octants).
-                    self._h_s_inter_on_board.append(stencils[idx][0])
-                    self._f_on_borders_exact.append(ex_sols[idx])
+                    #self._h_s_inter_on_board.append(stencils[idx][0])
+                    #self._f_on_borders_exact.append(ex_sols[idx])
                     n_rec_sol = solution(narray([n_oct_center]),
                                          c_alpha               ,
                                          c_beta                ,
@@ -2584,7 +2585,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         if (n_cs_n_is[0].shape[0] == 4):
                             rec_sol_3 = rec_sols[3] * coeffs[3]
                         rec_sol = rec_sol_0 + rec_sol_1 + rec_sol_2 + rec_sol_3
-                    self._f_on_borders.append(rec_sol)
+                    #self._f_on_borders.append(rec_sol)
 
                     # Checkout how the \"stencil\" is created in the function
                     # \"create_mask\".
@@ -3209,10 +3210,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # intersection) of the rings of the nodes (it will be the same
                 # for both the nodes).
                 displ = 1 + (dimension * 2)
-                #ncopyto(n_t_a_03[0][: dimension], \
-                #        stencils[i][displ : displ + dimension])
                 ncopyto(n_t_a_03[0][: dimension], \
-                        c_inter)
+                        stencils[i][displ : displ + dimension])
+                #ncopyto(n_t_a_03[0][: dimension], \
+                #        c_inter)
                 apply_bil_mapping(n_t_a_03,
                                   c_alpha ,
                                   c_beta  ,
@@ -3413,8 +3414,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # \"Numpy\" coordinates of the node on the foreground boun-
                     # dary.
                     n_cs_n = narray([cs_n])
-                    #ex_sol = solution(n_cs_n,
-                    ex_sol = solution(n_c_inter            ,
+                    ex_sol = solution(n_cs_n,
+                    #ex_sol = solution(n_c_inter            ,
                                       c_alpha              ,
                                       c_beta               ,
                                       dim = dimension      ,
