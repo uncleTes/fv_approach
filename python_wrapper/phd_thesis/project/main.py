@@ -552,6 +552,25 @@ def compute(comm_dictionary     ,
     w_n((n_norm_inf,
          n_norm_L2 ,
          "_residuals.txt"))
+    n_norm_inf, \
+    n_norm_L2 = laplacian.evaluate_residual_norms(e_sol - laplacian.sol.getArray(),
+                                                  h_s                     ,
+                                                  petsc_size = True       ,
+                                                  l2 = False              ,
+                                                  r_n_d = True            ,
+                                                  sub_rhs = False)
+    w_n((n_norm_inf,
+         n_norm_L2 ,
+         "_residuals_diff_sols.txt"))
+    n_norm_inf, \
+    n_norm_L2 = laplacian.evaluate_residual_norms(laplacian.sol.getArray()                   ,
+                                                  h_s                     ,
+                                                  petsc_size = True       ,
+                                                  l2 = False              ,
+                                                  r_n_d = True)
+    w_n((n_norm_inf,
+         n_norm_L2 ,
+         "_residuals_comp_sol.txt"))
 
     n_norm_inf, \
     n_norm_L2 = laplacian.evaluate_norms(laplacian.f_nodes      ,

@@ -2101,7 +2101,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                 h_s              ,
                                 petsc_size = True,
                                 l2 = False       ,
-                                r_n_d = False):
+                                r_n_d = False    ,
+                                sub_rhs = True):
         if (not petsc_size):
             n_oct = self._n_oct
             tot_oct = self._tot_oct
@@ -2119,9 +2120,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
         # \"self._residual\" = \"self._b_mat\" * \"t_e_sol\"
         self._b_mat.mult(t_e_sol,
                          self._residual)
-        # \"self._residual\" = \"self._residual\" - \"self._rhs\"
-        self._residual.axpy(-1.0,
-                            self._rhs)
+        if (sub_rhs):
+            # \"self._residual\" = \"self._residual\" - \"self._rhs\"
+            self._residual.axpy(-1.0,
+                                self._rhs)
         norm_inf = numpy.linalg.norm(self._residual.getArray(),
                                      # Type of norm we want to evaluate.
                                      numpy.inf)
