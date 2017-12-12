@@ -3929,6 +3929,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                 #print("bella")
                                                 #print(stencil[k + 1])
                                                 stencil[k + 1] = stencil[k + 1] + value_to_store
+                                                if (stencil[k + 2] == 1):
+                                                    stencil[k + 2] = 3
                                                 #stencil[k + 2] = 3
                                                 #if (p_g_index == 639):
                                                 #    if (n_p_g_index == 725):
@@ -3976,19 +3978,41 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         stencil[displ + step] = n_p_g_index
                                         stencil[displ + step + 1] = stencil[displ+step+1] + value_to_store
                                         #stencil[displ + step + 2] = 3
-                                        stencil[displ + step + 2] = 2
+                                        stencil[displ + step + 2] = codim
+                                        # Inverting index of face or node because here we are on the
+                                        # not penalized octants, but in the stencils we are saving
+                                        # octants as we were on the penaized ones (which, infact,
+                                        # are the keys of the stencils).
+                                        if (codim == 1):
+                                            if (face_or_node_idx == 0):
+                                                stencil[displ+step+3] = 1
+                                            elif (face_or_node_idx == 1):
+                                                stencil[displ+step+3] = 0
+                                            elif (face_or_node_idx == 2):
+                                                stencil[displ+step+3] = 3
+                                            elif (face_or_node_idx == 3):
+                                                stencil[displ+step+3] = 2
+                                        if (codim == 2):
+                                            if (face_or_node_idx == 0):
+                                                stencil[displ+step+3] = 3
+                                            elif (face_or_node_idx == 3):
+                                                stencil[displ+step+3] = 0
+                                            elif (face_or_node_idx == 1):
+                                                stencil[displ+step+3] = 2
+                                            elif (face_or_node_idx == 2):
+                                                stencil[displ+step+3] = 1
                                         #stencil[displ + step + 3] = face_or_node_idx
-                                        #if (codim == 1):
-                                        #    normal_inter, \
-                                        #    n_normal_inter = octree.get_normal(inter                  ,
-                                        #                                       also_numpy_normal = True,
-                                        #                                       is_ptr = True)
-                                        #    n_axis = numpy.nonzero(n_normal_inter)[0][0]
-                                        #    n_value = n_normal_inter[n_axis]
+                                        if (codim == 1):
+                                            normal_inter, \
+                                            n_normal_inter = octree.get_normal(inter                  ,
+                                                                               also_numpy_normal = True,
+                                                                               is_ptr = True)
+                                            n_axis = numpy.nonzero(n_normal_inter)[0][0]
+                                            n_value = n_normal_inter[n_axis]
                                         #    # Multiplying for \"-1\" because we need to apply the value
                                         #    # to th eneighbours, so is the opposite value of the normal.
-                                        #    stencil[displ +  step + 3] = \
-                                        #        stencil[displ + step + 3] * n_value * -1
+                                            stencil[displ +  step + 3] = \
+                                                stencil[displ + step + 3] * n_value
                                         #print(value_to_store)
                                         #print(stencil)
                                         #step = 2
