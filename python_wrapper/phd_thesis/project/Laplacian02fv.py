@@ -3939,7 +3939,39 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             elif (stencil[k] == -1):
                                                 stencil[k] = n_p_g_index
                                                 stencil[k + 1] = stencil[k + 1] + value_to_store
-                                                stencil[k + 2] = 2
+                                                codim = 2 if (j == 1) else 1
+                                                face_or_node_idx = rings[i][j]
+                                                stencil[k + 2] = codim
+                                                if (codim == 1):
+                                                    if (face_or_node_idx == 0):
+                                                        stencil[k+3] = 1
+                                                    elif (face_or_node_idx == 1):
+                                                        stencil[k+3] = 0
+                                                    elif (face_or_node_idx == 2):
+                                                        stencil[k+3] = 3
+                                                    elif (face_or_node_idx == 3):
+                                                        stencil[k+3] = 2
+                                                if (codim == 2):
+                                                    if (face_or_node_idx == 0):
+                                                        stencil[k+3] = 3
+                                                    elif (face_or_node_idx == 3):
+                                                        stencil[k+3] = 0
+                                                    elif (face_or_node_idx == 1):
+                                                        stencil[k+3] = 2
+                                                    elif (face_or_node_idx == 2):
+                                                        stencil[k+3] = 1
+                                                #stencil[displ + step + 3] = face_or_node_idx
+                                                if (codim == 1):
+                                                    normal_inter, \
+                                                    n_normal_inter = octree.get_normal(inter                  ,
+                                                                                       also_numpy_normal = True,
+                                                                                       is_ptr = True)
+                                                    n_axis = numpy.nonzero(n_normal_inter)[0][0]
+                                                    n_value = n_normal_inter[n_axis]
+                                                #    # Multiplying for \"-1\" because we need to apply the value
+                                                #    # to th eneighbours, so is the opposite value of the normal.
+                                                    stencil[k + 3] = \
+                                                        stencil[k + 3] * n_value
                                                 break
                                             else:
                                                 pass
