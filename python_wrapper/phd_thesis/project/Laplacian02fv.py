@@ -655,9 +655,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
         check_neighbours = self.check_neighbours
         check_oct_corners = utilities.check_oct_corners
         # TODO: try to parallelize this for avoiding data dependencies.
+        self._r_indices_fg_temp = []
         for octant in octants:
             d_count, o_count = 0, 0
             g_octant = g_octants[octant]
+            if (grid):
+                # \"|=\" = \"union\".
+                #print(r_indices)
+                self._r_indices_fg_temp.append(g_octant)
             py_oct = py_octs[octant]
             h = octree.get_area(py_oct       ,
                                 is_ptr = True,
@@ -1702,6 +1707,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # If an intersection owner is penalized (it should be just for
                     # background grid)...
                     if (m_g_octant == -1):
+                        if (grid):
+                            print("bongo")
                         n_polygon = self._g_p_o_f_g[g_o_norms_inter[j]]
                     # ...else...
                     else:
@@ -2399,11 +2406,19 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      rec_ord = 1)
             else:
                 if (n_grids > 1):
-                    self.update_bg_grids(o_ranges,
-                                         ids_octree_contained)
-
+                    pass
+                    #self.update_bg_grids(o_ranges,
+                    #                     ids_octree_contained)
         self.assembly_petsc_struct("matrix",
                                    PETSc.Mat.AssemblyType.FINAL_ASSEMBLY)
+        # Ghosts' deplacement.
+        g_d = 0
+        for i in xrange(0, grid):
+            g_d = g_d + self._oct_f_g[i]
+        m_r_indices_fg_temp = map(self.mask_octant,
+                                  [(pippo + g_d) for pippo in self._r_indices_fg_temp])
+        #print(m_r_indices_fg_temp)
+        self._b_mat.zeroRowsColumns(m_r_indices_fg_temp)
 
         self.assembly_petsc_struct("rhs")
 
@@ -4194,10 +4209,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # in which we have to impose the coefficients for the octant
                 # owner of the outer normal. Imposing the exact solution, in the
                 # opposite way, will oblige us to comment these two lines, so in
-                # this function \"fill_mat\# will be inserted the right coefficient
+                # this function \"fill_mat\" will be inserted the right coefficient
                 # for the octant owner of the outer normal.
-                r_indices = [-1] * len(r_indices)
-                c_indices = [-1] * len(c_indices)
+                #r_indices = [-1] * len(r_indices)
+                #c_indices = [-1] * len(c_indices)
             #node_0_interpolated = False
             #node_1_interpolated = False
 

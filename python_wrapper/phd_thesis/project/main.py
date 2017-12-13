@@ -366,42 +366,42 @@ def set_octree(comm_l,
     #        ref_cond_x_y = ref_cond_x and ref_cond_y
     #        if (ref_cond_x_y):
     #            pablo.set_marker(octant, 1)
-    if (not proc_grid):
-        for octant in xrange(0, n_octs):
-            center = pablo.get_center(octant)[: dimension]
-            ref_cond_x = center[0] >= 0.1 and center[0] <= 0.9
-            ref_cond_y = center[1] >= 0.1 and center[1] <= 0.9
-            ref_cond_x_y = ref_cond_x and ref_cond_y
-            if (ref_cond_x_y):
-                pablo.set_marker(octant, 1)
+    #if (not proc_grid):
+    #    for octant in xrange(0, n_octs):
+    #        center = pablo.get_center(octant)[: dimension]
+    #        ref_cond_x = center[0] >= 0.1 and center[0] <= 0.9
+    #        ref_cond_y = center[1] >= 0.1 and center[1] <= 0.9
+    #        ref_cond_x_y = ref_cond_x and ref_cond_y
+    #        if (ref_cond_x_y):
+    #            pablo.set_marker(octant, 1)
 
-    if (proc_grid):
-        for octant in xrange(0, n_octs):
-            center  = pablo.get_center(octant)[: dimension]
-            # Refinement condition on \"x\".
-            ref_cond_x = (center[0] < 0.75) and (center[0] > 0.25)
-            #ref_cond_x = False
-            ref_cond_x_02 = (center[0] > 0.25)
-            #ref_cond_x = True
-            #ref_cond_x = 0
-            ref_cond_x_03 = (numpy.abs(center[0] - 0.5) <= 0.1)
-            # Refinement condition on \"y\".
-            ref_cond_y = (center[1] < 0.75) and (center[1] > 0.25)
-            ref_cond_y_02 = (center[1] > 0.25)
-            ref_cond_y_03 = (numpy.abs(center[1] - 0.5) <= 0.1)
-            #ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
-            #                           numpy.square(center[1] - 0.5)) <= 0.5)
-            ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
-                                       numpy.square(center[1] - 0.5)) <= 0.35)
-            # Refinement condition on \"y\".
-            # TODO: for 3D cases, implement this condition.
-            ref_cond_z = True if (dimension == 2) else \
-                         True
-            #if ((ref_cond_x and ref_cond_y and ref_cond_z)):
-                #or (ref_cond_x_02 and ref_cond_y_02 and ref_cond_z)):
-            #if (ref_cond_x_03 and ref_cond_y_03):
-            if ref_cond_x_y:
-                    pablo.set_marker(octant, 1)
+    #if (proc_grid):
+    #    for octant in xrange(0, n_octs):
+    #        center  = pablo.get_center(octant)[: dimension]
+    #        # Refinement condition on \"x\".
+    #        ref_cond_x = (center[0] < 0.75) and (center[0] > 0.25)
+    #        #ref_cond_x = False
+    #        ref_cond_x_02 = (center[0] > 0.25)
+    #        #ref_cond_x = True
+    #        #ref_cond_x = 0
+    #        ref_cond_x_03 = (numpy.abs(center[0] - 0.5) <= 0.1)
+    #        # Refinement condition on \"y\".
+    #        ref_cond_y = (center[1] < 0.75) and (center[1] > 0.25)
+    #        ref_cond_y_02 = (center[1] > 0.25)
+    #        ref_cond_y_03 = (numpy.abs(center[1] - 0.5) <= 0.1)
+    #        #ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
+    #        #                           numpy.square(center[1] - 0.5)) <= 0.5)
+    #        ref_cond_x_y = (numpy.sqrt(numpy.square(center[0] - 0.5) + \
+    #                                   numpy.square(center[1] - 0.5)) <= 0.35)
+    #        # Refinement condition on \"y\".
+    #        # TODO: for 3D cases, implement this condition.
+    #        ref_cond_z = True if (dimension == 2) else \
+    #                     True
+    #        #if ((ref_cond_x and ref_cond_y and ref_cond_z)):
+    #            #or (ref_cond_x_02 and ref_cond_y_02 and ref_cond_z)):
+    #        #if (ref_cond_x_03 and ref_cond_y_03):
+    #        if ref_cond_x_y:
+    #                pablo.set_marker(octant, 1)
 
     pablo.adapt()
     pablo.load_balance()
@@ -519,9 +519,12 @@ def compute(comm_dictionary     ,
     # Absolute values \"numpy\" determinants.
     a_dets = numpy.absolute(dets)
     h_s2 = numpy.power(h_s, 2)
-    laplacian.add_rhs(e_2nd_der * h_s2 * a_dets)
+    if (not proc_grid):
+        laplacian.add_rhs(e_2nd_der * h_s2 * a_dets)
+    else:
+        laplacian.add_rhs(e_sol)
     laplacian.update_values(intercomm_dictionary)
-    #laplacian.mat.view()
+    laplacian.mat.view()
     #laplacian.rhs.view()
     laplacian.solve()
 
@@ -583,43 +586,43 @@ def compute(comm_dictionary     ,
          "_f_internal_nodes.txt"))
 
     if (n_grids > 1):
-        n_norm_inf, \
-        n_norm_L2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
-                                             laplacian.f_exact_on_bord   ,
-                                             laplacian.h_s_inter_on_board,
-                                             l2 = False                  ,
-                                             r_n_d = True)
-        w_n((n_norm_inf,
-             n_norm_L2 ,
-             "_f_borders.txt"))
-        #if (not proc_grid):
+        if (proc_grid):
+            n_norm_inf, \
+            n_norm_L2 = laplacian.evaluate_norms(laplacian.f_on_bord         ,
+                                                 laplacian.f_exact_on_bord   ,
+                                                 laplacian.h_s_inter_on_board,
+                                                 l2 = False                  ,
+                                                 r_n_d = True)
+            w_n((n_norm_inf,
+                 n_norm_L2 ,
+                 "_f_borders.txt"))
             #print(laplacian.grad_exact_x.shape)
             #print(laplacian.grad_rec_x.shape)
-        n_norm_inf, \
-        n_norm_L2 , \
-        grad_x_array = laplacian.evaluate_norms(laplacian.grad_rec_x    ,
-                                                laplacian.grad_exact_x  ,
-                                                laplacian.h_s_inter_grad,
-                                                l2 = False              ,
-                                                r_n_d = True            ,
-                                                r_n_array = True)
-        w_n((n_norm_inf,
-             n_norm_L2 ,
-             "_grad_x.txt"))
-        n_norm_inf, \
-        n_norm_L2 , \
-        grad_y_array = laplacian.evaluate_norms(laplacian.grad_rec_y    ,
-                                                laplacian.grad_exact_y  ,
-                                                laplacian.h_s_inter_grad,
-                                                l2 = False              ,
-                                                r_n_d = True            ,
-                                                r_n_array = True)
-        w_n((n_norm_inf,
-             n_norm_L2 ,
-             "_grad_y.txt"))
-        #else:
-        #    grad_x_array = laplacian.grad_rec_x
-        #    grad_y_array = laplacian.grad_rec_y
+            n_norm_inf, \
+            n_norm_L2 , \
+            grad_x_array = laplacian.evaluate_norms(laplacian.grad_rec_x    ,
+                                                    laplacian.grad_exact_x  ,
+                                                    laplacian.h_s_inter_grad,
+                                                    l2 = False              ,
+                                                    r_n_d = True            ,
+                                                    r_n_array = True)
+            w_n((n_norm_inf,
+                 n_norm_L2 ,
+                 "_grad_x.txt"))
+            n_norm_inf, \
+            n_norm_L2 , \
+            grad_y_array = laplacian.evaluate_norms(laplacian.grad_rec_y    ,
+                                                    laplacian.grad_exact_y  ,
+                                                    laplacian.h_s_inter_grad,
+                                                    l2 = False              ,
+                                                    r_n_d = True            ,
+                                                    r_n_array = True)
+            w_n((n_norm_inf,
+                 n_norm_L2 ,
+                 "_grad_y.txt"))
+        else:
+            grad_x_array = laplacian.grad_rec_x
+            grad_y_array = laplacian.grad_rec_y
 
     interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
