@@ -808,6 +808,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 d_nnz.append(d_count)
                 o_nnz.append(o_count)
                 self._centers_not_penalized.append(center)
+            #if ((not grid) and (g_octant == 12)):
+            #    print(self._edl.get(key))
 
         self.new_spread_new_background_numeration(is_background)
 
@@ -2411,6 +2413,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #                     ids_octree_contained)
         self.assembly_petsc_struct("matrix",
                                    PETSc.Mat.AssemblyType.FINAL_ASSEMBLY)
+        #if (is_background):
+        #    if (self._comm_w.Get_rank() == 0):
+        #        print(self._b_mat.getValues(6, [48,49,50,51]))
         # Ghosts' deplacement.
         g_d = 0
         for i in xrange(0, grid):
@@ -2418,7 +2423,12 @@ class Laplacian(BaseClass2D.BaseClass2D):
         m_r_indices_fg_temp = map(self.mask_octant,
                                   [(pippo + g_d) for pippo in self._r_indices_fg_temp])
         #print(m_r_indices_fg_temp)
-        self._b_mat.zeroRowsColumns(m_r_indices_fg_temp)
+        self._b_mat.zeroRows(m_r_indices_fg_temp, diag = 1.0)
+        #self._b_mat.zeroRowsColumns(m_r_indices_fg_temp)
+        #if (is_background):
+        #    if (self._comm_w.Get_rank() == 0):
+        #        print(m_r_indices_fg_temp)
+        #        print(self._b_mat.getValues(6, [48,49,50,51]))
 
         self.assembly_petsc_struct("rhs")
 
@@ -2658,6 +2668,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         #self._rhs.setValues(row_indices,
                         #                    col_values ,
                         #                    insert_mode)
+                        #if (keys[idx][1] == 12):
+                        #    print(str(row_indices) + " " + str(col_indices) + " " + str(col_values))
                         apply_rest_prol_ops(row_indices,
                                             col_indices,
                                             col_values)
@@ -2870,6 +2882,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     columns.extend(l_t_indices_inv_loc)
                     row_index = int(stencils[idx][id_stencil - 2])
                     m_row_index = self._ngn[row_index]
+                    #if ((keys[idx][1] == 12) or (keys[idx][1] == 13) or (keys[idx][1] == 14)):
+                    #    print(str(m_row_index) + " " + str(columns) + " " + str(values))
                     apply_rest_prol_ops([m_row_index],
                                         columns      ,
                                         values)
@@ -4073,6 +4087,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     #    print(self._comm_w.Get_rank())
                             #if (p_g_index == 224):
                             #    print(stencil)
+                            #if (p_g_index == 12):
+                            #    print(str(key) + " " + str(stencil))
 
         # Columns indices for the \"PETSc\" matrix.
         c_indices = []
@@ -4480,6 +4496,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                      coefficients.
                 col_values (list) : elements to insert into \"col_indices\"."""
         insert_mode = PETSc.InsertMode.ADD_VALUES
+        #if (len(row_indices) == 1):
+        #    if (row_indices[0] == 6):
+        #        print("colonne " + str(col_indices) + ", valori " + str(col_values))
         self._b_mat.setValues(row_indices,
                               col_indices,
                               col_values ,

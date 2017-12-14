@@ -524,7 +524,7 @@ def compute(comm_dictionary     ,
     else:
         laplacian.add_rhs(e_sol)
     laplacian.update_values(intercomm_dictionary)
-    laplacian.mat.view()
+    #laplacian.mat.view()
     #laplacian.rhs.view()
     laplacian.solve()
 
