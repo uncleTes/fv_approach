@@ -2884,9 +2884,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     m_row_index = self._ngn[row_index]
                     #if ((keys[idx][1] == 12) or (keys[idx][1] == 13) or (keys[idx][1] == 14)):
                     #    print(str(m_row_index) + " " + str(columns) + " " + str(values))
-                    apply_rest_prol_ops([m_row_index],
-                                        columns      ,
-                                        values)
+                    #apply_rest_prol_ops([m_row_index],
+                    #                    columns      ,
+                    #                    values)
+                    insert_mode = PETSc.InsertMode.ADD_VALUES
+                    grad_to_insert = ex_grad[0][0] if (n_axis == 0) else ex_grad[1][0]
+                    self._rhs.setValues(m_row_index,
+                                        grad_to_insert * -1.0 * n_value * h_bg,
+                                        insert_mode)
 
         msg = "Updated prolongation blocks"
         self.log_msg(msg   ,
