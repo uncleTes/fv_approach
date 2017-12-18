@@ -1067,8 +1067,8 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
     # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
     # approximation will be: \"ax + by + cz + d\".
     cdef int n_points = points.shape[0]
-    #cdef int n_cols = dim + 2
-    cdef int n_cols = dim + 1
+    cdef int n_cols = dim + 2
+    #cdef int n_cols = dim + 1
     cdef size_t i
     cdef size_t j
     if (bil_quad):
@@ -1095,9 +1095,9 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
         for i in range(n_points):
             for j in range(dim):
                 A[i][j] = points[i][j]
-            #A[i][dim] = points[i][0] * points[i][1]
-            #A[i][dim + 1] = 1
-            A[i][dim] = 1
+            A[i][dim] = points[i][0] * points[i][1]
+            A[i][dim + 1] = 1
+            #A[i][dim] = 1
     else:
         for i in range(n_points):
             A[i][0] = points[i][0]
@@ -1130,7 +1130,7 @@ def least_squares(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] points       
         # Multiplying \"b\" time \"y\".
         p[1, :] = p[1, :] * unknown_point[1]
         # Multiplying \"c\" time \"x*y\".
-        #p[2, :] = p[2, :] * (unknown_point[0] * unknown_point[1])
+        p[2, :] = p[2, :] * (unknown_point[0] * unknown_point[1])
     else:
         p[0, :] = p[0, :] * unknown_point[0]
         p[1, :] = p[1, :] * unknown_point[1]
@@ -1164,8 +1164,8 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
     # In 2D we approximate our function as a plane: \"ax + by + c\", in 3D the
     # approximation will be: \"ax + by + cz + d\".
     cdef int n_points = points.shape[0]
-    #cdef int n_cols = dim + 2
-    cdef int n_cols = dim + 1
+    cdef int n_cols = dim + 2
+    #cdef int n_cols = dim + 1
     cdef size_t i
     cdef size_t j
     if (bil_quad):
@@ -1211,9 +1211,9 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
         for i in range(n_points):
             for j in range(dim):
                 A[i][j] = fg_points[i][j]
-            #A[i][dim] = fg_points[i][0] * fg_points[i][1]
-            #A[i][dim + 1] = 1
-            A[i][dim] = 1
+            A[i][dim] = fg_points[i][0] * fg_points[i][1]
+            A[i][dim + 1] = 1
+            #A[i][dim] = 1
     else:
         for i in range(n_points):
             A[i][0] = fg_points[i][0]
@@ -1270,16 +1270,16 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
     #             numpy.add(p[1, :],
     #                       p[2, :] * unknown_point[0]))
     if (not bil_quad):
-        #numpy.copyto(coeffs_grad_x,
-        #             numpy.add(p[0, :],
-        #                       p[2, :] * unknown_point[1]))
-        #numpy.copyto(coeffs_grad_y,
-        #             numpy.add(p[1, :],
-        #                       p[2, :] * unknown_point[0]))
         numpy.copyto(coeffs_grad_x,
-                     p[0, :])
+                     numpy.add(p[0, :],
+                               p[2, :] * unknown_point[1]))
         numpy.copyto(coeffs_grad_y,
-                     p[1, :])
+                     numpy.add(p[1, :],
+                               p[2, :] * unknown_point[0]))
+        #numpy.copyto(coeffs_grad_x,
+        #             p[0, :])
+        #numpy.copyto(coeffs_grad_y,
+        #             p[1, :])
     else:
         numpy.copyto(coeffs_grad_x,
                      numpy.add(p[0, :],
