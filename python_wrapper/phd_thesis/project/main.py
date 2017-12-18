@@ -624,10 +624,13 @@ def compute(comm_dictionary     ,
             grad_x_array = laplacian.grad_rec_x
             grad_y_array = laplacian.grad_rec_y
 
-    interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol")
     e_sol = utilities.exact_sol(centers,
                                 alpha  ,
                                 beta)
+    interpolate_sol = laplacian.reset_partially_array(array_to_reset = "sol",
+                                                      is_array = True       ,
+                                                      vector_to_reset = None,
+                                                      vector_temp = e_sol)
     interpolate_res = laplacian.reset_partially_array(array_to_reset = "res")
     #print(laplacian.residual.getArray().shape)
     interpolate_grad_x = laplacian.reset_partially_array(array_to_reset = "grad_x",

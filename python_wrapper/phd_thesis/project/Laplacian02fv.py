@@ -1911,7 +1911,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
     def reset_partially_array(self                  ,
                               array_to_reset = "sol",
                               is_array = True       ,
-                              vector_to_reset = None):
+                              vector_to_reset = None,
+                              vector_temp = None):
         """Function which creates a \"new\" solution array, pushing in the
            octants covered by foreground meshes the values interpolated from the
            neighbours around them.
@@ -1959,6 +1960,9 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     else:
                         arr_value = to_reset[arr_index]
                     res_arr.setValue(i, arr_value)
+                #else:
+                #    if (array_name == "solution"):
+                #        res_arr.setValue(i, vector_temp[i])
 
         res_arr.assemblyBegin()
         res_arr.assemblyEnd()
