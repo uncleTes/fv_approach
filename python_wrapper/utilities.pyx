@@ -817,6 +817,97 @@ def get_points_local_ring(numpy.ndarray[dtype = numpy.float64_t, \
 
     return l_ring.tolist()
 
+def get_points_local_ring_bg(numpy.ndarray[dtype = numpy.float64_t, \
+                                           ndim = 1] point        ,
+                             numpy.ndarray[dtype = numpy.float64_t, \
+                                           ndim = 1] oct_center   ,
+                             int n_axis                           ,
+                             int n_value                          ,
+                             int dim = 2):
+    # Index of quadrant.
+    cdef int ind_quad
+    cdef int fg_face
+    cdef double x_p = point[0]
+    cdef double y_p = point[1]
+    cdef double x_c = oct_center[0]
+    cdef double y_c = oct_center[1]
+    cdef double d_x = (x_p - x_c)
+    cdef double d_y = (y_p - y_c)
+    cdef double tol = 1.0e-12
+    cdef numpy.ndarray[dtype = numpy.uint8_t, mode = "c", ndim = 1] l_ring = \
+         numpy.zeros((3, ), dtype = numpy.uint8)
+
+    if (n_axis == 1):
+        if (n_value == 1):
+            fg_face = 3
+        elif (n_value == -1):
+            fg_face = 2
+    elif (n_axis == 0):
+        if (n_value == -1):
+            fg_face = 0
+        elif (n_value == 1):
+            fg_face = 1
+
+    if ((d_x >= tol) and (d_y >= tol)):
+        ind_quad = 0
+        #l_ring[0] = 1 # Face
+        #l_ring[1] = 3 # Node
+        #l_ring[2] = 3 # Face
+    elif ((d_x < tol) and (d_y > tol)):
+        ind_quad = 1
+        #l_ring[0] = 0 # Face
+        #l_ring[1] = 2 # Node
+        #l_ring[2] = 3 # Face
+    elif ((d_x <= tol) and (d_y < tol)):
+        ind_quad = 2
+        #l_ring[0] = 0 # Face
+        #l_ring[1] = 0 # Node
+        #l_ring[2] = 2 # Face
+    else:
+        ind_quad = 3
+        #l_ring[0] = 1 # Face
+        #l_ring[1] = 1 # Node
+        #l_ring[2] = 2 # Face
+
+    if (fg_face == 3):
+        if ((ind_quad == 1) or (ind_quad == 2)):
+            l_ring[0] = 0 # Face
+            l_ring[1] = 2 # Node
+            l_ring[2] = 3 # Face
+        elif ((ind_quad == 0) or (ind_quad == 3)):
+            l_ring[0] = 1 # Face
+            l_ring[1] = 3 # Node
+            l_ring[2] = 3 # Face
+    elif (fg_face == 2):
+        if ((ind_quad == 1) or (ind_quad == 2)):
+            l_ring[0] = 0 # Face
+            l_ring[1] = 0 # Node
+            l_ring[2] = 2 # Face
+        elif ((ind_quad == 0) or (ind_quad == 3)):
+            l_ring[0] = 1 # Face
+            l_ring[1] = 1 # Node
+            l_ring[2] = 2 # Face
+    elif (fg_face == 0):
+        if ((ind_quad == 1) or (ind_quad == 0)):
+            l_ring[0] = 0 # Face
+            l_ring[1] = 2 # Node
+            l_ring[2] = 3 # Face
+        elif ((ind_quad == 2) or (ind_quad == 3)):
+            l_ring[0] = 0 # Face
+            l_ring[1] = 0 # Node
+            l_ring[2] = 2 # Face
+    else: # \"fg_face == 1\"
+        if ((ind_quad == 1) or (ind_quad == 0)):
+            l_ring[0] = 1 # Face
+            l_ring[1] = 3 # Node
+            l_ring[2] = 3 # Face
+        elif ((ind_quad == 2) or (ind_quad == 3)):
+            l_ring[0] = 1 # Face
+            l_ring[1] = 1 # Node
+            l_ring[2] = 2 # Face
+
+    return l_ring.tolist()
+
 def neigh_inter_center(numpy.ndarray[dtype = numpy.float64_t,
                                      ndim = 2] point        ,
                        double h                             ,
