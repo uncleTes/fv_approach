@@ -1743,6 +1743,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     # Least square coefficients.
                     # TODO: use \"multiprocessing\" shared memory to map function on
                     #       local threads.
+                    #print(n_cs_n_is)
                     l_s_coeffs = map(b_c,
                                      zip([pair[0] for pair in n_cs_n_is]     ,
                                          [n_node for n_node in n_nodes_inter]))
@@ -2743,6 +2744,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Getting coordinates of the intersection node on the foreground
                 # border.
                 displ = 2
+                #print(stencils[i])
                 ncopyto(n_t_a_03[0][: dimension], \
                         stencils[i][8 : 10])
                 #ncopyto(n_t_a_03[0][: dimension], \
@@ -2935,6 +2937,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                         rec_sol += rec_sols[k] * coeffs_b_c[k]
                         #rec_sol += rec_sols[k] * coeffs[k]
                     self._f_on_borders.append(rec_sol)
+                    #print("exact %.20f" % ex_sol)
+                    #print("rec %.20f" % rec_sol)
                     #rec_sol = rec_sol * stencils[i][1]
                     #insert_mode = PETSc.InsertMode.ADD_VALUES
                     #self._rhs.setValues([keys[i][1], keys[i][2]] ,
@@ -3255,11 +3259,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         b_beta      ,
                                         dim = 2     ,
                                         apply_mapping = True)
+                    #print(n_cs_n_is[1])
                     rec_sol = 0
                     for k in xrange(0, rec_sols.shape[0]):
                         rec_sol += rec_sols[k] * coeffs_b_c[k]
                         #rec_sol += rec_sols[k] * l_s_coeffs[k]
                     self._f_on_borders.append(rec_sol)
+                    #print("exact %.20f" % ex_sol)
+                    #print("rec %.20f" % rec_sol)
 
                     #nodes_inter = [stencils[i][1 : 3], stencils[i][3 : 5]]
                     #owners_centers = [stencils[i][5 : 7], stencils[i][11 : 13]]
@@ -3301,6 +3308,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #                         dim = dimension      ,
                     #                         apply_mapping = True)
                     #for k in xrange(0, rec_grads.shape[1]):
+                    #print(coeffs_b_c_grad)
+                    #print(rec_sols)
                     for k in xrange(0, rec_sols.shape[0]):
                         #rec_grad_x += rec_sols[k] * l_s_coeffs_grad[0][k]
                         #rec_grad_y += rec_sols[k] * l_s_coeffs_grad[1][k]
@@ -3320,6 +3329,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                        c_beta   ,
                                                        dim = dimension,
                                                        apply_mapping = True)
+                    #print("exact grad " + str(ex_grad))
+                    #print("rec grad " + str((rec_grad_x, rec_grad_y)))
                     self._grad_exact_x.append(ex_grad[0][0])
                     self._grad_exact_y.append(ex_grad[1][0])
                     self._h_s_inter_grad.append(h_inter)
@@ -3562,7 +3573,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     #else:
                     #    indices.append("outside_bg")
                     #centers.append(border_center[: dimension])
-
         centers.append(c_c)
 
         indices.append(c_m_index)
@@ -3889,6 +3899,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 # Number of nodes in the ring (here, should be always equal to
                 # 4).
                 n_n_r =  n_cs_n_is[node_on_f_b][0].shape[0]
+                #print(n_n_r)
                 for i in xrange(0, n_n_r):
                     # Storing all the coordinates of the neighbours in the ring
                     # of the node.
