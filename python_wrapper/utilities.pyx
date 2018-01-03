@@ -1091,6 +1091,159 @@ def bil_coeffs(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
 
     return coeffs
 
+def bil_coeffs_grad(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
+                    numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point,
+                    numpy.ndarray[dtype = numpy.float64_t, \
+                                  ndim = 1] b_alpha        ,
+                    numpy.ndarray[dtype = numpy.float64_t, \
+                                  ndim = 1] b_beta         ,
+                    int dim = 2):
+    # Number of nodes; in 2D is equal to 4.
+    cdef int n_nodes = nodes.shape[0]
+    cdef double multiplier
+    cdef double l
+    cdef double m
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] coeffs_x =     \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] coeffs_y =     \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 1] coeffs_x_final =\
+         numpy.zeros(shape = (n_nodes),          \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 1] coeffs_y_final =\
+         numpy.zeros(shape = (n_nodes),          \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 2] A =             \
+         numpy.zeros(shape = (n_nodes, n_nodes), \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] b_x =          \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] b_y =          \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] alpha =        \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] beta =         \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+    # A \"numpy\" empty array (size == 0) of shape (0,).
+    cdef numpy.ndarray[dtype = numpy.float64_t,
+                       ndim = 1] n_e_array = \
+         numpy.array([], \
+                     dtype = numpy.float64)
+
+    if (nodes.size == 0):
+        return n_e_array
+
+    A[0][0] = 1.0
+    A[0][1] = nodes[0][0]
+    A[0][2] = nodes[0][1]
+    A[1][0] = 1.0
+    A[1][1] = nodes[1][0]
+    A[1][2] = nodes[1][1]
+    A[2][0] = 1.0
+    A[2][1] = nodes[2][0]
+    A[2][2] = nodes[2][1]
+    b_x[0] = 0.0
+    b_x[1] = 1.0
+    b_x[2] = 0.0
+    b_y[0] = 0.0
+    b_y[1] = 0.0
+    b_y[2] = 1.0
+    if (n_nodes == 4):
+        A[0][3] = nodes[0][0] * nodes[0][1]
+        A[1][3] = nodes[1][0] * nodes[1][1]
+        A[2][3] = nodes[2][0] * nodes[2][1]
+        A[3][0] = 1.0
+        A[3][1] = nodes[3][0]
+        A[3][2] = nodes[3][1]
+        A[3][3] = nodes[3][0] * nodes[3][1]
+        b_x[3] = point[1]
+        b_y[3] = point[0]
+    #A[0][0] = 1.0
+    #A[0][1] = 0.0
+    #A[0][2] = 0.0
+    #A[0][3] = 0.0
+    #A[1][0] = 1.0
+    #A[1][1] = 1.0
+    #A[1][2] = 0.0
+    #A[1][3] = 0.0
+    #A[2][0] = 1.0
+    #A[2][1] = 1.0
+    #A[2][2] = 1.0
+    #A[2][3] = 1.0
+    #A[3][0] = 1.0
+    #A[3][1] = 0.0
+    #A[3][2] = 1.0
+    #A[3][3] = 0.0
+
+    #alpha, \
+    #beta = bil_mapping(nodes            ,
+    #                   for_pablo = False,
+    #                   dim = 2)
+    ## Getting logical coordinates.
+    #l, m = apply_bil_mapping_inv(point,
+    #                             alpha,
+    #                             beta ,
+    #                             dim = 2)
+    #b[0] = 1.0
+    #b[1] = l
+    #b[2] = m
+    #b[3] = l * m
+
+    coeffs_x = numpy.linalg.solve(A.T, b_x)
+    coeffs_y = numpy.linalg.solve(A.T, b_y)
+
+    #coeffs[0] = ((nodes[3][0] - point[0]) *
+    #             (nodes[3][1] - point[1]))
+
+    #coeffs[1] = ((point[0] - nodes[0][0]) *
+    #             (nodes[3][1] - point[1]))
+
+    #coeffs[2] = ((nodes[3][0] - point[0]) *
+    #             (point[1] - nodes[0][1]))
+
+    #coeffs[3] = ((point[0] - nodes[0][0]) *
+    #             (point[1] - nodes[0][1]))
+
+    #multiplier = 1 / ((nodes[3][0] - nodes[0][0]) *
+    #                  (nodes[3][1] - nodes[0][1]))
+
+    #coeffs = multiplier * coeffs
+
+    b_grad_transf = jacobian_bil_mapping(point,
+                                         b_alpha,
+                                         b_beta ,
+                                         dim = 2)
+    grad_transf_inv = numpy.linalg.inv(b_grad_transf)
+
+    numpy.copyto(coeffs_x_final,
+                 numpy.add(coeffs_x * grad_transf_inv[0][0],
+                           coeffs_y * grad_transf_inv[1][0]))
+    numpy.copyto(coeffs_y_final,
+                 numpy.add(coeffs_x * grad_transf_inv[0][1],
+                           coeffs_y * grad_transf_inv[1][1]))
+
+    return (coeffs_x_final, coeffs_y_final)
+
 def jacobians_bil_mapping(numpy.ndarray[dtype = numpy.float64_t, \
                                         ndim = 2] l_points      , # logical points
                           numpy.ndarray[dtype = numpy.float64_t, \
