@@ -415,6 +415,7 @@ def exact_sol(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
     #return one
     return nsin(nadd(npower(nadd(p_points[:, 0], -0.5), 2),
                      npower(nadd(p_points[:, 1], -0.5), 2)))
+    #return nadd(p_points[:, 0], p_points[:, 1])
 
 def exact_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] l_points,
                    numpy.ndarray[dtype = numpy.float64_t, ndim = 1] alpha   ,
