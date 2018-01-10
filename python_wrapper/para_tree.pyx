@@ -179,6 +179,8 @@ cdef extern from "ParaTree.hpp" namespace "bitpit":
         darray3 getNormal(Intersection* inter)
         darray3 getNormal(uint32_t idx,
                           uint8_t& iface)
+        darray3 getNormal(Octant* octant,
+                          uint8_t& iface)
 
         bool getIsGhost(Intersection* inter)
 
@@ -692,6 +694,7 @@ cdef class Py_Para_Tree:
                    uintptr_t inter               ,
                    bool also_numpy_normal = False,
                    bool is_ptr = True            ,
+                   bool is_octant = False        ,
                    uint8_t iface = 0):
         cdef darray3 normal
         # Size of the \"normal\".
@@ -701,7 +704,10 @@ cdef class Py_Para_Tree:
         cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 1] np_normal = \
              numpy.zeros(shape = (n_size, ), dtype = numpy.float64)
         if (is_ptr):
-            normal = self.thisptr.getNormal(<Intersection*><void*>inter)
+            if (is_octant):
+                normal = self.thisptr.getNormal(<Octant*><void*>inter, iface)
+            else:
+                normal = self.thisptr.getNormal(<Intersection*><void*>inter)
         else:
             normal = self.thisptr.getNormal(inter,
                                             iface)

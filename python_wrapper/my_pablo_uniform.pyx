@@ -53,6 +53,8 @@ cdef extern from "MyPabloUniform.hpp" namespace "bitpit":
         darray3 _getNormal(Intersection* inter)
         darray3 _getNormal(uint32_t idx,
                            uint8_t& iface)
+        darray3 _getNormal(Octant* octant,
+                           uint8_t& iface)
         
         darr3vector _getNodes(Intersection* inter)
         darr3vector _getNodes(Octant* idx)
@@ -331,6 +333,7 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
                    uintptr_t inter               ,
                    bool also_numpy_normal = False,
                    bool is_ptr = True            ,
+                   bool is_octant = False        ,
                    uint8_t iface = 0):
         cdef darray3 normal
         # Size of the \"normal\".
@@ -340,7 +343,10 @@ cdef class Py_My_Pablo_Uniform(Py_Para_Tree):
         cdef numpy.ndarray[dtype = numpy.float64_t, ndim = 1] np_normal = \
              numpy.zeros(shape = (n_size, ), dtype = numpy.float64)
         if (is_ptr):
-            normal = self.der_thisptr._getNormal(<Intersection*><void*>inter)
+            if (is_octant):
+                normal = self.der_thisptr._getNormal(<Octant*><void*>inter, iface)
+            else:
+                normal = self.der_thisptr._getNormal(<Intersection*><void*>inter)
         else:
             normal = self.der_thisptr._getNormal(inter,
                                                  iface)
