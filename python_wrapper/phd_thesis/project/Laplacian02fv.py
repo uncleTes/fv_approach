@@ -2698,6 +2698,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     if (id_face < 0):
                         n_value = -1.0
                         id_face = abs(id_face)
+                    n_axis = 1 if (id_face >= 2) else 0
                     c_c = []
                     c_c = stencils[idx][1 : 3]
                     h_bg = stencils[idx][0]
@@ -2748,77 +2749,99 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                           c_beta  ,
                                           n_t_a_02,
                                           dimension)
-                    neighs, ghosts = ([] for i in range(0, 2))
-                    for i in xrange(1, 3):
-                        for k in xrange(0, 4):
-                            (neighs, \
-                             ghosts) = octree.find_neighbours(local_idxs[idx],
-                                                              k              ,
-                                                              i              ,
-                                                              neighs         ,
-                                                              ghosts)
-                            n_neighs = len(neighs)
-                            if (neighs):
-                                # Distance center node.
-                                d_c_n = 0.0
-                                for j in xrange(0, n_neighs):
-                                    # Neighbour is into the same process, so is local.
-                                    if (not ghosts[j]):
-                                        by_octant = False
-                                        index = neighs[j]
-                                        m_index = mask_octant(index + o_ranges[0])
-                                        py_ghost_oct = index
-                                    else:
-                                        by_octant = True
-                                        # In this case, the quas(/oc)tree is no more local into
-                                        # the current process, so we have to find it globally.
-                                        index = octree.get_ghost_global_idx(neighs[j])
-                                        # \".index\" give us the \"self._global_ghosts\" index
-                                        # that contains the index of the global ghost quad(/oc)-
-                                        # tree previously found and stored in \"index\".
-                                        py_ghost_oct = octree.get_ghost_octant(neighs[j])
-                                        m_index = mask_octant(index + len(self._ngn))
-                                    if (m_index != -1):
-                                        cell_center, \
-                                        n_cell_center = get_center(py_ghost_oct,
-                                                                   by_octant   ,
-                                                                   True)
-                                        n_n_cell_center = narray([n_cell_center])
-                                        #apply_bil_mapping(n_n_cell_center,
-                                        #                  b_alpha        ,
-                                        #                  b_beta         ,
-                                        #                  n_t_a_01       ,
-                                        #                  dimension)
-                                        #apply_bil_mapping_inv(n_t_a_01,
-                                        #                      c_alpha ,
-                                        #                      c_beta  ,
-                                        #                      n_t_a_02,
-                                        #                      dimension)
-                                        # Temporary distance.
-                                        #t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
-                                        #                        n_t_a_03[0][: dimension])
-                                        t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
-                                                                n_cell_center[: dimension])
-                                        # \"j\" == 0...first neighbour.
-                                        if (not j):
-                                            d_c_n = t_d
-                                            #c_n_oct_center = ncopy(n_t_a_02[0])
-                                            c_n_oct_center = ncopy(n_cell_center)
-                                            t_centers_inv_loc.append(c_n_oct_center[: dimension])
-                                            l_t_indices_inv_loc.append(m_index)
-                                        # Second neighbour case.
-                                        else:
-                                            if (t_d < d_c_n):
-                                                d_c_n = t_d
-                                                c_n_oct_center = ncopy(n_cell_center)
-                                                #c_n_oct_center = ncopy(n_t_a_02[0])
-                                                t_centers_inv_loc[-1][: dimension] = \
-                                                c_n_oct_center[: dimension]
-                                                l_t_indices_inv_loc[-1] = m_index
-                    l_s_coeffs = utilities.least_squares(narray(t_centers_inv_loc)   ,
-                                                         n_t_a_02[0][: dimension],
-                                                         dim = 2                 ,
-                                                         bil_quad = False)
+                    #-----beginning new bilinear part-----
+                    oct_ring = utilities.get_points_local_ring(n_t_a_02[0],
+                                                               n_cell_center)
+                    # This function can be used for case of two overlapped grids with the
+                    # same \"h\", for example, and/or perfectly overposed.
+                    #oct_ring = utilities.get_points_local_ring_bg(n_t_a_02[0],
+                    #                                              n_cell_center,
+                    #                                              n_axis,
+                    #                                              n_value)
+                    # Neighbour centers neighbour indices.
+                    n_cs_n_is = f_r_n((local_idxs[idx],
+                                       oct_ring       ,
+                                       n_t_a_02[0]))
+                    coeffs_b_c = b_c(n_cs_n_is[0],
+                                     n_t_a_02[0])
+                    #print(n_cs_n_is)
+                    #print(coeffs_b_c)
+                    coeffs_b_c_grad = utilities.bil_coeffs_grad(n_cs_n_is[0],
+                                                                n_t_a_02[0] ,
+                                                                c_alpha     ,
+                                                                c_beta)
+                    #-----end new bilinear part-----
+                    #neighs, ghosts = ([] for i in range(0, 2))
+                    #for i in xrange(1, 3):
+                    #    for k in xrange(0, 4):
+                    #        (neighs, \
+                    #         ghosts) = octree.find_neighbours(local_idxs[idx],
+                    #                                          k              ,
+                    #                                          i              ,
+                    #                                          neighs         ,
+                    #                                          ghosts)
+                    #        n_neighs = len(neighs)
+                    #        if (neighs):
+                    #            # Distance center node.
+                    #            d_c_n = 0.0
+                    #            for j in xrange(0, n_neighs):
+                    #                # Neighbour is into the same process, so is local.
+                    #                if (not ghosts[j]):
+                    #                    by_octant = False
+                    #                    index = neighs[j]
+                    #                    m_index = mask_octant(index + o_ranges[0])
+                    #                    py_ghost_oct = index
+                    #                else:
+                    #                    by_octant = True
+                    #                    # In this case, the quas(/oc)tree is no more local into
+                    #                    # the current process, so we have to find it globally.
+                    #                    index = octree.get_ghost_global_idx(neighs[j])
+                    #                    # \".index\" give us the \"self._global_ghosts\" index
+                    #                    # that contains the index of the global ghost quad(/oc)-
+                    #                    # tree previously found and stored in \"index\".
+                    #                    py_ghost_oct = octree.get_ghost_octant(neighs[j])
+                    #                    m_index = mask_octant(index + len(self._ngn))
+                    #                if (m_index != -1):
+                    #                    cell_center, \
+                    #                    n_cell_center = get_center(py_ghost_oct,
+                    #                                               by_octant   ,
+                    #                                               True)
+                    #                    n_n_cell_center = narray([n_cell_center])
+                    #                    #apply_bil_mapping(n_n_cell_center,
+                    #                    #                  b_alpha        ,
+                    #                    #                  b_beta         ,
+                    #                    #                  n_t_a_01       ,
+                    #                    #                  dimension)
+                    #                    #apply_bil_mapping_inv(n_t_a_01,
+                    #                    #                      c_alpha ,
+                    #                    #                      c_beta  ,
+                    #                    #                      n_t_a_02,
+                    #                    #                      dimension)
+                    #                    # Temporary distance.
+                    #                    #t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
+                    #                    #                        n_t_a_03[0][: dimension])
+                    #                    t_d = numpy.linalg.norm(n_t_a_02[0][: dimension] - \
+                    #                                            n_cell_center[: dimension])
+                    #                    # \"j\" == 0...first neighbour.
+                    #                    if (not j):
+                    #                        d_c_n = t_d
+                    #                        #c_n_oct_center = ncopy(n_t_a_02[0])
+                    #                        c_n_oct_center = ncopy(n_cell_center)
+                    #                        t_centers_inv_loc.append(c_n_oct_center[: dimension])
+                    #                        l_t_indices_inv_loc.append(m_index)
+                    #                    # Second neighbour case.
+                    #                    else:
+                    #                        if (t_d < d_c_n):
+                    #                            d_c_n = t_d
+                    #                            c_n_oct_center = ncopy(n_cell_center)
+                    #                            #c_n_oct_center = ncopy(n_t_a_02[0])
+                    #                            t_centers_inv_loc[-1][: dimension] = \
+                    #                            c_n_oct_center[: dimension]
+                    #                            l_t_indices_inv_loc[-1] = m_index
+                    #l_s_coeffs = utilities.least_squares(narray(t_centers_inv_loc)   ,
+                    #                                     n_t_a_02[0][: dimension],
+                    #                                     dim = 2                 ,
+                    #                                     bil_quad = False)
                     ex_sol = solution(n_c_inter            ,
                                       b_alpha              ,
                                       b_beta               ,
@@ -2826,7 +2849,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                       apply_mapping = True)
                     self._f_on_borders_exact.append(ex_sol[0])
                     self._h_s_inter_on_board.append(h_bg)
-                    rec_sols = solution(narray(t_centers_inv_loc),
+                    #rec_sols = solution(narray(t_centers_inv_loc),
+                    rec_sols = solution(n_cs_n_is[0],
                                         c_alpha              ,
                                         c_beta               ,
                                         #b_alpha              ,
@@ -2835,23 +2859,26 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         apply_mapping = True)
                     rec_sol = 0
                     for k in xrange(0, rec_sols.shape[0]):
-                        rec_sol += rec_sols[k] * l_s_coeffs[k]
+                        #rec_sol += rec_sols[k] * l_s_coeffs[k]
+                        rec_sol += rec_sols[k] * coeffs_b_c[k]
                     self._f_on_borders.append(rec_sol)
-                    l_s_coeffs_grad = utilities.least_squares_gradient(narray(t_centers_inv_loc),
-                                                                       n_t_a_02[0][: dimension],
-                                                                       n_t_a_03[0][: dimension],
-                                                                       b_alpha,
-                                                                       b_beta,
-                                                                       c_alpha,
-                                                                       c_beta,
-                                                                       dim = 2,
-                                                                       bil_quad = False)
+                    #l_s_coeffs_grad = utilities.least_squares_gradient(narray(t_centers_inv_loc),
+                    #                                                   n_t_a_02[0][: dimension],
+                    #                                                   n_t_a_03[0][: dimension],
+                    #                                                   b_alpha,
+                    #                                                   b_beta,
+                    #                                                   c_alpha,
+                    #                                                   c_beta,
+                    #                                                   dim = 2,
+                    #                                                   bil_quad = False)
                     rec_grad_x = 0
                     rec_grad_y = 0
                     #print(rec_sols.shape[0])
                     for k in xrange(0, rec_sols.shape[0]):
-                        rec_grad_x += rec_sols[k] * l_s_coeffs_grad[0][k]
-                        rec_grad_y += rec_sols[k] * l_s_coeffs_grad[1][k]
+                        #rec_grad_x += rec_sols[k] * l_s_coeffs_grad[0][k]
+                        #rec_grad_y += rec_sols[k] * l_s_coeffs_grad[1][k]
+                        rec_grad_x += rec_sols[k] * coeffs_b_c_grad[0][k]
+                        rec_grad_y += rec_sols[k] * coeffs_b_c_grad[1][k]
                     self._grad_x.append(rec_grad_x)
                     self._grad_y.append(rec_grad_y)
                     self._grads_indices.append(global_idxs[idx])
@@ -2866,7 +2893,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                     bil_coeffs_empty = numpy.array([[], []])
                     nodes_inter = []
                     owners_centers = []
-                    n_axis = 1 if (id_face >= 2) else 0 
+                    n_axis = 1 if (id_face >= 2) else 0
                     coeffs_grad = self.get_gradient_coefficients(0                        ,
                                                                  dimension                ,
                                                                  nodes_inter              ,
@@ -2878,24 +2905,62 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                  n_value_given = n_value  ,
                                                                  grid = keys[i][0]        ,
                                                                  inter_center = c_inter)
-                    l_s_coeffs_grad_x = l_s_coeffs_grad[0] * coeffs_grad[0]
-                    l_s_coeffs_grad_y = l_s_coeffs_grad[1] * coeffs_grad[1]
+                    #l_s_coeffs_grad_x = l_s_coeffs_grad[0] * coeffs_grad[0]
+                    #l_s_coeffs_grad_y = l_s_coeffs_grad[1] * coeffs_grad[1]
+                    l_s_coeffs_grad_x = coeffs_b_c_grad[0] * coeffs_grad[0]
+                    l_s_coeffs_grad_y = coeffs_b_c_grad[1] * coeffs_grad[1]
                     columns = []
                     values = []
                     values.extend(numpy.add(l_s_coeffs_grad_x, l_s_coeffs_grad_y).tolist())
-                    columns.extend(l_t_indices_inv_loc)
+                    #columns.extend(l_t_indices_inv_loc)
+                    columns.extend(n_cs_n_is[1])
                     row_index = int(stencils[idx][id_stencil - 2])
                     m_row_index = self._ngn[row_index]
                     #if ((keys[idx][1] == 12) or (keys[idx][1] == 13) or (keys[idx][1] == 14)):
                     #    print(str(m_row_index) + " " + str(columns) + " " + str(values))
-                    #apply_rest_prol_ops([m_row_index],
-                    #                    columns      ,
-                    #                    values)
-                    insert_mode = PETSc.InsertMode.ADD_VALUES
-                    grad_to_insert = ex_grad[0][0] if (n_axis == 0) else ex_grad[1][0]
-                    self._rhs.setValues(m_row_index,
-                                        grad_to_insert * -1.0 * n_value * h_bg,
-                                        insert_mode)
+                    #for valore in xrange(0, len(values)):
+                    #    #print(values[valore])
+                    #    if (abs(values[valore]) <= 1.0e-13):
+                    #        #print("bongo")
+                    #        values[valore] = 0.0
+                    #print(columns)
+                    #print(values)
+                    #print(m_row_index)
+                    apply_rest_prol_ops([m_row_index],
+                                        columns      ,
+                                        values)
+                    #grad_to_insert = ex_grad[0][0] if (n_axis == 0) else ex_grad[1][0]
+                    #print("recs = " + str((l_s_coeffs_grad_x, l_s_coeffs_grad_y)))
+                    #print("exact = " + str(grad_to_insert * -1.0 * n_value * h_bg))
+                    #mat_transf = utilities.jacobian_bil_mapping(n_c_inter[0],
+                    #                                            b_alpha  ,
+                    #                                            b_beta   ,
+                    #                                            dim = dimension)
+                    #mat_transf_inv = numpy.linalg.inv(mat_transf)
+                    #mat_transf_inv_transp = mat_transf_inv.T
+                    grad_to_insert_x_essay = ex_grad[0][0] * coeffs_grad[0]
+                    grad_to_insert_y_essay = ex_grad[1][0] * coeffs_grad[1]
+                    #grad_to_insert_x_essay = (ex_grad[0][0] * mat_transf_inv_transp[0][1]) if \
+                    #                         (n_axis) else                                    \
+                    #                         (ex_grad[0][0] * mat_transf_inv_transp[0][0])
+                    #grad_to_insert_y_essay = (ex_grad[1][0] * mat_transf_inv_transp[1][1]) if \
+                    #                         (n_axis) else                                    \
+                    #                         (ex_grad[1][0] * mat_transf_inv_transp[1][0])
+                    #grad_to_insert_x_essay = grad_to_insert_x_essay * h_bg * n_value
+                    #grad_to_insert_y_essay = grad_to_insert_y_essay * h_bg * n_value
+                    grad_to_insert_essay = numpy.add(grad_to_insert_x_essay, grad_to_insert_y_essay)
+                    grad_rec_to_insert_essay = numpy.add(rec_grad_x * coeffs_grad[0],
+                                                         rec_grad_y * coeffs_grad[1])
+                    #print("exact essay = " +str(grad_to_insert_essay))
+                    #print("rec essay = " + str(grad_rec_to_insert_essay))
+                    #print(ex_grad)
+                    #insert_mode = PETSc.InsertMode.ADD_VALUES
+                    #print(grad_to_insert_essay)
+                    #self._rhs.setValues(m_row_index,
+                    #                    #grad_to_insert * -1.0 * n_value * h_bg,
+                    #                    #grad_to_insert_essay * -1.0,
+                    #                    grad_rec_to_insert_essay * -1.0,
+                    #                    insert_mode)
 
         msg = "Updated prolongation blocks"
         self.log_msg(msg   ,
