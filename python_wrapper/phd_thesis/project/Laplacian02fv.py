@@ -3973,7 +3973,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                                     mult = -1.0
                                     if (labels[q]):
-                                     mult = 1.0
+                                        mult = 1.0
 
                                     value_to_store = mult * coeffs_nodes[i][j]
 
@@ -4020,7 +4020,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                                         mult = -1.0
                                         if (labels[q]):
-                                         mult = 1.0
+                                            mult = 1.0
 
                                         value_to_store = mult * coeffs_nodes[i][j]
                                         #if (p_g_index == 639):
@@ -4080,8 +4080,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                                        iface = face_or_node_idx)
                                                     n_axis = numpy.nonzero(n_normal_inter)[0][0]
                                                     n_value = n_normal_inter[n_axis]
-                                                #    # Multiplying for \"-1\" because we need to apply the value
-                                                #    # to th eneighbours, so is the opposite value of the normal.
                                                     stencil[k + 3] = \
                                                         stencil[k + 3] * n_value
                                                 break
@@ -4113,7 +4111,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
 
                                         mult = -1.0
                                         if (labels[q]):
-                                         mult = 1.0
+                                            mult = 1.0
 
                                         value_to_store = mult * coeffs_nodes[i][j]
                                         #if (p_g_index == 639):
@@ -4157,8 +4155,6 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                                                iface = face_or_node_idx)
                                             n_axis = numpy.nonzero(n_normal_inter)[0][0]
                                             n_value = n_normal_inter[n_axis]
-                                        #    # Multiplying for \"-1\" because we need to apply the value
-                                        #    # to th eneighbours, so is the opposite value of the normal.
                                             stencil[displ +  step + 3] = \
                                                 stencil[displ + step + 3] * n_value
                                         #print(value_to_store)
