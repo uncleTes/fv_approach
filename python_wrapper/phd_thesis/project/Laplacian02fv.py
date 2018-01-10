@@ -1694,12 +1694,14 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 n_i_owners = 2
                 n_polygon = None
                 # Looping on the owners of the intersection.
+                py_octs_for_normals = []
                 for j in xrange(0, n_i_owners):
                     # Here, means that the owner is ghost.
                     if (j == o_ghost):
                         py_oct = get_ghost_octant(l_o_norms_inter[j])
                     else:
                         py_oct = get_octant(l_o_norms_inter[j])
+                    py_octs_for_normals.append(py_oct)
                     center, \
                     numpy_center = get_center(py_oct           ,
                                               ptr_octant = True,
@@ -1723,6 +1725,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                 if (is_bound_inter):
                     # Being a boundary intersection, owner is the same.
                     del r_indices[-1]
+                    del py_octs_for_normals[-1]
                 # If the owners of the intersection are not both penalized (row in-
                 # dices are not empty).
                 if (r_indices):
@@ -1817,7 +1820,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                              nodes_inter      ,
                              n_nodes_on_f_b   ,
                              node_on_f_b      ,
-                             rings)
+                             rings            ,
+                             py_octs_for_normals)
 
         # We have inserted argument \"assembly\" equal to
         # \"PETSc.Mat.AssemblyType.FLUSH_ASSEMBLY\" because the final assembly
@@ -3865,7 +3869,8 @@ class Laplacian(BaseClass2D.BaseClass2D):
                  nodes_inter      ,
                  n_nodes_on_f_b   ,
                  node_on_f_b      ,
-                 rings):
+                 rings            ,
+                 py_octs_for_normals):
 
         grid = self._proc_g
         octree = self._octree
@@ -4042,10 +4047,10 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             elif (stencil[k] == -1):
                                                 stencil[k] = n_p_g_index
                                                 stencil[k + 1] = stencil[k + 1] + value_to_store
-                                                codim = 2 if (j == 1) else 1
+                                                codim = 2 if (j == 1) else 3
                                                 face_or_node_idx = rings[i][j]
                                                 stencil[k + 2] = codim
-                                                if (codim == 1):
+                                                if (codim == 3):
                                                     if (face_or_node_idx == 0):
                                                         stencil[k+3] = 1
                                                     elif (face_or_node_idx == 1):
@@ -4064,11 +4069,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                                     elif (face_or_node_idx == 2):
                                                         stencil[k+3] = 1
                                                 #stencil[displ + step + 3] = face_or_node_idx
-                                                if (codim == 1):
+                                                if (codim == 3):
+                                                    #print(py_octs_for_normals[i])
+                                                    #n_normal_inter = octree.get_normal(inter,
                                                     normal_inter, \
-                                                    n_normal_inter = octree.get_normal(inter                  ,
+                                                    n_normal_inter = octree.get_normal(py_octs_for_normals[i]  ,
                                                                                        also_numpy_normal = True,
-                                                                                       is_ptr = True)
+                                                                                       is_ptr = True           ,
+                                                                                       is_octant = True        ,
+                                                                                       iface = face_or_node_idx)
                                                     n_axis = numpy.nonzero(n_normal_inter)[0][0]
                                                     n_value = n_normal_inter[n_axis]
                                                 #    # Multiplying for \"-1\" because we need to apply the value
@@ -4091,7 +4100,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                     stencil = [0, -1] * (l_stencil/2)
                                     stencil.append(0)
                                     #codim = 3 if ((j == 1) or (j == 3)) else 1
-                                    codim = 2 if (j == 1) else 1
+                                    codim = 2 if (j == 1) else 3
                                     face_or_node_idx = rings[i][j]
                                     stencil[0] = h
                                     #print(n_cs_n_is)
@@ -4118,7 +4127,7 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                         # not penalized octants, but in the stencils we are saving
                                         # octants as we were on the penaized ones (which, infact,
                                         # are the keys of the stencils).
-                                        if (codim == 1):
+                                        if (codim == 3):
                                             if (face_or_node_idx == 0):
                                                 stencil[displ+step+3] = 1
                                             elif (face_or_node_idx == 1):
@@ -4137,11 +4146,15 @@ class Laplacian(BaseClass2D.BaseClass2D):
                                             elif (face_or_node_idx == 2):
                                                 stencil[displ+step+3] = 1
                                         #stencil[displ + step + 3] = face_or_node_idx
-                                        if (codim == 1):
+                                        if (codim == 3):
+                                            #print(py_octs_for_normals[i])
+                                            #n_normal_inter = octree.get_normal(inter,
                                             normal_inter, \
-                                            n_normal_inter = octree.get_normal(inter                  ,
+                                            n_normal_inter = octree.get_normal(py_octs_for_normals[i],
                                                                                also_numpy_normal = True,
-                                                                               is_ptr = True)
+                                                                               is_ptr = True,
+                                                                               is_octant = True,
+                                                                               iface = face_or_node_idx)
                                             n_axis = numpy.nonzero(n_normal_inter)[0][0]
                                             n_value = n_normal_inter[n_axis]
                                         #    # Multiplying for \"-1\" because we need to apply the value
