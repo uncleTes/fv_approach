@@ -1334,6 +1334,250 @@ def least_squares_gradient(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] poin
             coeffs_grad_y_def,
             fg_points)
 
+def bil_coeffs_grad(numpy.ndarray[dtype = numpy.float64_t, ndim = 2] nodes,
+                    numpy.ndarray[dtype = numpy.float64_t, ndim = 1] point,
+                    numpy.ndarray[dtype = numpy.float64_t, \
+                                  ndim = 1] b_alpha        ,
+                    numpy.ndarray[dtype = numpy.float64_t, \
+                                  ndim = 1] b_beta         ,
+                    int dim = 2):
+    # Number of nodes; in 2D is equal to 4.
+    cdef int n_nodes = nodes.shape[0]
+    cdef double multiplier
+    cdef double l
+    cdef double m
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] coeffs_x =     \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] coeffs_y =     \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 1] coeffs_x_final =\
+         numpy.zeros(shape = (n_nodes),          \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 1] coeffs_y_final =\
+         numpy.zeros(shape = (n_nodes),          \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t,  \
+                       ndim = 2] A =             \
+         numpy.zeros(shape = (n_nodes, n_nodes), \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] b_x =          \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] b_y =          \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] alpha =        \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+
+    cdef numpy.ndarray[dtype = numpy.float64_t, \
+                       ndim = 1] beta =         \
+         numpy.zeros(shape = (n_nodes),         \
+                     dtype = numpy.float64)
+    # A \"numpy\" empty array (size == 0) of shape (0,).
+    cdef numpy.ndarray[dtype = numpy.float64_t,
+                       ndim = 1] n_e_array = \
+         numpy.array([], \
+                     dtype = numpy.float64)
+
+    if (nodes.size == 0):
+        return n_e_array
+
+    A[0][0] = 1.0
+    A[0][1] = nodes[0][0]
+    A[0][2] = nodes[0][1]
+    A[1][0] = 1.0
+    A[1][1] = nodes[1][0]
+    A[1][2] = nodes[1][1]
+    A[2][0] = 1.0
+    A[2][1] = nodes[2][0]
+    A[2][2] = nodes[2][1]
+    b_x[0] = 0.0
+    b_x[1] = 1.0
+    b_x[2] = 0.0
+    b_y[0] = 0.0
+    b_y[1] = 0.0
+    b_y[2] = 1.0
+    if (n_nodes == 4):
+        A[0][3] = nodes[0][0] * nodes[0][1]
+        A[1][3] = nodes[1][0] * nodes[1][1]
+        A[2][3] = nodes[2][0] * nodes[2][1]
+        A[3][0] = 1.0
+        A[3][1] = nodes[3][0]
+        A[3][2] = nodes[3][1]
+        A[3][3] = nodes[3][0] * nodes[3][1]
+        b_x[3] = point[1]
+        b_y[3] = point[0]
+    #A[0][0] = 1.0
+    #A[0][1] = 0.0
+    #A[0][2] = 0.0
+    #A[0][3] = 0.0
+    #A[1][0] = 1.0
+    #A[1][1] = 1.0
+    #A[1][2] = 0.0
+    #A[1][3] = 0.0
+    #A[2][0] = 1.0
+    #A[2][1] = 1.0
+    #A[2][2] = 1.0
+    #A[2][3] = 1.0
+    #A[3][0] = 1.0
+    #A[3][1] = 0.0
+    #A[3][2] = 1.0
+    #A[3][3] = 0.0
+
+    #alpha, \
+    #beta = bil_mapping(nodes            ,
+    #                   for_pablo = False,
+    #                   dim = 2)
+    ## Getting logical coordinates.
+    #l, m = apply_bil_mapping_inv(point,
+    #                             alpha,
+    #                             beta ,
+    #                             dim = 2)
+    #b[0] = 1.0
+    #b[1] = l
+    #b[2] = m
+    #b[3] = l * m
+
+    coeffs_x = numpy.linalg.solve(A.T, b_x)
+    coeffs_y = numpy.linalg.solve(A.T, b_y)
+
+    #coeffs[0] = ((nodes[3][0] - point[0]) *
+    #             (nodes[3][1] - point[1]))
+
+    #coeffs[1] = ((point[0] - nodes[0][0]) *
+    #             (nodes[3][1] - point[1]))
+
+    #coeffs[2] = ((nodes[3][0] - point[0]) *
+    #             (point[1] - nodes[0][1]))
+
+    #coeffs[3] = ((point[0] - nodes[0][0]) *
+    #             (point[1] - nodes[0][1]))
+
+    #multiplier = 1 / ((nodes[3][0] - nodes[0][0]) *
+    #                  (nodes[3][1] - nodes[0][1]))
+
+    #coeffs = multiplier * coeffs
+
+    b_grad_transf = jacobian_bil_mapping(point,
+                                         b_alpha,
+                                         b_beta ,
+                                         dim = 2)
+    grad_transf_inv = numpy.linalg.inv(b_grad_transf)
+
+    numpy.copyto(coeffs_x_final,
+                 numpy.add(coeffs_x * grad_transf_inv[0][0],
+                           coeffs_y * grad_transf_inv[1][0]))
+    numpy.copyto(coeffs_y_final,
+                 numpy.add(coeffs_x * grad_transf_inv[0][1],
+                           coeffs_y * grad_transf_inv[1][1]))
+
+    return (coeffs_x_final, coeffs_y_final)
+
+def get_points_local_ring_bg(numpy.ndarray[dtype = numpy.float64_t, \
+                                           ndim = 1] point        ,
+                             numpy.ndarray[dtype = numpy.float64_t, \
+                                           ndim = 1] oct_center   ,
+                             int n_axis                           ,
+                             int n_value                          ,
+                             int dim = 2):
+    # Index of quadrant.
+    cdef int ind_quad
+    cdef int fg_face
+    cdef double x_p = point[0]
+    cdef double y_p = point[1]
+    cdef double x_c = oct_center[0]
+    cdef double y_c = oct_center[1]
+    cdef double d_x = (x_p - x_c)
+    cdef double d_y = (y_p - y_c)
+    cdef double tol = 1.0e-12
+    cdef numpy.ndarray[dtype = numpy.uint8_t, mode = "c", ndim = 1] l_ring = \
+         numpy.zeros((3, ), dtype = numpy.uint8)
+
+    if (n_axis == 1):
+        if (n_value == 1):
+            fg_face = 3
+        elif (n_value == -1):
+            fg_face = 2
+    elif (n_axis == 0):
+        if (n_value == -1):
+            fg_face = 0
+        elif (n_value == 1):
+            fg_face = 1
+
+    if ((d_x >= tol) and (d_y >= tol)):
+        ind_quad = 0
+        #l_ring[0] = 1 # Face
+        #l_ring[1] = 3 # Node
+        #l_ring[2] = 3 # Face
+    elif ((d_x < tol) and (d_y > tol)):
+        ind_quad = 1
+        #l_ring[0] = 0 # Face
+        #l_ring[1] = 2 # Node
+        #l_ring[2] = 3 # Face
+    elif ((d_x <= tol) and (d_y < tol)):
+        ind_quad = 2
+        #l_ring[0] = 0 # Face
+        #l_ring[1] = 0 # Node
+        #l_ring[2] = 2 # Face
+    else:
+        ind_quad = 3
+        #l_ring[0] = 1 # Face
+        #l_ring[1] = 1 # Node
+        #l_ring[2] = 2 # Face
+
+    if (fg_face == 3):
+        if ((ind_quad == 1) or (ind_quad == 2)):
+            l_ring[0] = 0 # Face
+            l_ring[1] = 2 # Node
+            l_ring[2] = 3 # Face
+        elif ((ind_quad == 0) or (ind_quad == 3)):
+            l_ring[0] = 1 # Face
+            l_ring[1] = 3 # Node
+            l_ring[2] = 3 # Face
+    elif (fg_face == 2):
+        if ((ind_quad == 1) or (ind_quad == 2)):
+            l_ring[0] = 0 # Face
+            l_ring[1] = 0 # Node
+            l_ring[2] = 2 # Face
+        elif ((ind_quad == 0) or (ind_quad == 3)):
+            l_ring[0] = 1 # Face
+            l_ring[1] = 1 # Node
+            l_ring[2] = 2 # Face
+    elif (fg_face == 0):
+        if ((ind_quad == 1) or (ind_quad == 0)):
+            l_ring[0] = 0 # Face
+            l_ring[1] = 2 # Node
+            l_ring[2] = 3 # Face
+        elif ((ind_quad == 2) or (ind_quad == 3)):
+            l_ring[0] = 0 # Face
+            l_ring[1] = 0 # Node
+            l_ring[2] = 2 # Face
+    else: # \"fg_face == 1\"
+        if ((ind_quad == 1) or (ind_quad == 0)):
+            l_ring[0] = 1 # Face
+            l_ring[1] = 3 # Node
+            l_ring[2] = 3 # Face
+        elif ((ind_quad == 2) or (ind_quad == 3)):
+            l_ring[0] = 1 # Face
+            l_ring[1] = 1 # Node
+            l_ring[2] = 2 # Face
+
+    return l_ring.tolist()
+
 # Perspective transformation coefficients (linear coefficients).
 def p_t_coeffs(int dimension                                        ,
                numpy.ndarray[dtype = numpy.float64_t, ndim = 2] o_ps,  # Original points
